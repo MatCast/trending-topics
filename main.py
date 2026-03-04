@@ -14,9 +14,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def research_and_log(is_mock: bool = False, limit: int = None):
+def research_and_log(
+    is_mock: bool = False, limit: int = None, use_keywords: bool = True
+):
     """Fetches trending topics and logs them to Google Sheets, without drafting."""
-    logger.info(f"Starting Research & Log Only (Mock Mode: {is_mock}, Limit: {limit})")
+    logger.info(
+        f"Starting Research & Log Only (Mock Mode: {is_mock}, Limit: {limit}, Keywords: {use_keywords})"
+    )
     load_dotenv()
 
     # 1. Initialize logic
@@ -36,7 +40,7 @@ def research_and_log(is_mock: bool = False, limit: int = None):
     )
 
     # 2. Fetch Trending Topics
-    top_trends = researcher.fetch_trends(max_trends=limit)
+    top_trends = researcher.fetch_trends(max_trends=limit, use_keywords=use_keywords)
     if not top_trends:
         logger.info("No new trending topics found.")
         return []
@@ -57,13 +61,24 @@ def research_and_log(is_mock: bool = False, limit: int = None):
             ]
         )
     sheets_manager.append_rows(rows_to_append)
+
+    # 4. Format description column (index F) to CLIP so it doesn't wrap
+    sheets_manager.format_column("F:F", {"wrapStrategy": "CLIP"})
+
     return top_trends
 
 
-def main(is_mock: bool = False, limit: int = None, no_draft: bool = False):
+def main(
+    is_mock: bool = False,
+    limit: int = None,
+    no_draft: bool = False,
+    use_keywords: bool = True,
+):
     """Main flow coordinating research, logging, and drafting."""
     # 1. Research and Log
-    top_trends = research_and_log(is_mock=is_mock, limit=limit)
+    top_trends = research_and_log(
+        is_mock=is_mock, limit=limit, use_keywords=use_keywords
+    )
 
     if not top_trends or no_draft:
         if no_draft:
@@ -92,10 +107,31 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="AI Trend-to-LinkedIn Automation")
-    parser.add_argument("--live", action="store_true", help="Run in live mode (using real API keys and sheets)")
-    parser.add_argument("--limit", type=int, help="Override the maximum number of topics to process")
-    parser.add_argument("--no-draft", action="store_true", help="Only research and log trends, skip generating drafts")
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Run in live mode (using real API keys and sheets)",
+    )
+    parser.add_argument(
+        "--limit", type=int, help="Override the maximum number of topics to process"
+    )
+    parser.add_argument(
+        "--no-draft",
+        action="store_true",
+        help="Only research and log trends, skip generating drafts",
+    )
+    parser.add_argument(
+        "--no-filter",
+        action="store_false",
+        dest="use_keywords",
+        help="Disable keyword filtering for trends",
+    )
 
     args = parser.parse_args()
 
-    main(is_mock=not args.live, limit=args.limit, no_draft=args.no_draft)
+    main(
+        is_mock=not args.live,
+        limit=args.limit,
+        no_draft=args.no_draft,
+        use_keywords=args.use_keywords,
+    )

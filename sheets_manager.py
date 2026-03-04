@@ -47,7 +47,7 @@ class SheetsManager:
 
     def append_rows(self, rows: List[List[str]]) -> None:
         """Appends multiple rows to the Google Sheet.
-        Row format: [Timestamp, Source, Title, URL, TrendScore]"""
+        Row format: [Timestamp, Source, Title, URL, TrendScore, Description, Ups, Comments]"""
         if not rows:
             return
 
@@ -63,3 +63,15 @@ class SheetsManager:
         except Exception as e:
             logger.error(f"Failed to append rows to live sheet: {e}")
             raise
+
+    def format_column(self, range_label: str, format_dict: dict) -> None:
+        """Applies formatting to a specific range in the worksheet."""
+        if self.is_mock:
+            logger.info(f"[MOCK] Formatted range {range_label} with {format_dict}")
+            return
+
+        try:
+            self.worksheet.format(range_label, format_dict)
+            logger.info(f"[LIVE] Formatted range {range_label} in sheet {self.sheet_id}.")
+        except Exception as e:
+            logger.warning(f"Failed to apply formatting to {range_label}: {e}")

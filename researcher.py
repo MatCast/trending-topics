@@ -71,7 +71,9 @@ class TrendResearcher:
         """Calculates a trend score based on engagement metrics."""
         return (ups + (comments * 2)) * weight
 
-    def fetch_trends(self, max_trends: int = None) -> List[Dict[str, Any]]:
+    def fetch_trends(
+        self, max_trends: int = None, use_keywords: bool = True
+    ) -> List[Dict[str, Any]]:
         """
         Fetches trends from Reddit JSON and Hacker News RSS.
         Returns the top N trending topics PER source type.
@@ -80,7 +82,9 @@ class TrendResearcher:
         reddit_subs = config.get("reddit_subreddits", [])
         rss_feeds = config.get("rss_feeds", [])
         filters = config.get("filters", {})
-        keywords = [k.lower() for k in filters.get("keywords", [])]
+        keywords = []
+        if use_keywords:
+            keywords = [k.lower() for k in filters.get("keywords", [])]
 
         if max_trends is None:
             max_trends = int(os.environ.get("MAX_TOP_TRENDS", 3))
