@@ -46,14 +46,33 @@ Run the full automation and publish to your Google Sheet:
 python3 main.py --live
 ```
 
-#### Advanced CLI Options
-- `--limit N`: Override the number of topics to process (e.g., `--limit 5`). This bypasses the `MAX_TOP_TRENDS` environment variable.
-- `--no-draft`: Only run research and log trends to Google Sheets, skipping Gemini draft generation.
-- `--live`: Use live credentials; omit for a mocked run.
+### CLI Command Reference
 
-Example (Research 5 topics and log them only):
+The `main.py` script supports several flags to customize how the automation runs:
+
+| Flag | Description | Default |
+| :--- | :--- | :--- |
+| `--live` | Run in LIVE mode (uses real Gemini and Google Sheets APIs). | Mock Mode |
+| `--limit N` | Max trends to fetch **per source**. | `MAX_TOP_TRENDS` (env) or 3 |
+| `--hours N` | Lookback window in hours for trends. | `TIME_WINDOW_HOURS` (env) or 3 |
+| `--no-draft` | Only research and log trends; skip AI draft generation. | False |
+| `--no-filter` | Disable AI-related keyword filtering (fetches all rising content). | True (filtering enabled) |
+
+#### Examples
+
+**1. Daily AI Pulse (Last 3 hours, keyword filtered):**
 ```bash
-python3 main.py --live --limit 5 --no-draft
+python3 main.py --live --limit 3
+```
+
+**2. Broad Trend Research (Last 24 hours, no keyword filter, no drafting):**
+```bash
+python3 main.py --live --hours 24 --no-filter --no-draft
+```
+
+**3. Safety Calibration (Mocked run with high volume):**
+```bash
+python3 main.py --limit 10
 ```
 
 ## Project Structure

@@ -15,11 +15,14 @@ logger = logging.getLogger(__name__)
 
 
 def research_and_log(
-    is_mock: bool = False, limit: int = None, use_keywords: bool = True
+    is_mock: bool = False,
+    limit: int = None,
+    use_keywords: bool = True,
+    time_window: int = None,
 ):
     """Fetches trending topics and logs them to Google Sheets, without drafting."""
     logger.info(
-        f"Starting Research & Log Only (Mock Mode: {is_mock}, Limit: {limit}, Keywords: {use_keywords})"
+        f"Starting Research & Log Only (Mock Mode: {is_mock}, Limit: {limit}, Keywords: {use_keywords}, Window: {time_window}h)"
     )
     load_dotenv()
 
@@ -36,7 +39,7 @@ def research_and_log(
     researcher = TrendResearcher(
         sources_file="config/sources.json",
         sheets_manager=sheets_manager,
-        time_window_hours=3,
+        time_window_hours=time_window,
     )
 
     # 2. Fetch Trending Topics
@@ -73,11 +76,12 @@ def main(
     limit: int = None,
     no_draft: bool = False,
     use_keywords: bool = True,
+    time_window: int = None,
 ):
     """Main flow coordinating research, logging, and drafting."""
     # 1. Research and Log
     top_trends = research_and_log(
-        is_mock=is_mock, limit=limit, use_keywords=use_keywords
+        is_mock=is_mock, limit=limit, use_keywords=use_keywords, time_window=time_window
     )
 
     if not top_trends or no_draft:
@@ -126,6 +130,9 @@ if __name__ == "__main__":
         dest="use_keywords",
         help="Disable keyword filtering for trends",
     )
+    parser.add_argument(
+        "--hours", type=int, help="The lookback window in hours for trends"
+    )
 
     args = parser.parse_args()
 
@@ -134,4 +141,5 @@ if __name__ == "__main__":
         limit=args.limit,
         no_draft=args.no_draft,
         use_keywords=args.use_keywords,
+        time_window=args.hours,
     )

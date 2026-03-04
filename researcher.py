@@ -13,10 +13,14 @@ logger = logging.getLogger(__name__)
 
 class TrendResearcher:
     def __init__(
-        self, sources_file: str, sheets_manager=None, time_window_hours: int = 3
+        self, sources_file: str, sheets_manager=None, time_window_hours: int = None
     ):
         self.sources_file = sources_file
         self.sheets_manager = sheets_manager
+
+        if time_window_hours is None:
+            time_window_hours = int(os.environ.get("TIME_WINDOW_HOURS", 3))
+
         self.time_window_hours = time_window_hours
 
     def _load_sources(self) -> Dict[str, Any]:
