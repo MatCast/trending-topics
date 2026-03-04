@@ -4,7 +4,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 import time
 from typing import List, Dict, Any
-
+import requests
+import re
 import os
 
 logger = logging.getLogger(__name__)
@@ -33,31 +34,47 @@ class TrendResearcher:
         cutoff = now - timedelta(hours=self.time_window_hours)
         return published_dt >= cutoff
 
-    def _score_trend(self, entry, source_weight: float) -> float:
-        """
-        Calculates a trend score based on available metrics.
-        Attempts to find upvotes/points/comments in common RSS formats.
-        """
-        base_score = source_weight * 10
+    def _is_within_time_window_epoch(self, epoch_time: float) -> bool:
+        published_dt = datetime.fromtimestamp(epoch_time, tz=timezone.utc)
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(hours=self.time_window_hours)
+        return published_dt >= cutoff
 
-        # Try to find engagement metrics (Reddit, HN, etc often vary)
-        # Reddit RSS often doesn't give scores easily, but hnrss provides 'comments' tags
-        points = 0
+    def _strip_html(self, html_content: str) -> str:
+        """Simple regex to strip HTML tags and clean up whitespace."""
+        if not html_content:
+            return ""
 
-        # hnrss.github.io specifically puts comment counts in the entry
-        try:
-            # Check for generic 'comments' or custom tags
-            comments = int(entry.get("comments", 0))
-            points += (comments * 2)
-        except Exception:
-            pass
+        # Remove script and style elements
+        clean = re.sub(
+            r"<(script|style).*?>.*?</\1>", "", html_content, flags=re.DOTALL | re.IGNORECASE
+        )
+        # Strip all other HTML tags
+        clean = re.sub(r"<.*?>", " ", clean)
+        # Replace multiple spaces/newlines with single space
+        clean = re.sub(r"\s+", " ", clean).strip()
+        return clean
 
-        return base_score + points
+    def _parse_hn_metrics(self, summary: str) -> Dict[str, int]:
+        """Extracts points and comments from HN RSS summary."""
+        metrics = {"ups": 0, "comments": 0}
+        points_match = re.search(r"Points:\s*(\d+)", summary)
+        comments_match = re.search(r"# Comments:\s*(\d+)", summary)
+
+        if points_match:
+            metrics["ups"] = int(points_match.group(1))
+        if comments_match:
+            metrics["comments"] = int(comments_match.group(1))
+        return metrics
+
+    def _score_trend(self, ups: int, comments: int, weight: float) -> float:
+        """Calculates a trend score based on engagement metrics."""
+        return (ups + (comments * 2)) * weight
 
     def fetch_trends(self, max_trends: int = None) -> List[Dict[str, Any]]:
         """
-        Fetches RSS feeds, filters by time, scores them, and deduplicates against Google Sheets.
-        Returns the top trending topics.
+        Fetches trends from Reddit JSON and Hacker News RSS.
+        Returns the top N trending topics PER source type.
         """
         config = self._load_sources()
         reddit_subs = config.get("reddit_subreddits", [])
@@ -65,83 +82,126 @@ class TrendResearcher:
         filters = config.get("filters", {})
         keywords = [k.lower() for k in filters.get("keywords", [])]
 
-        all_trends = []
+        if max_trends is None:
+            max_trends = int(os.environ.get("MAX_TOP_TRENDS", 3))
 
-        # Build feeds to fetch
-        feeds_to_fetch = []
+        source_trends = {}  # Grouped by source name
+
+        # 1. Fetch Reddit Trends (JSON)
         for sub in reddit_subs:
-            feeds_to_fetch.append(
-                {
-                    "name": f"r/{sub}",
-                    "url": f"https://www.reddit.com/r/{sub}/rising.rss",
-                    "weight": 1.0,
-                }
-            )
-
-        for feed in rss_feeds:
-            feeds_to_fetch.append(feed)
-
-        logger.info(f"Fetching {len(feeds_to_fetch)} feeds...")
-
-        # Fetch and filter
-        for source in feeds_to_fetch:
+            source_name = f"r/{sub}"
+            source_trends[source_name] = []
+            url = f"https://www.reddit.com/r/{sub}/rising.json"
             try:
-                feed = feedparser.parse(source["url"])
-                if feed.bozo:
-                    logger.warning(
-                        f"Error parsing feed {source['name']}: {feed.bozo_exception}"
-                    )
-                    continue
+                # Use a proper User-Agent for Reddit
+                headers = {"User-Agent": "LinkedInTrendBot/1.0"}
+                resp = requests.get(url, headers=headers, timeout=10)
+                resp.raise_for_status()
+                data = resp.json()
 
-                for entry in feed.entries:
-                    title = entry.get("title", "No Title")
-                    description = entry.get("description", "")
-
-                    # 1. Time Filter
-                    if not self._is_within_time_window(entry.get("published_parsed")):
+                for child in data.get("data", {}).get("children", []):
+                    post = child.get("data", {})
+                    if not self._is_within_time_window_epoch(post.get("created_utc", 0)):
                         continue
 
-                    # 2. Keyword Filter (Targeting AI trends)
+                    title = post.get("title", "")
+                    # Reddit description is often empty for link posts
+                    description = post.get("selftext", "")
+
                     if keywords:
                         content_lower = (title + " " + description).lower()
                         if not any(k in content_lower for k in keywords):
                             continue
 
-                    score = self._score_trend(entry, source["weight"])
-                    all_trends.append(
+                    ups = post.get("ups", 0)
+                    comments = post.get("num_comments", 0)
+                    score = self._score_trend(ups, comments, 1.0)
+
+                    source_trends[source_name].append(
                         {
                             "timestamp": datetime.now(timezone.utc).isoformat(),
-                            "source": source["name"],
+                            "source": source_name,
+                            "title": title,
+                            "url": f"https://www.reddit.com{post.get('permalink', '')}",
+                            "description": description,
+                            "trend_score": score,
+                            "ups": ups,
+                            "comments": comments,
+                        }
+                    )
+            except Exception as e:
+                logger.error(f"Failed to fetch Reddit {source_name}: {e}")
+
+        # 2. Fetch RSS Trends (mostly Hacker News)
+        for source in rss_feeds:
+            source_name = source["name"]
+            source_trends[source_name] = []
+            try:
+                feed = feedparser.parse(source["url"])
+                for entry in feed.entries:
+                    if not self._is_within_time_window(entry.get("published_parsed")):
+                        continue
+
+                    title = entry.get("title", "No Title")
+                    raw_summary = entry.get("summary", "")
+                    description = self._strip_html(raw_summary)
+
+                    if keywords:
+                        content_lower = (title + " " + description).lower()
+                        if not any(k in content_lower for k in keywords):
+                            continue
+
+                    # Dynamic score parsing based on source
+                    ups, comments = 0, 0
+                    if "Hacker News" in source_name:
+                        hn_metrics = self._parse_hn_metrics(raw_summary)
+                        ups = hn_metrics["ups"]
+                        comments = hn_metrics["comments"]
+                    else:
+                        # Fallback for other RSS
+                        try:
+                            comments = int(entry.get("comments_count", 0))
+                        except (ValueError, TypeError):
+                            pass
+
+                    score = self._score_trend(ups, comments, source["weight"])
+                    source_trends[source_name].append(
+                        {
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "source": source_name,
                             "title": title,
                             "url": entry.get("link", ""),
                             "description": description,
                             "trend_score": score,
-                            "published_parsed": entry.get("published_parsed"),
+                            "ups": ups,
+                            "comments": comments,
                         }
                     )
             except Exception as e:
-                logger.error(f"Failed to fetch {source['name']}: {e}")
+                logger.error(f"Failed to fetch RSS {source_name}: {e}")
 
-        # Deduplicate globally by URL (and against existing sheet)
+        # Final Deduplication and Top N per source selection
         existing_urls = set()
         if self.sheets_manager:
             existing_urls = self.sheets_manager.get_existing_urls()
 
-        unique_trends = []
+        final_top_trends = []
         seen_urls = set(existing_urls)
 
-        for trend in all_trends:
-            if trend["url"] not in seen_urls:
-                seen_urls.add(trend["url"])
-                unique_trends.append(trend)
+        for source_name, trends in source_trends.items():
+            # Sort individual source
+            trends.sort(key=lambda x: x["trend_score"], reverse=True)
 
-        # Sort by trend_score descending and get top trends limit from param or env
-        unique_trends.sort(key=lambda x: x["trend_score"], reverse=True)
+            source_selected = 0
+            for trend in trends:
+                if source_selected >= max_trends:
+                    break
+                if trend["url"] not in seen_urls:
+                    seen_urls.add(trend["url"])
+                    final_top_trends.append(trend)
+                    source_selected += 1
 
-        if max_trends is None:
-            max_trends = int(os.environ.get("MAX_TOP_TRENDS", 3))
-
-        top_trends = unique_trends[:max_trends]
-
-        logger.info(f"Found {len(top_trends)} top trending topics after filtering.")
-        return top_trends
+        logger.info(
+            f"Filtered to {len(final_top_trends)} top trends total ({max_trends} per source)."
+        )
+        return final_top_trends

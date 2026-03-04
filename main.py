@@ -51,6 +51,9 @@ def research_and_log(is_mock: bool = False, limit: int = None):
                 t.get("title"),
                 t.get("url"),
                 str(t.get("trend_score")),
+                t.get("description"),
+                str(t.get("ups", 0)),
+                str(t.get("comments", 0)),
             ]
         )
     sheets_manager.append_rows(rows_to_append)

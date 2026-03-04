@@ -26,6 +26,7 @@ class ContentDrafter:
 
         Topic Title: {trend.get("title")}
         Source Link: {trend.get("url")}
+        Engagement: {trend.get("ups", 0)} upvotes, {trend.get("comments", 0)} comments
         Description: {trend.get("description", "N/A")}
 
         Style Requirements:

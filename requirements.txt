@@ -2,3 +2,4 @@ google-genai
 feedparser
 gspread
 python-dotenv
+lxml
