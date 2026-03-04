@@ -1,8 +1,9 @@
 import gspread
 import logging
-from typing import List, Dict
+from typing import List
 
 logger = logging.getLogger(__name__)
+
 
 class SheetsManager:
     """Manages appending rows and deduplicating URLs in Google Sheets.
@@ -17,8 +18,8 @@ class SheetsManager:
             try:
                 self.gc = gspread.service_account(filename=service_account_file)
                 # In a real environment, you'd open by URL/ID:
-                # self.spreadsheet = self.gc.open_by_key(self.sheet_id)
-                # self.worksheet = self.spreadsheet.sheet1
+                self.spreadsheet = self.gc.open_by_key(self.sheet_id)
+                self.worksheet = self.spreadsheet.sheet1
                 logger.debug("SheetsManager initialized in LIVE mode.")
             except Exception as e:
                 logger.error(f"Failed to initialize live SheetsManager: {e}")
@@ -34,9 +35,11 @@ class SheetsManager:
 
         # Live implementation:
         try:
-            # records = self.worksheet.get_all_values()
-            # return {row[3] for row in records[1:] if len(row) > 3}  # Skip header
-            logger.warning("Live get_existing_urls not fully implemented, returning empty set.")
+            records = self.worksheet.get_all_values()
+            return {row[3] for row in records[1:] if len(row) > 3}  # Skip header
+            logger.warning(
+                "Live get_existing_urls not fully implemented, returning empty set."
+            )
             return set()
         except Exception as e:
             logger.error(f"Failed to fetch existing URLs: {e}")
@@ -55,7 +58,7 @@ class SheetsManager:
 
         # Live implementation:
         try:
-            # self.worksheet.append_rows(rows)
+            self.worksheet.append_rows(rows)
             logger.info(f"[LIVE] Appended {len(rows)} rows to sheet {self.sheet_id}.")
         except Exception as e:
             logger.error(f"Failed to append rows to live sheet: {e}")

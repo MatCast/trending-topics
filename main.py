@@ -14,8 +14,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def main(is_mock: bool = False):
-    logger.info(f"Starting AI Trend-to-LinkedIn Automation (Mock Mode: {is_mock})")
+def research_and_log(is_mock: bool = False, limit: int = None):
+    """Fetches trending topics and logs them to Google Sheets, without drafting."""
+    logger.info(f"Starting Research & Log Only (Mock Mode: {is_mock}, Limit: {limit})")
     load_dotenv()
 
     # 1. Initialize logic
@@ -34,13 +35,11 @@ def main(is_mock: bool = False):
         time_window_hours=3,
     )
 
-    drafter = ContentDrafter(templates_file="config/templates.json")
-
-    # 2. Fetch Top 3 Trending Topics
-    top_trends = researcher.fetch_trends()
+    # 2. Fetch Trending Topics
+    top_trends = researcher.fetch_trends(max_trends=limit)
     if not top_trends:
-        logger.info("No new trending topics found in the last 3 hours.")
-        return
+        logger.info("No new trending topics found.")
+        return []
 
     # 3. Log to Google Sheets
     rows_to_append = []
@@ -55,12 +54,27 @@ def main(is_mock: bool = False):
             ]
         )
     sheets_manager.append_rows(rows_to_append)
+    return top_trends
 
-    # 4. Generate Drafts
+
+def main(is_mock: bool = False, limit: int = None, no_draft: bool = False):
+    """Main flow coordinating research, logging, and drafting."""
+    # 1. Research and Log
+    top_trends = research_and_log(is_mock=is_mock, limit=limit)
+
+    if not top_trends or no_draft:
+        if no_draft:
+            logger.info("Drafting skipped as requested.")
+        return
+
+    # 2. Initialize Drafter
+    drafter = ContentDrafter(templates_file="config/templates.json")
+
+    # 3. Generate Drafts
     logger.info("Generating drafts for top trends...")
     drafts_text = drafter.generate_all_drafts(top_trends, is_mock=is_mock)
 
-    # 5. Save output
+    # 4. Save output
     os.makedirs("drafts", exist_ok=True)
     timestamp_str = datetime.now().strftime("%Y-%m-%d_%H%M")
     filename = f"drafts/{timestamp_str}.txt"
@@ -72,8 +86,13 @@ def main(is_mock: bool = False):
 
 
 if __name__ == "__main__":
-    import sys
+    import argparse
 
-    # Pass --live to run the live mode
-    run_live = "--live" in sys.argv
-    main(is_mock=not run_live)
+    parser = argparse.ArgumentParser(description="AI Trend-to-LinkedIn Automation")
+    parser.add_argument("--live", action="store_true", help="Run in live mode (using real API keys and sheets)")
+    parser.add_argument("--limit", type=int, help="Override the maximum number of topics to process")
+    parser.add_argument("--no-draft", action="store_true", help="Only research and log trends, skip generating drafts")
+
+    args = parser.parse_args()
+
+    main(is_mock=not args.live, limit=args.limit, no_draft=args.no_draft)

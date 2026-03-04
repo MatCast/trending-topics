@@ -5,6 +5,8 @@ from datetime import datetime, timedelta, timezone
 import time
 from typing import List, Dict, Any
 
+import os
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,21 +36,34 @@ class TrendResearcher:
     def _score_trend(self, entry, source_weight: float) -> float:
         """
         Calculates a trend score based on available metrics.
-        In reddit RSS, <content> might contain score but it's hard to parse reliably from standard RSS.
-        For simplicity, we use the source_weight and give newer posts higher scores.
+        Attempts to find upvotes/points/comments in common RSS formats.
         """
-        score = source_weight * 10
-        # If we could parse upvotes here, we would multiply by upvotes
-        return score
+        base_score = source_weight * 10
 
-    def fetch_trends(self) -> List[Dict[str, Any]]:
+        # Try to find engagement metrics (Reddit, HN, etc often vary)
+        # Reddit RSS often doesn't give scores easily, but hnrss provides 'comments' tags
+        points = 0
+
+        # hnrss.github.io specifically puts comment counts in the entry
+        try:
+            # Check for generic 'comments' or custom tags
+            comments = int(entry.get("comments", 0))
+            points += (comments * 2)
+        except Exception:
+            pass
+
+        return base_score + points
+
+    def fetch_trends(self, max_trends: int = None) -> List[Dict[str, Any]]:
         """
         Fetches RSS feeds, filters by time, scores them, and deduplicates against Google Sheets.
-        Returns the top 3 trending topics.
+        Returns the top trending topics.
         """
         config = self._load_sources()
         reddit_subs = config.get("reddit_subreddits", [])
         rss_feeds = config.get("rss_feeds", [])
+        filters = config.get("filters", {})
+        keywords = [k.lower() for k in filters.get("keywords", [])]
 
         all_trends = []
 
@@ -79,19 +94,31 @@ class TrendResearcher:
                     continue
 
                 for entry in feed.entries:
-                    if self._is_within_time_window(entry.get("published_parsed")):
-                        score = self._score_trend(entry, source["weight"])
-                        all_trends.append(
-                            {
-                                "timestamp": datetime.now(timezone.utc).isoformat(),
-                                "source": source["name"],
-                                "title": entry.get("title", "No Title"),
-                                "url": entry.get("link", ""),
-                                "description": entry.get("description", ""),
-                                "trend_score": score,
-                                "published_parsed": entry.get("published_parsed"),
-                            }
-                        )
+                    title = entry.get("title", "No Title")
+                    description = entry.get("description", "")
+
+                    # 1. Time Filter
+                    if not self._is_within_time_window(entry.get("published_parsed")):
+                        continue
+
+                    # 2. Keyword Filter (Targeting AI trends)
+                    if keywords:
+                        content_lower = (title + " " + description).lower()
+                        if not any(k in content_lower for k in keywords):
+                            continue
+
+                    score = self._score_trend(entry, source["weight"])
+                    all_trends.append(
+                        {
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "source": source["name"],
+                            "title": title,
+                            "url": entry.get("link", ""),
+                            "description": description,
+                            "trend_score": score,
+                            "published_parsed": entry.get("published_parsed"),
+                        }
+                    )
             except Exception as e:
                 logger.error(f"Failed to fetch {source['name']}: {e}")
 
@@ -108,9 +135,13 @@ class TrendResearcher:
                 seen_urls.add(trend["url"])
                 unique_trends.append(trend)
 
-        # Sort by trend_score descending and get top 3
+        # Sort by trend_score descending and get top trends limit from param or env
         unique_trends.sort(key=lambda x: x["trend_score"], reverse=True)
-        top_trends = unique_trends[:3]
+
+        if max_trends is None:
+            max_trends = int(os.environ.get("MAX_TOP_TRENDS", 3))
+
+        top_trends = unique_trends[:max_trends]
 
         logger.info(f"Found {len(top_trends)} top trending topics after filtering.")
         return top_trends
