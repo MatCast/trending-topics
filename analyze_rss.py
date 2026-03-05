@@ -3,7 +3,7 @@ import json
 
 urls = {
     "Reddit": "https://www.reddit.com/r/LocalLLaMA/rising.rss",
-    "HackerNews": "https://hnrss.org/newest?q=AI"
+    "HackerNews": "https://hnrss.org/newest?q=AI",
 }
 
 for name, url in urls.items():
@@ -20,19 +20,20 @@ for name, url in urls.items():
     print(f"Keys available in entry: {list(entry.keys())}")
 
     # Print some interesting fields
-    for k in ['title', 'link', 'comments', 'author', 'tags']:
+    for k in ["title", "link", "comments", "author", "tags"]:
         if k in entry:
             print(f"- {k}: {entry[k]}")
 
     # Print the description/content raw to see if points/upvotes are hidden there
-    if 'content' in entry:
+    if "content" in entry:
         print("\nContent snippet:")
         print(repr(entry.content[0].value)[:500])
-    elif 'description' in entry:
+    elif "description" in entry:
         print("\nDescription snippet:")
         print(repr(entry.description)[:500])
 
     print("\nFull entry structure (JSON):")
+
     # Helper to serialize feedparser dict
     def clean_dict(d):
         cleaned = {}

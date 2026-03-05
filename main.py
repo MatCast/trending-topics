@@ -22,7 +22,8 @@ def research_and_log(
 ):
     """Fetches trending topics and logs them to Google Sheets, without drafting."""
     logger.info(
-        f"Starting Research & Log Only (Mock Mode: {is_mock}, Limit: {limit}, Keywords: {use_keywords}, Window: {time_window}h)"
+        f"Starting Research & Log Only (Mock Mode: {is_mock}, "
+        f"Limit: {limit}, Keywords: {use_keywords}, Window: {time_window}h)"
     )
     load_dotenv()
 

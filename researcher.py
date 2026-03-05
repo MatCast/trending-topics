@@ -172,13 +172,18 @@ class TrendResearcher:
                         except (ValueError, TypeError):
                             pass
 
+                    # For Hacker News, use the thread URL (comments field) instead of external link
+                    entry_url = entry.get("link", "")
+                    if "Hacker News" in source_name and entry.get("comments"):
+                        entry_url = entry.get("comments")
+
                     score = self._score_trend(ups, comments, source["weight"])
                     source_trends[source_name].append(
                         {
                             "timestamp": datetime.now(timezone.utc).isoformat(),
                             "source": source_name,
                             "title": title,
-                            "url": entry.get("link", ""),
+                            "url": entry_url,
                             "description": description,
                             "trend_score": score,
                             "ups": ups,
