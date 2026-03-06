@@ -25,3 +25,10 @@
 ## 5. Verification
 - [x] Write mock test suite.
 - [x] Verify local generation works.
+
+## 6. Multi-Agent Architecture
+- [x] Create `.agent/rules/architect.md` (Main Agent Rules).
+- [x] Create `headless.md` (Gemini CLI Sub-agent Rules).
+- [x] Create `plan.md` (Shared State / Single Source of Truth).
+- [ ] Enable Terminal Access (Auto) for Antigravity Agent in UI.
+- [ ] Configure Model Selection (Gemini 3 Pro for main, 2.0 Flash for CLI sub-agents).
