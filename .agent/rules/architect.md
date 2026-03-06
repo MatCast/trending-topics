@@ -1,4 +1,5 @@
 ---
+trigger: always_on
 description: Main Agent Architect Rules
 ---
 
