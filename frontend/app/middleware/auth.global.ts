@@ -1,14 +1,14 @@
 /**
  * Global auth middleware — redirects unauthenticated users to /login.
  */
-export default defineNuxtRouteMiddleware((to) => {
+export default defineNuxtRouteMiddleware(async (to) => {
   // Skip auth check for login page
   if (to.path === '/login') return
 
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, waitForAuth } = useAuth()
 
-  // Wait for auth to initialize
-  if (isLoading.value) return
+  // Wait for auth to initialize on the client
+  await waitForAuth()
 
   if (!isAuthenticated.value) {
     return navigateTo('/login')

@@ -53,6 +53,21 @@ export function useAuth() {
 
   const isAuthenticated = computed(() => !!user.value)
 
+  /**
+   * Returns a promise that resolves when the auth state is initialized.
+   */
+  async function waitForAuth(): Promise<void> {
+    if (import.meta.server || !isLoading.value) return
+    return new Promise((resolve) => {
+      const stop = watch(isLoading, (loading) => {
+        if (!loading) {
+          stop()
+          resolve()
+        }
+      })
+    })
+  }
+
   return {
     user: readonly(user),
     isLoading: readonly(isLoading),
@@ -60,5 +75,6 @@ export function useAuth() {
     signInWithGoogle,
     signOut,
     getIdToken,
+    waitForAuth,
   }
 }
