@@ -1,4 +1,4 @@
-# Global Project Context (Sub-agents)
+# Global Project Context
 
 This file provides critical environment and repository context for you to operate safely.
 
@@ -17,13 +17,11 @@ This file provides critical environment and repository context for you to operat
 - **Secrets**: Do **NOT** hardcode API keys. Use `.env.example` as a template and read from `.env`.
 
 ## Project Structure
-- **Backend (API)**: Located in `backend/app/`. This is the primary application logic for the full-stack version.
-- **Frontend (UI)**: Located in `frontend/app/`. Nuxt.js/DaisyUI application.
-- **Root Files**: `researcher.py`, `parsers.py`, `main.py` at the root are legacy CLI files and should not be modified for backend API tasks.
+- **Backend (API)**: Located in `backend/`. This is the primary application logic for the full-stack version. FastApi application.
+- **Frontend (UI)**: Located in `frontend/`. Nuxt.js/DaisyUI application.
 - `config/`: Configuration files and legacy sources.
 - `tasks/`: Project logs, todo lists, and lessons.
 - `plan.md`: The current master plan. Always respect it.
 
 ## Coding Standards
-- Follow the patterns in `main.py` and existing `parsers.py`.
 - Write tests in `tests/` for new functionality.
