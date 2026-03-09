@@ -137,7 +137,7 @@
         </div>
 
         <!-- Bluesky -->
-        <div class="p-4 bg-base-200 rounded-xl">
+        <div class="p-4 bg-base-200 rounded-xl mb-4">
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-3">
               <span class="text-xl">🦋</span>
@@ -147,6 +147,22 @@
               </div>
             </div>
             <input type="checkbox" class="toggle toggle-primary" v-model="enableBluesky" />
+          </div>
+        </div>
+
+        <!-- Indie Hackers -->
+        <div class="p-4 bg-base-200 rounded-xl">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-3">
+              <svg class="w-6 h-6 text-indigo-600" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 4c1.105 0 2 .895 2 2s-.895 2-2 2-2-.895-2-2 .895-2 2-2zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm6 6H6v-1.5c0-1.93 1.57-3.5 3.5-3.5h5c1.93 0 3.5 1.57 3.5 3.5V20z"/>
+              </svg>
+              <div>
+                <h3 class="font-semibold">Indie Hackers</h3>
+                <p class="text-xs text-base-content/60">Top stories from Indie Hackers RSS feed</p>
+              </div>
+            </div>
+            <input type="checkbox" class="toggle toggle-primary" v-model="enableIH" />
           </div>
         </div>
 
@@ -253,6 +269,7 @@ function addRedditSource() {
 // Step 3: Other sources
 const enableHN = ref(true)
 const enableBluesky = ref(false)
+const enableIH = ref(true)
 
 // Step 4: Preferences
 const timeWindowHours = ref(3)
@@ -297,6 +314,20 @@ async function saveAndContinue() {
         body: {
           type: 'bluesky',
           name: 'Bluesky',
+          enabled: true,
+          use_global_keywords: true,
+          params: {},
+        },
+      })
+    }
+
+    // Save Indie Hackers source if enabled
+    if (enableIH.value) {
+      await apiFetch('/api/sources', {
+        method: 'POST',
+        body: {
+          type: 'indiehackers',
+          name: 'Indie Hackers',
           enabled: true,
           use_global_keywords: true,
           params: {},

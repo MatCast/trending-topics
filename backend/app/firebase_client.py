@@ -99,11 +99,12 @@ def list_sources(uid: str) -> List[Dict[str, Any]]:
 
 
 def create_source(uid: str, source_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Create a new source config. Prevents duplicates for reddit subreddits."""
+    """Create a new source config. Prevents duplicates."""
     db = get_db()
+    source_type = source_data.get("type", "")
 
-    # Check for duplicate Reddit source
-    if source_data.get("type") == "reddit":
+    # Check for duplicate Reddit source (by subreddit name)
+    if source_type == "reddit":
         subreddit = source_data.get("params", {}).get("subreddit", "").lower()
         if subreddit:
             existing = (
@@ -115,6 +116,19 @@ def create_source(uid: str, source_data: Dict[str, Any]) -> Dict[str, Any]:
                 if doc.to_dict().get("params", {}).get("subreddit", "").lower() == subreddit:
                     logger.warning(f"Subreddit r/{subreddit} already exists for user {uid}")
                     return {"id": doc.id, **doc.to_dict(), "existed": True}
+    else:
+        # Singleton sources (hackernews, bluesky, indiehackers): only one per type
+        existing = (
+            db.collection("users").document(uid).collection("sources")
+            .where("type", "==", source_type)
+            .stream()
+        )
+        for doc in existing:
+            # Re-enable the existing source instead of creating a duplicate
+            doc.reference.update({"enabled": True})
+            updated = doc.reference.get().to_dict()
+            logger.info(f"Source '{source_type}' already exists for user {uid}, re-enabled it.")
+            return {"id": doc.id, **updated, "existed": True}
 
     source_data["created_at"] = datetime.now(timezone.utc)
     sources_ref = db.collection("users").document(uid).collection("sources")
@@ -177,26 +191,27 @@ def list_results(
     db = get_db()
     query = db.collection("users").document(uid).collection("results")
 
-    # Filter by source type
-    if source_type:
-        query = query.where("source_type", "==", source_type)
-
     # Sort
     direction = firestore.Query.DESCENDING if sort_order == "desc" else firestore.Query.ASCENDING
     query = query.order_by(sort_by, direction=direction)
 
-    # Filtering for expired results in memory to avoid needing complex composite indexes
-    # for every possible sort_by field.
+    # Filtering for expired results and source_type in memory to avoid needing complex composite indexes
+    # for every possible sort_by field and source_type combination.
     now = datetime.now(timezone.utc)
 
     # Get total count
     all_docs = list(query.stream())
 
     # Filter in memory
-    filtered_docs = [
-        doc for doc in all_docs
-        if doc.to_dict().get("expires_at", now + timedelta(days=1)) > now
-    ]
+    filtered_docs = []
+    for doc in all_docs:
+        data = doc.to_dict()
+        if source_type and data.get("source_type") != source_type:
+            continue
+        if data.get("expires_at", now + timedelta(days=1)) <= now:
+            continue
+        filtered_docs.append(doc)
+
     total = len(filtered_docs)
 
     # Paginate

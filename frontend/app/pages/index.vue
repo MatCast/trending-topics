@@ -72,6 +72,16 @@
       >
         🦋 Bluesky
       </button>
+      <button
+        class="btn btn-sm gap-1"
+        :class="activeFilter === 'indiehackers' ? 'btn-primary' : 'btn-ghost'"
+        @click="activeFilter = 'indiehackers'"
+      >
+        <svg class="w-4 h-4 text-indigo-600" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 4c1.105 0 2 .895 2 2s-.895 2-2 2-2-.895-2-2 .895-2 2-2zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm6 6H6v-1.5c0-1.93 1.57-3.5 3.5-3.5h5c1.93 0 3.5 1.57 3.5 3.5V20z"/>
+        </svg>
+        Indie Hackers
+      </button>
 
       <!-- Sort -->
       <div class="ml-auto">
@@ -150,6 +160,10 @@
                 <span v-else-if="result.source_type === 'hackernews'" class="text-lg font-bold text-orange-400">Y</span>
                 <!-- Bluesky icon -->
                 <span v-else-if="result.source_type === 'bluesky'" class="text-lg">🦋</span>
+                <!-- Indie Hackers icon -->
+                <svg v-else-if="result.source_type === 'indiehackers'" class="w-5 h-5 text-indigo-600" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 4c1.105 0 2 .895 2 2s-.895 2-2 2-2-.895-2-2 .895-2 2-2zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm6 6H6v-1.5c0-1.93 1.57-3.5 3.5-3.5h5c1.93 0 3.5 1.57 3.5 3.5V20z"/>
+                </svg>
                 <!-- Unknown -->
                 <span v-else class="text-lg">📰</span>
               </div>

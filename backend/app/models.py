@@ -1,7 +1,7 @@
 """Pydantic models for request/response validation."""
 
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict
 from datetime import datetime
 from enum import Enum
 
@@ -12,6 +12,7 @@ class SourceType(str, Enum):
     REDDIT = "reddit"
     HACKERNEWS = "hackernews"
     BLUESKY = "bluesky"
+    INDIEHACKERS = "indiehackers"
 
 
 class ScheduleType(str, Enum):
@@ -125,6 +126,7 @@ class AdminConfig(BaseModel):
         "reddit": 1.0,
         "hackernews": 1.0,
         "bluesky": 1.0,
+        "indiehackers": 1.0,
     })
     default_retention_days: int = 15
 

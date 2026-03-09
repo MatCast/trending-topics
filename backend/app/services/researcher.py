@@ -51,6 +51,13 @@ def run_extraction(
 
     # Only process enabled sources
     enabled_sources = [s for s in sources if s.get("enabled", True)]
+    disabled_sources = [s for s in sources if not s.get("enabled", True)]
+
+    logger.info(
+        f"Sources: {len(enabled_sources)} enabled, {len(disabled_sources)} disabled. "
+        f"Enabled: {[s.get('name') for s in enabled_sources]}. "
+        f"Disabled: {[s.get('name') for s in disabled_sources]}."
+    )
 
     for source_config in enabled_sources:
         source_type = source_config.get("type", "")

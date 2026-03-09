@@ -100,6 +100,25 @@
           <p class="text-base-content/60 text-sm">Search posts using your global keywords.</p>
         </div>
       </div>
+
+      <!-- Indie Hackers Section -->
+      <div class="card bg-base-100 shadow-xl border border-base-300">
+        <div class="card-body">
+          <div class="flex items-center justify-between">
+            <h2 class="card-title gap-2">
+              <svg class="w-6 h-6 text-indigo-600" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 4c1.105 0 2 .895 2 2s-.895 2-2 2-2-.895-2-2 .895-2 2-2zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm6 6H6v-1.5c0-1.93 1.57-3.5 3.5-3.5h5c1.93 0 3.5 1.57 3.5 3.5V20z"/>
+              </svg>
+              Indie Hackers
+            </h2>
+            <div v-if="ihSource">
+              <input type="checkbox" class="toggle toggle-success" v-model="ihSource.enabled" @change="toggleSource(ihSource)" />
+            </div>
+            <button v-else class="btn btn-primary btn-sm" @click="addIHSource">Enable</button>
+          </div>
+          <p class="text-base-content/60 text-sm">Top stories from Indie Hackers RSS feed.</p>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -116,6 +135,7 @@ const newSubreddit = ref('')
 const redditSources = computed(() => sources.value.filter(s => s.type === 'reddit'))
 const hnSource = computed(() => sources.value.find(s => s.type === 'hackernews') || null)
 const blueskySource = computed(() => sources.value.find(s => s.type === 'bluesky') || null)
+const ihSource = computed(() => sources.value.find(s => s.type === 'indiehackers') || null)
 
 async function fetchSources() {
   isLoading.value = true
@@ -181,7 +201,7 @@ async function addRedditSource() {
 
 async function addHNSource() {
   try {
-    const newSource = await apiFetch<any>('/api/sources', {
+    await apiFetch<any>('/api/sources', {
       method: 'POST',
       body: {
         type: 'hackernews',
@@ -191,7 +211,7 @@ async function addHNSource() {
         params: { url: 'https://hnrss.org/newest?points=10' },
       },
     })
-    sources.value.push(newSource)
+    await fetchSources()
   } catch (error) {
     console.error('Failed to add HN source:', error)
   }
@@ -199,7 +219,7 @@ async function addHNSource() {
 
 async function addBlueskySource() {
   try {
-    const newSource = await apiFetch<any>('/api/sources', {
+    await apiFetch<any>('/api/sources', {
       method: 'POST',
       body: {
         type: 'bluesky',
@@ -209,9 +229,27 @@ async function addBlueskySource() {
         params: {},
       },
     })
-    sources.value.push(newSource)
+    await fetchSources()
   } catch (error) {
     console.error('Failed to add Bluesky source:', error)
+  }
+}
+
+async function addIHSource() {
+  try {
+    await apiFetch<any>('/api/sources', {
+      method: 'POST',
+      body: {
+        type: 'indiehackers',
+        name: 'Indie Hackers',
+        enabled: true,
+        use_global_keywords: true,
+        params: {},
+      },
+    })
+    await fetchSources()
+  } catch (error) {
+    console.error('Failed to add Indie Hackers source:', error)
   }
 }
 

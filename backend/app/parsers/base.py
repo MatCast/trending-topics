@@ -1,7 +1,6 @@
 """Base parser class and factory function."""
 
 import logging
-from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -50,6 +49,7 @@ def get_parser(
     from .reddit import RedditParser
     from .hackernews import HackerNewsParser
     from .bluesky import BlueskyParser
+    from .indiehackers import IndieHackersParser
 
     source_type = source_type.lower()
     if source_type == "reddit":
@@ -58,5 +58,7 @@ def get_parser(
         return HackerNewsParser(source_name, time_window_hours, keywords, weight, params)
     elif source_type == "bluesky":
         return BlueskyParser(source_name, time_window_hours, keywords, weight, params)
+    elif source_type == "indiehackers":
+        return IndieHackersParser(source_name, time_window_hours, keywords, weight, params)
     else:
         raise ValueError(f"Unknown source type: '{source_type}'")

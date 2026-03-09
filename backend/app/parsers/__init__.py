@@ -4,6 +4,7 @@ from .base import TrendParser, get_parser
 from .reddit import RedditParser
 from .hackernews import HackerNewsParser
 from .bluesky import BlueskyParser
+from .indiehackers import IndieHackersParser
 
 __all__ = [
     "TrendParser",
@@ -11,4 +12,5 @@ __all__ = [
     "RedditParser",
     "HackerNewsParser",
     "BlueskyParser",
+    "IndieHackersParser",
 ]
