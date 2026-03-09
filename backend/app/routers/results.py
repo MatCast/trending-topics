@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 
 from ..auth import verify_firebase_token
-from ..models import ResultsListResponse, TrendResultResponse
+from ..models import ResultsListResponse
 from .. import firebase_client as fb
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,10 @@ router = APIRouter(prefix="/api/results", tags=["results"])
 @router.get("", response_model=ResultsListResponse)
 async def list_results(
     source_type: Optional[str] = Query(None, description="Filter by source type: reddit, hackernews, bluesky"),
-    sort_by: str = Query("created_at", description="Sort field: created_at, trend_score, ups, comments"),
+    sort_by: str = Query(
+        "created_at",
+        description="Sort field: created_at, trend_score, ups, comments, title, source"
+    ),
     sort_order: str = Query("desc", description="Sort direction: asc or desc"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),

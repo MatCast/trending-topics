@@ -80,6 +80,8 @@
           <option value="trend_score">Highest Score</option>
           <option value="ups">Most Upvotes</option>
           <option value="comments">Most Comments</option>
+          <option value="title">Title</option>
+          <option value="source">Source</option>
         </select>
       </div>
     </div>
@@ -106,12 +108,30 @@
       <table class="table table-zebra w-full">
         <thead>
           <tr>
-            <th class="w-12">Source</th>
-            <th>Title</th>
-            <th class="w-20 text-right cursor-pointer hover:text-primary" @click="sortBy = 'trend_score'">Score</th>
-            <th class="w-16 text-right cursor-pointer hover:text-primary" @click="sortBy = 'ups'">👍</th>
-            <th class="w-16 text-right cursor-pointer hover:text-primary" @click="sortBy = 'comments'">💬</th>
-            <th class="w-32">Date</th>
+            <th class="w-12 cursor-pointer hover:text-primary select-none" @click="toggleSort('source')">
+              Source
+              <span v-if="sortBy === 'source'" class="ml-1">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th class="cursor-pointer hover:text-primary select-none" @click="toggleSort('title')">
+              Title
+              <span v-if="sortBy === 'title'" class="ml-1">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th class="w-20 text-right cursor-pointer hover:text-primary select-none" @click="toggleSort('trend_score')">
+              Score
+              <span v-if="sortBy === 'trend_score'" class="ml-1">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th class="w-16 text-right cursor-pointer hover:text-primary select-none" @click="toggleSort('ups')">
+              👍
+              <span v-if="sortBy === 'ups'" class="ml-1">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th class="w-16 text-right cursor-pointer hover:text-primary select-none" @click="toggleSort('comments')">
+              💬
+              <span v-if="sortBy === 'comments'" class="ml-1">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th class="w-32 cursor-pointer hover:text-primary select-none" @click="toggleSort('created_at')">
+              Date
+              <span v-if="sortBy === 'created_at'" class="ml-1">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -181,6 +201,7 @@ const totalResults = ref(0)
 const page = ref(1)
 const pageSize = ref(50)
 const sortBy = ref('created_at')
+const sortOrder = ref<'asc' | 'desc'>('desc')
 const activeFilter = ref<string | null>(null)
 const isLoadingResults = ref(true)
 const isExtracting = ref(false)
@@ -198,7 +219,7 @@ async function fetchResults() {
   try {
     const params = new URLSearchParams({
       sort_by: sortBy.value,
-      sort_order: 'desc',
+      sort_order: sortOrder.value,
       page: String(page.value),
       page_size: String(pageSize.value),
     })
@@ -213,6 +234,16 @@ async function fetchResults() {
     console.error('Failed to fetch results:', error)
   } finally {
     isLoadingResults.value = false
+  }
+}
+
+// Toggle sorting
+function toggleSort(field: string) {
+  if (sortBy.value === field) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortBy.value = field
+    sortOrder.value = 'desc'
   }
 }
 
@@ -261,7 +292,7 @@ function formatDate(dateStr: string) {
 }
 
 // Watch for filter/sort/page changes
-watch([sortBy, activeFilter, page], () => fetchResults())
+watch([sortBy, sortOrder, activeFilter, page], () => fetchResults())
 
 // Initial load
 onMounted(() => fetchResults())

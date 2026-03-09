@@ -42,4 +42,5 @@
 ## Bugs
 - [x] Make reddit rubreddits unique: a user cannot add a subreddit which is already added.
 - [x] In settings: when a user adds a keyword simply adding it or removing it should make the change take effect without having to save.
+- [x] Implement ascending/descending sorting by clicking on column headers in the dashboard.
 
