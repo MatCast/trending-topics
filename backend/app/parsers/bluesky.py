@@ -45,65 +45,79 @@ class BlueskyParser(TrendParser):
         if not self.session:
             self._create_session()
 
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(hours=self.time_window_hours)
+
         url = "https://bsky.social/xrpc/app.bsky.feed.searchPosts"
-        query = " OR ".join(self.keywords) if self.keywords else "AI"
-        params = {"q": query, "sort": "top", "limit": 50}
 
         headers = {"User-Agent": "LinkedInTrendBot/2.0"}
         if self.session:
             headers["Authorization"] = f"Bearer {self.session.get('accessJwt')}"
 
-        try:
-            resp = requests.get(url, params=params, headers=headers, timeout=10)
-            resp.raise_for_status()
-            data = resp.json()
+        queries = self.keywords if self.keywords else ["AI"]
+        all_posts = {}
 
-            now = datetime.now(timezone.utc)
-            cutoff = now - timedelta(hours=self.time_window_hours)
+        for query in queries:
+            params = {
+                "q": query,
+                "sort": "top",
+                "limit": 30,
+                "since": cutoff.isoformat().replace("+00:00", "Z")
+            }
 
-            for post_item in data.get("posts", []):
-                record = post_item.get("record", {})
+            try:
+                resp = requests.get(url, params=params, headers=headers, timeout=10)
+                resp.raise_for_status()
+                data = resp.json()
 
-                created_at_str = record.get("createdAt")
-                if not created_at_str:
+                for post_item in data.get("posts", []):
+                    uri = post_item.get("uri")
+                    if uri not in all_posts:
+                        all_posts[uri] = post_item
+            except Exception as e:
+                logger.error(f"Failed to fetch Bluesky for query '{query}': {e}")
+
+        for post_item in all_posts.values():
+            record = post_item.get("record", {})
+
+            created_at_str = record.get("createdAt")
+            if not created_at_str:
+                continue
+
+            created_at_str = created_at_str.replace("Z", "+00:00")
+            try:
+                created_dt = datetime.fromisoformat(created_at_str)
+                if created_dt < cutoff:
                     continue
+            except ValueError:
+                continue
 
-                created_at_str = created_at_str.replace("Z", "+00:00")
-                try:
-                    created_dt = datetime.fromisoformat(created_at_str)
-                    if created_dt < cutoff:
-                        continue
-                except ValueError:
-                    continue
+            text = record.get("text", "")
+            if not self._passes_keywords(text):
+                continue
 
-                text = record.get("text", "")
-                if not self._passes_keywords(text):
-                    continue
+            ups = post_item.get("likeCount", 0)
+            comments = post_item.get("replyCount", 0) + post_item.get("repostCount", 0)
+            score = self._score_trend(ups, comments)
 
-                ups = post_item.get("likeCount", 0)
-                comments = post_item.get("replyCount", 0) + post_item.get("repostCount", 0)
-                score = self._score_trend(ups, comments)
+            author_handle = post_item.get("author", {}).get("handle")
+            uri = post_item.get("uri", "")
+            post_id = uri.split("/")[-1] if uri else ""
 
-                author_handle = post_item.get("author", {}).get("handle")
-                uri = post_item.get("uri", "")
-                post_id = uri.split("/")[-1] if uri else ""
+            post_url = ""
+            if author_handle and post_id:
+                post_url = f"https://bsky.app/profile/{author_handle}/post/{post_id}"
 
-                post_url = ""
-                if author_handle and post_id:
-                    post_url = f"https://bsky.app/profile/{author_handle}/post/{post_id}"
-
-                trends.append({
-                    "timestamp": now.isoformat(),
-                    "source": self.source_name,
-                    "source_type": "bluesky",
-                    "title": f"Post by @{author_handle}",
-                    "url": post_url,
-                    "description": text,
-                    "trend_score": score,
-                    "ups": ups,
-                    "comments": comments,
-                })
-        except Exception as e:
-            logger.error(f"Failed to fetch Bluesky {self.source_name}: {e}")
+            trends.append({
+                "timestamp": now.isoformat(),
+                "source": self.source_name,
+                "source_type": "bluesky",
+                "title": f"Post by @{author_handle}",
+                "url": post_url,
+                "description": text,
+                "trend_score": score,
+                "ups": ups,
+                "comments": comments,
+            })
 
         return trends

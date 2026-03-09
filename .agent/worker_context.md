@@ -2,13 +2,6 @@
 
 This file provides critical environment and repository context for you to operate safely.
 
-## Python Environment
-- **Virtualenv**: Use `virtualenvwrapper` (workspace: `workon linkedin_posts`).
-- **Paths**: Always use absolute paths for execution if possible:
-  - Python: `/home/gozy4/.virtualenvs/linkedin_posts/bin/python`
-  - Pip: `/home/gozy4/.virtualenvs/linkedin_posts/bin/pip`
-- **Rule**: Never install packages globally. Always use the specified virtualenv.
-
 ## Infrastructure
 - **Docker**: Use the root `docker-compose.yml` for local development.
   - Backend: `http://localhost:8000` (service name `backend` internally).

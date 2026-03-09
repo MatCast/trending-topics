@@ -44,4 +44,6 @@
 - [x] In settings: when a user adds a keyword simply adding it or removing it should make the change take effect without having to save.
 - [x] Implement ascending/descending sorting in extraction dashboard.
 - [x] Implement authentication protection on all frontend routes except /login.
+- [x] Fix Bluesky extraction not returning data due to API 'since' + 'OR' keyword bug.
 
+- [ ] fix bluesky source not working
