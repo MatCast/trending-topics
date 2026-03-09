@@ -31,4 +31,10 @@
 - [x] Create `headless.md` (Gemini CLI Sub-agent Rules).
 - [x] Create `plan.md` (Shared State / Single Source of Truth).
 - [ ] Enable Terminal Access (Auto) for Antigravity Agent in UI.
-- [ ] Configure Model Selection (Gemini 3 Pro for main, 2.0 Flash for CLI sub-agents).
+
+## 7. Containerization
+- [x] Create `docker-compose.yml` for local orchestration.
+- [x] Update `backend/Dockerfile` for local development (multi-stage).
+- [x] Update `frontend/Dockerfile` for local development (multi-stage).
+- [x] Verify local connectivity between services.
+- [x] Add health check endpoints to both services.

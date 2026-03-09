@@ -6,4 +6,4 @@ Whenever a sub-agent fails a task, struggles with a specific dependency, or when
 The Architect must read this file at the start of every session to avoid repeating mistakes.
 
 ## Lessons
-*(No lessons recorded yet. The Architect will append new rules here as they are discovered.)*
+1. **Direct Implementation vs Sub-agents**: For tasks involving complex orchestration (like Docker Compose across multiple services), the user may prefer direct implementation by the Architect to ensure consistency and avoid environment/CLI overhead. Use sub-agents for more isolated, atomic tasks.

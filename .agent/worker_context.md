@@ -10,7 +10,10 @@ This file provides critical environment and repository context for you to operat
 - **Rule**: Never install packages globally. Always use the specified virtualenv.
 
 ## Infrastructure
-- **Docker**: (If applicable) Use the provided `docker-compose.yml` in the root.
+- **Docker**: Use the root `docker-compose.yml` for local development.
+  - Backend: `http://localhost:8000` (service name `backend` internally).
+  - Frontend: `http://localhost:3000` (service name `frontend` internally).
+  - Use `docker-compose build --target development` for dev-specific builds.
 - **Secrets**: Do **NOT** hardcode API keys. Use `.env.example` as a template and read from `.env`.
 
 ## Project Structure

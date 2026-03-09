@@ -6,8 +6,10 @@ This is the Single Source of Truth for the Architect and sub-agents. Both should
 * Phase 1 (Scaffolding): [Completed]
 * Phase 2 (Backend/Core): [Pending]
 * Phase 3 (Frontend/Formatting): [Pending]
+* Phase 4 (Containerization): [In Progress]
 
 ## Active Tasks
+* [In Progress] Containerize app for local development (`docker-compose.yml`)
 * [Completed] Create `ping_services.sh` test script
 
 ## Agent Tracking & Context

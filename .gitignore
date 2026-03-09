@@ -15,3 +15,7 @@ node_modules/
 dist/
 .env*
 !.env.example
+
+# Docker
+.docker-volumes/
+docker-compose.override.yml

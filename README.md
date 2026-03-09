@@ -40,10 +40,24 @@ cp .env.example .env
 npm run dev
 ```
 
-## Deployment
 Both components are containerized and ready for **Google Cloud Run**.
 - Use the provided `Dockerfile` in each directory.
 - Configure Cloud Scheduler to trigger the internal extraction endpoint for automated runs.
+
+## 🐳 Running with Docker (Local)
+
+To run the entire application (frontend + backend) locally using Docker Compose:
+
+1.  **Ensure you have Docker and Docker Compose installed.**
+2.  **Verify environment variables** in both `backend/.env` and `frontend/.env`.
+3.  **Run the application**:
+    ```bash
+    docker-compose up --build
+    ```
+
+- **Backend**: Accessible at `http://localhost:8000`.
+- **Frontend**: Accessible at `http://localhost:3000`.
+- **Hot-reloading**: Enabled for both services via volume mapping.
 
 ## Tech Stack
 - **Frontend**: Nuxt 4, Tailwind CSS v4, DaisyUI, Firebase Auth.
