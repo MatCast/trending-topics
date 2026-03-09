@@ -168,19 +168,35 @@ async function fetchSettings() {
   }
 }
 
+// Auto-save watchers
+watch(
+  () => [settings.value.time_window_hours, settings.value.max_trends_per_source],
+  () => { if (!isLoading.value) saveSettings() },
+  { deep: true }
+)
+
+watch(
+  () => schedule.value,
+  () => { if (!isLoading.value) saveSettings() },
+  { deep: true }
+)
+
 function addKeyword() {
   const kw = newKeyword.value.trim()
   if (kw && !settings.value.global_keywords.includes(kw)) {
     settings.value.global_keywords.push(kw)
     newKeyword.value = ''
+    saveSettings()
   }
 }
 
 function removeKeyword(idx: number) {
   settings.value.global_keywords.splice(idx, 1)
+  saveSettings()
 }
 
 async function saveSettings() {
+  if (isSaving.value) return
   isSaving.value = true
   showSuccess.value = false
   try {
@@ -192,7 +208,7 @@ async function saveSettings() {
       },
     })
     showSuccess.value = true
-    setTimeout(() => { showSuccess.value = false }, 3000)
+    setTimeout(() => { showSuccess.value = false }, 2000)
   } catch (error) {
     console.error('Failed to save settings:', error)
   } finally {

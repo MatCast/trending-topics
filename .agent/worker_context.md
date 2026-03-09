@@ -17,8 +17,10 @@ This file provides critical environment and repository context for you to operat
 - **Secrets**: Do **NOT** hardcode API keys. Use `.env.example` as a template and read from `.env`.
 
 ## Project Structure
-- `config/`: Configuration files and sources.
-- `parsers/`: Data fetching and parsing logic.
+- **Backend (API)**: Located in `backend/app/`. This is the primary application logic for the full-stack version.
+- **Frontend (UI)**: Located in `frontend/app/`. Nuxt.js/DaisyUI application.
+- **Root Files**: `researcher.py`, `parsers.py`, `main.py` at the root are legacy CLI files and should not be modified for backend API tasks.
+- `config/`: Configuration files and legacy sources.
 - `tasks/`: Project logs, todo lists, and lessons.
 - `plan.md`: The current master plan. Always respect it.
 

@@ -12,6 +12,16 @@ export default defineNuxtPlugin(() => {
     authDomain: config.public.firebaseAuthDomain,
     projectId: config.public.firebaseProjectId,
     appId: config.public.firebaseAppId,
+    messagingSenderId: config.public.firebaseMessagingSenderId as string,
+    storageBucket: config.public.firebaseStorageBucket as string,
+  }
+
+  // Diagnostic logs to help debug configuration issues in the browser
+  if (!firebaseConfig.apiKey) {
+    console.warn('Firebase: Missing apiKey in configuration.')
+  }
+  if (!firebaseConfig.authDomain) {
+    console.warn('Firebase: Missing authDomain in configuration.')
   }
 
   const app = initializeApp(firebaseConfig)

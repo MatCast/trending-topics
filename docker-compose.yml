@@ -10,6 +10,8 @@ services:
       - /app/__pycache__
     env_file:
       - ./backend/.env
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/app/keys/firebase-service-account.json
     networks:
       - app-network
 

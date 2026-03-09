@@ -78,10 +78,15 @@
               type="text"
               placeholder="e.g., startups"
               class="input input-bordered join-item flex-1"
+              :class="{ 'input-error': redditError }"
               @keyup.enter="addRedditSource"
+              @input="redditError = ''"
             />
             <button class="btn btn-primary join-item" @click="addRedditSource">Add</button>
           </div>
+          <label v-if="redditError" class="label">
+            <span class="label-text-alt text-error font-medium">{{ redditError }}</span>
+          </label>
         </div>
 
         <div class="space-y-2 mt-4">
@@ -211,19 +216,38 @@ function addKeyword() {
 // Step 2: Reddit
 const redditSources = ref<any[]>([])
 const newSubreddit = ref('')
+const redditError = ref('')
 
 function addRedditSource() {
   const sub = newSubreddit.value.trim()
-  if (sub && !redditSources.value.some(s => s.params.subreddit.toLowerCase() === sub.toLowerCase())) {
-    redditSources.value.push({
-      type: 'reddit',
-      name: `r/${sub}`,
-      enabled: true,
-      use_global_keywords: false,
-      params: { subreddit: sub },
-    })
-    newSubreddit.value = ''
+  redditError.value = ''
+
+  if (!sub) return
+
+  // 1. Format validation (3-21 chars, alphanumeric/underscores)
+  const redditRegex = /^[a-zA-Z0-9_]{3,21}$/
+  if (!redditRegex.test(sub)) {
+    redditError.value = 'Invalid subreddit name (3-21 chars, no spaces/special chars)'
+    return
   }
+
+  // 2. Case-insensitive uniqueness check
+  const isDuplicate = redditSources.value.some(
+    s => s.params.subreddit.toLowerCase() === sub.toLowerCase()
+  )
+  if (isDuplicate) {
+    redditError.value = `r/${sub} is already in your list`
+    return
+  }
+
+  redditSources.value.push({
+    type: 'reddit',
+    name: `r/${sub}`,
+    enabled: true,
+    use_global_keywords: false,
+    params: { subreddit: sub },
+  })
+  newSubreddit.value = ''
 }
 
 // Step 3: Other sources

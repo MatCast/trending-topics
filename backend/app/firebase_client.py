@@ -99,8 +99,23 @@ def list_sources(uid: str) -> List[Dict[str, Any]]:
 
 
 def create_source(uid: str, source_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Create a new source config."""
+    """Create a new source config. Prevents duplicates for reddit subreddits."""
     db = get_db()
+
+    # Check for duplicate Reddit source
+    if source_data.get("type") == "reddit":
+        subreddit = source_data.get("params", {}).get("subreddit", "").lower()
+        if subreddit:
+            existing = (
+                db.collection("users").document(uid).collection("sources")
+                .where("type", "==", "reddit")
+                .stream()
+            )
+            for doc in existing:
+                if doc.to_dict().get("params", {}).get("subreddit", "").lower() == subreddit:
+                    logger.warning(f"Subreddit r/{subreddit} already exists for user {uid}")
+                    return {"id": doc.id, **doc.to_dict(), "existed": True}
+
     source_data["created_at"] = datetime.now(timezone.utc)
     sources_ref = db.collection("users").document(uid).collection("sources")
     doc_ref = sources_ref.add(source_data)
@@ -136,13 +151,15 @@ def store_results(uid: str, run_id: str, results: List[Dict[str, Any]], retentio
 
     for result in results:
         doc_ref = results_ref.document()
-        result_doc = {
-            **result,
-            "run_id": run_id,
-            "created_at": datetime.now(timezone.utc),
-            "expires_at": expires_at,
-        }
-        batch.set(doc_ref, result_doc)
+        now = datetime.now(timezone.utc)
+
+        # Update the result dict in-place so it's returned to the caller with its new fields
+        result["id"] = doc_ref.id
+        result["run_id"] = run_id
+        result["created_at"] = now
+        result["expires_at"] = expires_at
+
+        batch.set(doc_ref, result)
 
     batch.commit()
     logger.info(f"Stored {len(results)} results for user {uid}, run {run_id}")
@@ -164,23 +181,28 @@ def list_results(
     if source_type:
         query = query.where("source_type", "==", source_type)
 
-    # Filter out expired results
-    now = datetime.now(timezone.utc)
-    query = query.where("expires_at", ">", now)
-
     # Sort
     direction = firestore.Query.DESCENDING if sort_order == "desc" else firestore.Query.ASCENDING
     query = query.order_by(sort_by, direction=direction)
 
-    # Get total count (Firestore doesn't have COUNT, fetch all IDs)
-    # For now, we'll fetch all and paginate in memory. For scale, use a counter.
+    # Filtering for expired results in memory to avoid needing complex composite indexes
+    # for every possible sort_by field.
+    now = datetime.now(timezone.utc)
+
+    # Get total count
     all_docs = list(query.stream())
-    total = len(all_docs)
+
+    # Filter in memory
+    filtered_docs = [
+        doc for doc in all_docs
+        if doc.to_dict().get("expires_at", now + timedelta(days=1)) > now
+    ]
+    total = len(filtered_docs)
 
     # Paginate
     start = (page - 1) * page_size
     end = start + page_size
-    page_docs = all_docs[start:end]
+    page_docs = filtered_docs[start:end]
 
     results = [{"id": doc.id, **doc.to_dict()} for doc in page_docs]
     return results, total
@@ -189,16 +211,22 @@ def list_results(
 def get_all_results_for_export(uid: str) -> List[Dict[str, Any]]:
     """Get all non-expired results for CSV export."""
     db = get_db()
-    now = datetime.now(timezone.utc)
+
     query = (
-        db.collection("users").document(uid)
-        .collection("results")
-        .where("expires_at", ">", now)
-        .order_by("expires_at")
-        .order_by("trend_score", direction=firestore.Query.DESCENDING)
+        db.collection("users").document(uid).collection("results")
+        .order_by("created_at", direction=firestore.Query.DESCENDING)
     )
+
+    now = datetime.now(timezone.utc)
     docs = query.stream()
-    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+    results = []
+    for doc in docs:
+        data = doc.to_dict()
+        if data.get("expires_at", now + timedelta(days=1)) > now:
+            results.append({"id": doc.id, **data})
+
+    return results
 
 
 def delete_result(uid: str, result_id: str):

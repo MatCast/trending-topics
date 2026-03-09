@@ -34,10 +34,15 @@
                 type="text"
                 placeholder="Add subreddit..."
                 class="input input-bordered join-item flex-1"
+                :class="{ 'input-error': redditError }"
                 @keyup.enter="addRedditSource"
+                @input="redditError = ''"
               />
               <button class="btn btn-primary join-item" @click="addRedditSource">Add</button>
             </div>
+            <label v-if="redditError" class="label">
+              <span class="label-text-alt text-error font-medium">{{ redditError }}</span>
+            </label>
           </div>
 
           <!-- Reddit sources list -->
@@ -123,9 +128,30 @@ async function fetchSources() {
   }
 }
 
+const redditError = ref('')
+
 async function addRedditSource() {
   const sub = newSubreddit.value.trim()
+  redditError.value = ''
+
   if (!sub) return
+
+  // 1. Format validation (3-21 chars, alphanumeric/underscores)
+  const redditRegex = /^[a-zA-Z0-9_]{3,21}$/
+  if (!redditRegex.test(sub)) {
+    redditError.value = 'Invalid subreddit name (3-21 chars, no spaces/special chars)'
+    return
+  }
+
+  // 2. Case-insensitive uniqueness check
+  const isDuplicate = redditSources.value.some(
+    s => s.params?.subreddit?.toLowerCase() === sub.toLowerCase()
+  )
+  if (isDuplicate) {
+    redditError.value = `r/${sub} is already in your list`
+    return
+  }
+
   try {
     const newSource = await apiFetch<any>('/api/sources', {
       method: 'POST',
@@ -137,10 +163,19 @@ async function addRedditSource() {
         params: { subreddit: sub },
       },
     })
+
+    // Check if the source already existed on the backend (safety check)
+    if (newSource.existed) {
+      redditError.value = `r/${sub} is already in your list`
+      newSubreddit.value = ''
+      return
+    }
+
     sources.value.push(newSource)
     newSubreddit.value = ''
   } catch (error) {
     console.error('Failed to add source:', error)
+    redditError.value = 'Failed to add subreddit. Please try again.'
   }
 }
 

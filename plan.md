@@ -4,13 +4,14 @@ This is the Single Source of Truth for the Architect and sub-agents. Both should
 
 ## Phases
 * Phase 1 (Scaffolding): [Completed]
-* Phase 2 (Backend/Core): [Pending]
-* Phase 3 (Frontend/Formatting): [Pending]
-* Phase 4 (Containerization): [In Progress]
+* Phase 2 (Backend/Core): [Phase 2.1 Completed - Trend Fetching & Storage]
+* Phase 3 (Frontend/Formatting): [Phase 3.1 Completed - Basic UI & Settings]
+* Phase 4 (Containerization): [Completed]
 
 ## Active Tasks
-* [In Progress] Containerize app for local development (`docker-compose.yml`)
-* [Completed] Create `ping_services.sh` test script
+* [Completed] Containerize app for local development (`docker-compose.yml`)
+* [Completed] Fix extraction validation and visibility issues
+* [Completed] Implement subreddit uniqueness and auto-save keywords
 
 ## Agent Tracking & Context
 * **Sub-Agent 1**: *Inactive*
