@@ -1,90 +1,52 @@
-# AI Trend-to-LinkedIn Automation
+# Trend Finder Dashboard
 
-A modular Python system that identifies trending AI news from RSS feeds (Reddit, Hacker News) and generates distinct LinkedIn post drafts using Google Gemini (Gemini 3 Flash).
+A full-stack web application designed to identify trending topics from Reddit, Hacker News, and Bluesky to help you create viral LinkedIn content.
 
 ## Features
-- **Smart Researcher**: Fetches trends from multiple sources, filters by time (last 3 hours), deduplicates URLs, and uses keyword filtering.
-- **Engagement-Aware Scoring**: Ranks topics based on discussions and source weights.
-- **AI Drafter**: Generates 3 distinct LinkedIn versions for each topic (Specialist, Strategist, Provocateur) using the latest Gemini models.
-- **Google Sheets Integration**: Automatically logs trending topics to a spreadsheet for tracking.
-- **Development-Ready**: Integrated with `virtualenvwrapper` and VSCode for a smooth developer experience.
+- **Multi-Source Research**: Fetches real-time trends from Reddit subreddits, Hacker News Top stories, and Bluesky.
+- **Personalized Configuration**: Each user can configure their own sources, search keywords, and preferences.
+- **Smart Scoring**: Topics are ranked based on engagement (upvotes, comments) and configurable source weights.
+- **Automated Scheduling**: Configure your own extraction schedule (Hourly, Daily, Weekly).
+- **CSV Export**: Export trending topics for further analysis or drafting.
+- **Google Sign-In**: Secure access using your Google account.
+
+## Project Structure
+This project is organized as a monorepo:
+- `/backend`: FastAPI Python service handling trend parsing, Firestore persistence, and scheduling logic.
+- `/frontend`: Nuxt 4 web application using DaisyUI for a premium, responsive experience.
 
 ## Quick Start
 
-### 1. Project Setup
+### 1. Prerequisites
+- Node.js 20+
+- Python 3.11+
+- A Google Cloud Project with Firebase enabled (Firestore + Auth).
+
+### 2. Backend Setup
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd LinkedInPosts
-
-# Create and activate environment (using virtualenvwrapper)
-mkvirtualenv -p python3.11 linkedin_posts
-
-# Install dependencies
+cd backend
 pip install -r requirements.txt
+cp .env.example .env
+# Add your Firebase service account JSON to backend/keys/
+uvicorn app.main:app --reload
 ```
 
-### 2. Configuration
-1. Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-2. Fill in your credentials in the `.env` file (see [GCP Setup Guide](.system_generated/gcp_setup_guide.md) for details).
-3. Customize your sources and styles in `config/sources.json` and `config/templates.json`.
-
-### 3. Running the Automation
-
-#### Mock Mode (Safety First)
-Run the system without making actual API calls to Gemini or Google Sheets:
+### 3. Frontend Setup
 ```bash
-python3 main.py
+cd frontend
+npm install
+cp .env.example .env
+# Fill in your Firebase web config in .env
+npm run dev
 ```
 
-#### Live Mode
-Run the full automation and publish to your Google Sheet:
-```bash
-python3 main.py --live
-```
+## Deployment
+Both components are containerized and ready for **Google Cloud Run**.
+- Use the provided `Dockerfile` in each directory.
+- Configure Cloud Scheduler to trigger the internal extraction endpoint for automated runs.
 
-### CLI Command Reference
+## Tech Stack
+- **Frontend**: Nuxt 4, Tailwind CSS v4, DaisyUI, Firebase Auth.
+- **Backend**: FastAPI, Firestore, Firebase Admin SDK.
+- **Infrastucture**: Docker, Google Cloud Run, Cloud Scheduler.
 
-The `main.py` script supports several flags to customize how the automation runs:
-
-| Flag | Description | Default |
-| :--- | :--- | :--- |
-| `--live` | Run in LIVE mode (uses real Gemini and Google Sheets APIs). | Mock Mode |
-| `--limit N` | Max trends to fetch **per source**. | `MAX_TOP_TRENDS` (env) or 3 |
-| `--hours N` | Lookback window in hours for trends. | `TIME_WINDOW_HOURS` (env) or 3 |
-| `--no-draft` | Only research and log trends; skip AI draft generation. | False |
-| `--no-filter` | Disable AI-related keyword filtering (fetches all rising content). | True (filtering enabled) |
-
-#### Examples
-
-**1. Daily AI Pulse (Last 3 hours, keyword filtered):**
-```bash
-python3 main.py --live --limit 3
-```
-
-**2. Broad Trend Research (Last 24 hours, no keyword filter, no drafting):**
-```bash
-python3 main.py --live --hours 24 --no-filter --no-draft
-```
-
-**3. Safety Calibration (Mocked run with high volume):**
-```bash
-python3 main.py --limit 10
-```
-
-## Project Structure
-- `main.py`: The orchestrator.
-- `researcher.py`: RSS fetching and trend analysis.
-- `drafter.py`: Gemini-powered content generation.
-- `sheets_manager.py`: Google Sheets interface.
-- `config/`: JSON configuration for sources and templates.
-- `drafts/`: Local storage for generated post drafts.
-- `tests/`: Offline verification suite.
-
-## VSCode Integration
-This repository includes:
-- `.vscode/settings.json`: Automatically picks up the `linkedin_posts` virtual environment.
-- `.vscode/launch.json`: Pre-configured debug targets for Mock and Live modes.
