@@ -6,7 +6,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .firebase_client import init_firebase
+from .firebase_client import init_firebase, seed_source_catalog
 from .routers import sources, extraction, results, schedule, admin
 
 # Setup logging
@@ -45,6 +45,7 @@ async def startup():
     """Initialize Firebase on startup."""
     service_account = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH")
     init_firebase(service_account)
+    seed_source_catalog()
     logger.info("LinkedIn Trend Finder API started.")
 
 

@@ -13,110 +13,94 @@
     </div>
 
     <div v-else class="space-y-6">
-      <!-- Reddit Section -->
-      <div class="card bg-base-100 shadow-xl border border-base-300">
+      <!-- Dynamic source cards from catalog -->
+      <div
+        v-for="catalogSource in catalog"
+        :key="catalogSource.id"
+        class="card bg-base-100 shadow-xl border border-base-300"
+      >
         <div class="card-body">
+          <!-- Source header -->
           <div class="flex items-center justify-between">
             <h2 class="card-title gap-2">
-              <svg class="w-6 h-6 text-orange-500" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701z"/>
+              <!-- Dynamic icon from composable -->
+              <svg v-if="isSvgIcon(catalogSource.icon)" class="w-6 h-6" :class="getIconConfig(catalogSource.icon).svgClass" viewBox="0 0 24 24" fill="currentColor">
+                <path :d="getIconConfig(catalogSource.icon).svgPath" />
               </svg>
-              Reddit
+              <span v-else :class="getIconConfig(catalogSource.icon).textClass">
+                {{ getIconConfig(catalogSource.icon).text }}
+              </span>
+              {{ catalogSource.name }}
             </h2>
-          </div>
 
-          <!-- Add new subreddit -->
-          <div class="form-control mt-4">
-            <div class="join w-full">
-              <span class="join-item btn btn-disabled">r/</span>
-              <input
-                v-model="newSubreddit"
-                type="text"
-                placeholder="Add subreddit..."
-                class="input input-bordered join-item flex-1"
-                :class="{ 'input-error': redditError }"
-                @keyup.enter="addRedditSource"
-                @input="redditError = ''"
-              />
-              <button class="btn btn-primary join-item" @click="addRedditSource">Add</button>
-            </div>
-            <label v-if="redditError" class="label">
-              <span class="label-text-alt text-error font-medium">{{ redditError }}</span>
-            </label>
-          </div>
-
-          <!-- Reddit sources list -->
-          <div class="space-y-2 mt-4">
-            <div
-              v-for="src in redditSources"
-              :key="src.id"
-              class="flex items-center justify-between p-3 rounded-lg"
-              :class="src.enabled ? 'bg-base-200' : 'bg-base-200/50 opacity-60'"
-            >
-              <div class="flex items-center gap-3">
-                <input type="checkbox" class="toggle toggle-sm toggle-success" v-model="src.enabled" @change="toggleSource(src)" />
-                <span class="font-medium">{{ src.name }}</span>
-                <label class="label cursor-pointer gap-2">
-                  <span class="label-text text-xs opacity-60">Keywords</span>
-                  <input type="checkbox" class="toggle toggle-xs toggle-primary" v-model="src.use_global_keywords" @change="updateSource(src)" />
-                </label>
+            <!-- Singleton: show toggle or enable button -->
+            <template v-if="!catalogSource.is_multi_instance">
+              <div v-if="getSingletonSource(catalogSource.id)">
+                <input
+                  type="checkbox"
+                  class="toggle toggle-success"
+                  v-model="getSingletonSource(catalogSource.id)!.enabled"
+                  @change="toggleSource(getSingletonSource(catalogSource.id)!)"
+                />
               </div>
-              <button class="btn btn-ghost btn-sm btn-square text-error" @click="deleteSource(src)">✕</button>
-            </div>
-            <p v-if="!redditSources.length" class="text-base-content/40 text-sm p-3">No Reddit sources configured</p>
+              <button v-else class="btn btn-primary btn-sm" @click="addSingletonSource(catalogSource)">Enable</button>
+            </template>
           </div>
-        </div>
-      </div>
 
-      <!-- Hacker News Section -->
-      <div class="card bg-base-100 shadow-xl border border-base-300">
-        <div class="card-body">
-          <div class="flex items-center justify-between">
-            <h2 class="card-title gap-2">
-              <span class="text-xl font-bold text-orange-400">Y</span>
-              Hacker News
-            </h2>
-            <div v-if="hnSource">
-              <input type="checkbox" class="toggle toggle-success" v-model="hnSource.enabled" @change="toggleSource(hnSource)" />
-            </div>
-            <button v-else class="btn btn-primary btn-sm" @click="addHNSource">Enable</button>
-          </div>
-          <p class="text-base-content/60 text-sm">Top stories filtered by your global keywords.</p>
-        </div>
-      </div>
+          <p class="text-base-content/60 text-sm">{{ catalogSource.description }}</p>
+          <a
+            v-if="catalogSource.website_url"
+            :href="catalogSource.website_url"
+            target="_blank"
+            rel="noopener"
+            class="link link-hover text-xs text-base-content/40"
+          >{{ catalogSource.website_url }}</a>
 
-      <!-- Bluesky Section -->
-      <div class="card bg-base-100 shadow-xl border border-base-300">
-        <div class="card-body">
-          <div class="flex items-center justify-between">
-            <h2 class="card-title gap-2">
-              🦋 Bluesky
-            </h2>
-            <div v-if="blueskySource">
-              <input type="checkbox" class="toggle toggle-success" v-model="blueskySource.enabled" @change="toggleSource(blueskySource)" />
+          <!-- Multi-instance sources: add form + list -->
+          <template v-if="catalogSource.is_multi_instance">
+            <!-- Dynamic config form from config_schema -->
+            <div class="form-control mt-4" v-for="(fieldSchema, fieldKey) in catalogSource.config_schema" :key="fieldKey">
+              <div class="join w-full">
+                <span v-if="catalogSource.id === 'reddit'" class="join-item btn btn-disabled">r/</span>
+                <input
+                  v-model="multiInstanceInput[catalogSource.id]"
+                  type="text"
+                  :placeholder="fieldSchema.placeholder || `Add ${fieldSchema.label}...`"
+                  class="input input-bordered join-item flex-1"
+                  :class="{ 'input-error': multiInstanceError[catalogSource.id] }"
+                  @keyup.enter="addMultiInstanceSource(catalogSource)"
+                  @input="multiInstanceError[catalogSource.id] = ''"
+                />
+                <button class="btn btn-primary join-item" @click="addMultiInstanceSource(catalogSource)">Add</button>
+              </div>
+              <label v-if="multiInstanceError[catalogSource.id]" class="label">
+                <span class="label-text-alt text-error font-medium">{{ multiInstanceError[catalogSource.id] }}</span>
+              </label>
             </div>
-            <button v-else class="btn btn-primary btn-sm" @click="addBlueskySource">Enable</button>
-          </div>
-          <p class="text-base-content/60 text-sm">Search posts using your global keywords.</p>
-        </div>
-      </div>
 
-      <!-- Indie Hackers Section -->
-      <div class="card bg-base-100 shadow-xl border border-base-300">
-        <div class="card-body">
-          <div class="flex items-center justify-between">
-            <h2 class="card-title gap-2">
-              <svg class="w-6 h-6 text-indigo-600" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 4c1.105 0 2 .895 2 2s-.895 2-2 2-2-.895-2-2 .895-2 2-2zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm6 6H6v-1.5c0-1.93 1.57-3.5 3.5-3.5h5c1.93 0 3.5 1.57 3.5 3.5V20z"/>
-              </svg>
-              Indie Hackers
-            </h2>
-            <div v-if="ihSource">
-              <input type="checkbox" class="toggle toggle-success" v-model="ihSource.enabled" @change="toggleSource(ihSource)" />
+            <!-- List of user's instances -->
+            <div class="space-y-2 mt-4">
+              <div
+                v-for="src in getMultiInstanceSources(catalogSource.id)"
+                :key="src.id"
+                class="flex items-center justify-between p-3 rounded-lg"
+                :class="src.enabled ? 'bg-base-200' : 'bg-base-200/50 opacity-60'"
+              >
+                <div class="flex items-center gap-3">
+                  <input type="checkbox" class="toggle toggle-sm toggle-success" v-model="src.enabled" @change="toggleSource(src)" />
+                  <span class="font-medium">{{ src.name }}</span>
+                  <label class="label cursor-pointer gap-2">
+                    <span class="label-text text-xs opacity-60">Keywords</span>
+                    <input type="checkbox" class="toggle toggle-xs toggle-primary" v-model="src.use_global_keywords" @change="updateSource(src)" />
+                  </label>
+                </div>
+                <button class="btn btn-ghost btn-sm btn-square text-error" @click="deleteSource(src)">✕</button>
+              </div>
+              <p v-if="!getMultiInstanceSources(catalogSource.id).length" class="text-base-content/40 text-sm p-3">
+                No {{ catalogSource.name }} sources configured
+              </p>
             </div>
-            <button v-else class="btn btn-primary btn-sm" @click="addIHSource">Enable</button>
-          </div>
-          <p class="text-base-content/60 text-sm">Top stories from Indie Hackers RSS feed.</p>
+          </template>
         </div>
       </div>
     </div>
@@ -127,129 +111,106 @@
 definePageMeta({ layout: 'default' })
 
 const { apiFetch } = useApi()
+const { getIconConfig, isSvgIcon } = useSourceIcons()
 
+const catalog = ref<any[]>([])
 const sources = ref<any[]>([])
 const isLoading = ref(true)
-const newSubreddit = ref('')
 
-const redditSources = computed(() => sources.value.filter(s => s.type === 'reddit'))
-const hnSource = computed(() => sources.value.find(s => s.type === 'hackernews') || null)
-const blueskySource = computed(() => sources.value.find(s => s.type === 'bluesky') || null)
-const ihSource = computed(() => sources.value.find(s => s.type === 'indiehackers') || null)
+// Input state for multi-instance sources (keyed by catalog source id)
+const multiInstanceInput = ref<Record<string, string>>({})
+const multiInstanceError = ref<Record<string, string>>({})
 
-async function fetchSources() {
+// Computed helpers
+function getSingletonSource(sourceId: string) {
+  return sources.value.find(s => s.source_id === sourceId) || null
+}
+
+function getMultiInstanceSources(sourceId: string) {
+  return sources.value.filter(s => s.source_id === sourceId)
+}
+
+async function fetchData() {
   isLoading.value = true
   try {
-    sources.value = await apiFetch<any[]>('/api/sources')
+    const [catalogData, sourcesData] = await Promise.all([
+      apiFetch<any[]>('/api/sources/catalog'),
+      apiFetch<any[]>('/api/sources'),
+    ])
+    catalog.value = catalogData
+    sources.value = sourcesData
   } catch (error) {
-    console.error('Failed to fetch sources:', error)
+    console.error('Failed to fetch data:', error)
   } finally {
     isLoading.value = false
   }
 }
 
-const redditError = ref('')
-
-async function addRedditSource() {
-  const sub = newSubreddit.value.trim()
-  redditError.value = ''
-
-  if (!sub) return
-
-  // 1. Format validation (3-21 chars, alphanumeric/underscores)
-  const redditRegex = /^[a-zA-Z0-9_]{3,21}$/
-  if (!redditRegex.test(sub)) {
-    redditError.value = 'Invalid subreddit name (3-21 chars, no spaces/special chars)'
-    return
+async function addSingletonSource(catalogSource: any) {
+  try {
+    const newSource = await apiFetch<any>('/api/sources', {
+      method: 'POST',
+      body: {
+        source_id: catalogSource.id,
+        enabled: true,
+        use_global_keywords: true,
+      },
+    })
+    sources.value.push(newSource)
+  } catch (error) {
+    console.error('Failed to add source:', error)
   }
+}
 
-  // 2. Case-insensitive uniqueness check
-  const isDuplicate = redditSources.value.some(
-    s => s.params?.subreddit?.toLowerCase() === sub.toLowerCase()
-  )
-  if (isDuplicate) {
-    redditError.value = `r/${sub} is already in your list`
-    return
+async function addMultiInstanceSource(catalogSource: any) {
+  const inputKey = catalogSource.id
+  const inputVal = (multiInstanceInput.value[inputKey] || '').trim()
+  multiInstanceError.value[inputKey] = ''
+
+  if (!inputVal) return
+
+  // Get first config field key (e.g., 'subreddit')
+  const fieldKey = Object.keys(catalogSource.config_schema)[0]
+
+  // Reddit-specific validation
+  if (catalogSource.id === 'reddit') {
+    const redditRegex = /^[a-zA-Z0-9_]{3,21}$/
+    if (!redditRegex.test(inputVal)) {
+      multiInstanceError.value[inputKey] = 'Invalid subreddit name (3-21 chars, no spaces/special chars)'
+      return
+    }
+    // Case-insensitive uniqueness check
+    const isDuplicate = getMultiInstanceSources(catalogSource.id).some(
+      s => s.params?.[fieldKey]?.toLowerCase() === inputVal.toLowerCase()
+    )
+    if (isDuplicate) {
+      multiInstanceError.value[inputKey] = `r/${inputVal} is already in your list`
+      return
+    }
   }
 
   try {
     const newSource = await apiFetch<any>('/api/sources', {
       method: 'POST',
       body: {
-        type: 'reddit',
-        name: `r/${sub}`,
+        source_id: catalogSource.id,
         enabled: true,
         use_global_keywords: false,
-        params: { subreddit: sub },
+        params: { [fieldKey]: inputVal },
       },
     })
 
-    // Check if the source already existed on the backend (safety check)
     if (newSource.existed) {
-      redditError.value = `r/${sub} is already in your list`
-      newSubreddit.value = ''
+      multiInstanceError.value[inputKey] = `${inputVal} is already in your list`
+      multiInstanceInput.value[inputKey] = ''
       return
     }
 
     sources.value.push(newSource)
-    newSubreddit.value = ''
+    multiInstanceInput.value[inputKey] = ''
   } catch (error) {
     console.error('Failed to add source:', error)
-    redditError.value = 'Failed to add subreddit. Please try again.'
-  }
-}
-
-async function addHNSource() {
-  try {
-    await apiFetch<any>('/api/sources', {
-      method: 'POST',
-      body: {
-        type: 'hackernews',
-        name: 'Hacker News',
-        enabled: true,
-        use_global_keywords: true,
-        params: { url: 'https://hnrss.org/newest?points=10' },
-      },
-    })
-    await fetchSources()
-  } catch (error) {
-    console.error('Failed to add HN source:', error)
-  }
-}
-
-async function addBlueskySource() {
-  try {
-    await apiFetch<any>('/api/sources', {
-      method: 'POST',
-      body: {
-        type: 'bluesky',
-        name: 'Bluesky',
-        enabled: true,
-        use_global_keywords: true,
-        params: {},
-      },
-    })
-    await fetchSources()
-  } catch (error) {
-    console.error('Failed to add Bluesky source:', error)
-  }
-}
-
-async function addIHSource() {
-  try {
-    await apiFetch<any>('/api/sources', {
-      method: 'POST',
-      body: {
-        type: 'indiehackers',
-        name: 'Indie Hackers',
-        enabled: true,
-        use_global_keywords: true,
-        params: {},
-      },
-    })
-    await fetchSources()
-  } catch (error) {
-    console.error('Failed to add Indie Hackers source:', error)
+    multiInstanceError.value[inputKey] = 'Failed to add. Please try again.'
   }
 }
 
@@ -284,5 +245,5 @@ async function deleteSource(src: any) {
   }
 }
 
-onMounted(() => fetchSources())
+onMounted(() => fetchData())
 </script>

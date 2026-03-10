@@ -60,7 +60,7 @@ def run_extraction(
     )
 
     for source_config in enabled_sources:
-        source_type = source_config.get("type", "")
+        source_type = source_config.get("source_id", source_config.get("type", ""))
         source_name = source_config.get("name", "Unknown")
         params = source_config.get("params", {})
         weight = source_weights.get(source_type, 1.0)

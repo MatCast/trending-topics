@@ -14,6 +14,7 @@ This is the Single Source of Truth for the Architect and sub-agents. Both should
 * [Completed] Implement subreddit uniqueness and auto-save keywords
 * [Completed] Implement ascending/descending sorting in extraction dashboard
 * [Completed] Implement routing authentication protection (redirect to login)
+* [Completed] Source Catalog Refactor — top-level `sources` collection with visibility/tiering, dynamic frontend rendering
 
 ## Agent Tracking & Context
 * **Sub-Agent 1**: *Inactive*

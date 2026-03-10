@@ -38,7 +38,7 @@
       <button class="btn btn-ghost btn-xs" @click="lastRunMessage = ''">✕</button>
     </div>
 
-    <!-- Filters -->
+    <!-- Dynamic Filters from catalog -->
     <div class="flex flex-wrap gap-2 mb-4">
       <button
         class="btn btn-sm"
@@ -48,39 +48,19 @@
         All
       </button>
       <button
+        v-for="catalogSource in catalog"
+        :key="catalogSource.id"
         class="btn btn-sm gap-1"
-        :class="activeFilter === 'reddit' ? 'btn-primary' : 'btn-ghost'"
-        @click="activeFilter = 'reddit'"
+        :class="activeFilter === catalogSource.id ? 'btn-primary' : 'btn-ghost'"
+        @click="activeFilter = catalogSource.id"
       >
-        <svg class="w-4 h-4 text-orange-500" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701z"/>
+        <svg v-if="isSvgIcon(catalogSource.icon)" class="w-4 h-4" :class="getIconConfig(catalogSource.icon).svgClass" viewBox="0 0 24 24" fill="currentColor">
+          <path :d="getIconConfig(catalogSource.icon).svgPath" />
         </svg>
-        Reddit
-      </button>
-      <button
-        class="btn btn-sm gap-1"
-        :class="activeFilter === 'hackernews' ? 'btn-primary' : 'btn-ghost'"
-        @click="activeFilter = 'hackernews'"
-      >
-        <span class="text-orange-400 font-bold text-sm">Y</span>
-        Hacker News
-      </button>
-      <button
-        class="btn btn-sm gap-1"
-        :class="activeFilter === 'bluesky' ? 'btn-primary' : 'btn-ghost'"
-        @click="activeFilter = 'bluesky'"
-      >
-        🦋 Bluesky
-      </button>
-      <button
-        class="btn btn-sm gap-1"
-        :class="activeFilter === 'indiehackers' ? 'btn-primary' : 'btn-ghost'"
-        @click="activeFilter = 'indiehackers'"
-      >
-        <svg class="w-4 h-4 text-indigo-600" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 4c1.105 0 2 .895 2 2s-.895 2-2 2-2-.895-2-2 .895-2 2-2zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm6 6H6v-1.5c0-1.93 1.57-3.5 3.5-3.5h5c1.93 0 3.5 1.57 3.5 3.5V20z"/>
-        </svg>
-        Indie Hackers
+        <span v-else :class="getIconConfig(catalogSource.icon).textClass" class="text-sm">
+          {{ getIconConfig(catalogSource.icon).text }}
+        </span>
+        {{ catalogSource.name }}
       </button>
 
       <!-- Sort -->
@@ -152,20 +132,13 @@
           >
             <td>
               <div class="tooltip" :data-tip="result.source">
-                <!-- Reddit icon -->
-                <svg v-if="result.source_type === 'reddit'" class="w-5 h-5 text-orange-500" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701z"/>
+                <!-- Dynamic source icon -->
+                <svg v-if="isSvgIcon(result.source_type)" class="w-5 h-5" :class="getIconConfig(result.source_type).svgClass" viewBox="0 0 24 24" fill="currentColor">
+                  <path :d="getIconConfig(result.source_type).svgPath" />
                 </svg>
-                <!-- HN icon -->
-                <span v-else-if="result.source_type === 'hackernews'" class="text-lg font-bold text-orange-400">Y</span>
-                <!-- Bluesky icon -->
-                <span v-else-if="result.source_type === 'bluesky'" class="text-lg">🦋</span>
-                <!-- Indie Hackers icon -->
-                <svg v-else-if="result.source_type === 'indiehackers'" class="w-5 h-5 text-indigo-600" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 4c1.105 0 2 .895 2 2s-.895 2-2 2-2-.895-2-2 .895-2 2-2zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm6 6H6v-1.5c0-1.93 1.57-3.5 3.5-3.5h5c1.93 0 3.5 1.57 3.5 3.5V20z"/>
-                </svg>
-                <!-- Unknown -->
-                <span v-else class="text-lg">📰</span>
+                <span v-else :class="getIconConfig(result.source_type).textClass">
+                  {{ getIconConfig(result.source_type).text }}
+                </span>
               </div>
             </td>
             <td>
@@ -209,6 +182,10 @@
 definePageMeta({ layout: 'default' })
 
 const { apiFetch } = useApi()
+const { getIconConfig, isSvgIcon } = useSourceIcons()
+
+// Catalog data for dynamic filter buttons
+const catalog = ref<any[]>([])
 
 const results = ref<any[]>([])
 const totalResults = ref(0)
@@ -227,7 +204,15 @@ const filteredResults = computed(() => {
   return results.value.filter(r => r.source_type === activeFilter.value)
 })
 
-// Fetch results
+// Fetch catalog and results
+async function fetchCatalog() {
+  try {
+    catalog.value = await apiFetch<any[]>('/api/sources/catalog')
+  } catch (error) {
+    console.error('Failed to fetch catalog:', error)
+  }
+}
+
 async function fetchResults() {
   isLoadingResults.value = true
   try {
@@ -309,5 +294,7 @@ function formatDate(dateStr: string) {
 watch([sortBy, sortOrder, activeFilter, page], () => fetchResults())
 
 // Initial load
-onMounted(() => fetchResults())
+onMounted(async () => {
+  await Promise.all([fetchCatalog(), fetchResults()])
+})
 </script>

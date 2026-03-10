@@ -35,3 +35,11 @@ The application runs as a containerized dual-service architecture orchestrated b
 2. **Task Validation**: Every bug/feature tracked inside `tasks/todo.md`.
 3. **Lessons Learned**: Immediate knowledge capture inside `tasks/lessons.md` after correcting any AI or architectural hurdle (like SPA routing, API limits, Pydantic typing).
 4. **Clean Root Hygiene**: Legacy scripts (e.g., orchestrator `main.py` at the root) from the old V1 version should be phased out and ignored for backend API tasks.
+
+## 7. Source Catalog Architecture
+- **Catalog Collection**: Top-level `sources/` Firestore collection stores source definitions (name, icon, description, website_url, visibility, config_schema, default_params, is_multi_instance).
+- **User Sources**: Per-user subscriptions stored in `users/{uid}/user_sources/` sub-collection with `source_id` references back to the catalog.
+- **Catalog Seeding**: Called on app startup via `seed_source_catalog()`. Only creates missing entries — never overwrites existing ones.
+- **Visibility Tiers**: Catalog entries have a `visibility` field (`disabled`, `public`, `beta`, `pro`). Currently all are `public`. Future-proofed for user tier filtering.
+- **Dynamic Frontend**: All source rendering (sources page, onboarding, dashboard filters/icons) is driven by `GET /api/sources/catalog`. Adding a new source only requires a catalog Firestore doc + a parser class.
+- **Testing**: Backend tests use `sys.modules`-level mocking of `firebase_admin` so tests run without the SDK installed. 13 tests cover catalog, user source CRUD, and extraction.

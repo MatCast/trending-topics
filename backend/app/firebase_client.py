@@ -3,7 +3,6 @@
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any, List
-from uuid import uuid4
 
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -12,6 +11,67 @@ logger = logging.getLogger(__name__)
 
 _app: Optional[firebase_admin.App] = None
 _db = None
+
+
+# --- Default Source Catalog Data ---
+
+SOURCE_CATALOG_DEFAULTS: Dict[str, Dict[str, Any]] = {
+    "reddit": {
+        "name": "Reddit",
+        "description": "Monitor subreddits for rising posts",
+        "icon": "reddit",
+        "website_url": "https://reddit.com",
+        "category": "social",
+        "supports_keywords": True,
+        "is_multi_instance": True,
+        "visibility": "public",
+        "config_schema": {
+            "subreddit": {
+                "type": "string",
+                "required": True,
+                "label": "Subreddit name",
+                "placeholder": "e.g., startups",
+            }
+        },
+        "default_params": {},
+    },
+    "hackernews": {
+        "name": "Hacker News",
+        "description": "Top stories filtered by your keywords",
+        "icon": "hackernews",
+        "website_url": "https://news.ycombinator.com",
+        "category": "tech",
+        "supports_keywords": True,
+        "is_multi_instance": False,
+        "visibility": "public",
+        "config_schema": {},
+        "default_params": {"url": "https://hnrss.org/newest?points=10"},
+    },
+    "bluesky": {
+        "name": "Bluesky",
+        "description": "Search posts using your global keywords",
+        "icon": "bluesky",
+        "website_url": "https://bsky.app",
+        "category": "social",
+        "supports_keywords": True,
+        "is_multi_instance": False,
+        "visibility": "public",
+        "config_schema": {},
+        "default_params": {},
+    },
+    "indiehackers": {
+        "name": "Indie Hackers",
+        "description": "Top stories from Indie Hackers RSS feed",
+        "icon": "indiehackers",
+        "website_url": "https://indiehackers.com",
+        "category": "entrepreneurship",
+        "supports_keywords": True,
+        "is_multi_instance": False,
+        "visibility": "public",
+        "config_schema": {},
+        "default_params": {},
+    },
+}
 
 
 def init_firebase(service_account_path: Optional[str] = None):
@@ -36,6 +96,64 @@ def get_db():
     if _db is None:
         raise RuntimeError("Firebase not initialized. Call init_firebase() first.")
     return _db
+
+
+# --- Source Catalog Operations ---
+
+def seed_source_catalog():
+    """Seed the top-level sources catalog if it doesn't exist.
+    Called once at startup.
+    """
+    db = get_db()
+    sources_ref = db.collection("sources")
+
+    for source_id, source_data in SOURCE_CATALOG_DEFAULTS.items():
+        doc_ref = sources_ref.document(source_id)
+        doc = doc_ref.get()
+        if not doc.exists:
+            doc_ref.set(source_data)
+            logger.info(f"Seeded catalog source: {source_id}")
+        else:
+            logger.debug(f"Catalog source '{source_id}' already exists, skipping seed.")
+
+
+def list_catalog_sources(user_tier: str = "free") -> List[Dict[str, Any]]:
+    """List all sources from the catalog, filtered by visibility.
+
+    Visibility tiers (lowest to highest): disabled, public, beta, pro.
+    - 'free' users see 'public' sources only.
+    - 'beta' users see 'public' + 'beta'.
+    - 'pro' users see 'public' + 'beta' + 'pro'.
+    - 'disabled' sources are always hidden.
+    """
+    db = get_db()
+    docs = db.collection("sources").stream()
+
+    tier_access = {
+        "free": {"public"},
+        "beta": {"public", "beta"},
+        "pro": {"public", "beta", "pro"},
+        "admin": {"public", "beta", "pro"},
+    }
+    allowed = tier_access.get(user_tier, {"public"})
+
+    results = []
+    for doc in docs:
+        data = doc.to_dict()
+        visibility = data.get("visibility", "public")
+        if visibility in allowed:
+            results.append({"id": doc.id, **data})
+
+    return results
+
+
+def get_catalog_source(source_id: str) -> Optional[Dict[str, Any]]:
+    """Get a single catalog entry by ID."""
+    db = get_db()
+    doc = db.collection("sources").document(source_id).get()
+    if doc.exists:
+        return {"id": doc.id, **doc.to_dict()}
+    return None
 
 
 # --- User Operations ---
@@ -88,50 +206,75 @@ def update_user_settings(uid: str, settings: Dict[str, Any]) -> Dict[str, Any]:
     return get_user_settings(uid)
 
 
-# --- Source Config Operations ---
+# --- User Source Config Operations ---
 
 def list_sources(uid: str) -> List[Dict[str, Any]]:
-    """List all source configs for a user."""
+    """List all source configs for a user from user_sources sub-collection."""
     db = get_db()
-    sources_ref = db.collection("users").document(uid).collection("sources")
+    sources_ref = db.collection("users").document(uid).collection("user_sources")
     docs = sources_ref.stream()
     return [{"id": doc.id, **doc.to_dict()} for doc in docs]
 
 
 def create_source(uid: str, source_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Create a new source config. Prevents duplicates."""
-    db = get_db()
-    source_type = source_data.get("type", "")
+    """Create a new user source subscription. Validates against catalog.
 
-    # Check for duplicate Reddit source (by subreddit name)
-    if source_type == "reddit":
-        subreddit = source_data.get("params", {}).get("subreddit", "").lower()
-        if subreddit:
-            existing = (
-                db.collection("users").document(uid).collection("sources")
-                .where("type", "==", "reddit")
-                .stream()
-            )
-            for doc in existing:
-                if doc.to_dict().get("params", {}).get("subreddit", "").lower() == subreddit:
-                    logger.warning(f"Subreddit r/{subreddit} already exists for user {uid}")
-                    return {"id": doc.id, **doc.to_dict(), "existed": True}
+    Args:
+        uid: Firebase user ID.
+        source_data: Dict with source_id, optional name, enabled, use_global_keywords, params.
+    """
+    db = get_db()
+    source_id = source_data.get("source_id", "")
+
+    # Validate source_id exists in catalog
+    catalog_entry = get_catalog_source(source_id)
+    if not catalog_entry:
+        raise ValueError(f"Unknown source_id: '{source_id}'. Source not found in catalog.")
+
+    is_multi = catalog_entry.get("is_multi_instance", False)
+
+    # Use catalog name if not provided
+    if not source_data.get("name"):
+        if is_multi and source_data.get("params", {}).get("subreddit"):
+            source_data["name"] = f"r/{source_data['params']['subreddit']}"
+        else:
+            source_data["name"] = catalog_entry.get("name", source_id)
+
+    # Merge default_params from catalog (user params take precedence)
+    default_params = catalog_entry.get("default_params", {})
+    merged_params = {**default_params, **source_data.get("params", {})}
+    source_data["params"] = merged_params
+
+    if is_multi:
+        # Multi-instance: check for duplicate by specific param (e.g., subreddit for reddit)
+        if source_id == "reddit":
+            subreddit = source_data.get("params", {}).get("subreddit", "").lower()
+            if subreddit:
+                existing = (
+                    db.collection("users").document(uid).collection("user_sources")
+                    .where("source_id", "==", source_id)
+                    .stream()
+                )
+                for doc in existing:
+                    if doc.to_dict().get("params", {}).get("subreddit", "").lower() == subreddit:
+                        logger.warning(f"Subreddit r/{subreddit} already exists for user {uid}")
+                        return {"id": doc.id, **doc.to_dict(), "existed": True}
     else:
-        # Singleton sources (hackernews, bluesky, indiehackers): only one per type
+        # Singleton: only one per source_id per user
         existing = (
-            db.collection("users").document(uid).collection("sources")
-            .where("type", "==", source_type)
+            db.collection("users").document(uid).collection("user_sources")
+            .where("source_id", "==", source_id)
             .stream()
         )
         for doc in existing:
             # Re-enable the existing source instead of creating a duplicate
             doc.reference.update({"enabled": True})
             updated = doc.reference.get().to_dict()
-            logger.info(f"Source '{source_type}' already exists for user {uid}, re-enabled it.")
+            logger.info(f"Source '{source_id}' already exists for user {uid}, re-enabled it.")
             return {"id": doc.id, **updated, "existed": True}
 
     source_data["created_at"] = datetime.now(timezone.utc)
-    sources_ref = db.collection("users").document(uid).collection("sources")
+    sources_ref = db.collection("users").document(uid).collection("user_sources")
     doc_ref = sources_ref.add(source_data)
     # doc_ref is a tuple: (timestamp, DocumentReference)
     doc_id = doc_ref[1].id
@@ -139,18 +282,18 @@ def create_source(uid: str, source_data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def update_source(uid: str, source_id: str, update_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Update a source config."""
+    """Update a user source config."""
     db = get_db()
-    source_ref = db.collection("users").document(uid).collection("sources").document(source_id)
+    source_ref = db.collection("users").document(uid).collection("user_sources").document(source_id)
     source_ref.update(update_data)
     updated = source_ref.get()
     return {"id": source_id, **updated.to_dict()}
 
 
 def delete_source(uid: str, source_id: str):
-    """Delete a source config."""
+    """Delete a user source config."""
     db = get_db()
-    db.collection("users").document(uid).collection("sources").document(source_id).delete()
+    db.collection("users").document(uid).collection("user_sources").document(source_id).delete()
 
 
 # --- Results Operations ---
@@ -196,7 +339,6 @@ def list_results(
     query = query.order_by(sort_by, direction=direction)
 
     # Filtering for expired results and source_type in memory to avoid needing complex composite indexes
-    # for every possible sort_by field and source_type combination.
     now = datetime.now(timezone.utc)
 
     # Get total count

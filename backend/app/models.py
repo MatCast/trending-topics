@@ -1,19 +1,12 @@
 """Pydantic models for request/response validation."""
 
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
 
 
 # --- Enums ---
-
-class SourceType(str, Enum):
-    REDDIT = "reddit"
-    HACKERNEWS = "hackernews"
-    BLUESKY = "bluesky"
-    INDIEHACKERS = "indiehackers"
-
 
 class ScheduleType(str, Enum):
     MANUAL = "manual"
@@ -22,37 +15,47 @@ class ScheduleType(str, Enum):
     WEEKLY = "weekly"
 
 
-# --- Source Configuration ---
+# --- Source Catalog ---
 
-class SourceParams(BaseModel):
-    """Source-specific parameters. Each source type uses different fields."""
-    subreddit: Optional[str] = None  # Reddit only
-    url: Optional[str] = None  # HackerNews feed URL
-    # Bluesky has no special params — uses global keywords
+class SourceCatalogEntry(BaseModel):
+    """Represents a source definition in the top-level catalog."""
+    id: str
+    name: str
+    description: str = ""
+    icon: str = ""
+    website_url: str = ""
+    category: str = "general"
+    supports_keywords: bool = True
+    is_multi_instance: bool = False
+    visibility: str = "public"  # "disabled" | "public" | "beta" | "pro"
+    config_schema: Dict[str, Any] = Field(default_factory=dict)
+    default_params: Dict[str, Any] = Field(default_factory=dict)
 
+
+# --- Source Configuration (User Subscriptions) ---
 
 class SourceConfigCreate(BaseModel):
-    type: SourceType
-    name: str = Field(..., min_length=1, max_length=100)
+    source_id: str = Field(..., min_length=1, max_length=100)
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
     enabled: bool = True
     use_global_keywords: bool = True
-    params: SourceParams = Field(default_factory=SourceParams)
+    params: Dict[str, Any] = Field(default_factory=dict)
 
 
 class SourceConfigUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     enabled: Optional[bool] = None
     use_global_keywords: Optional[bool] = None
-    params: Optional[SourceParams] = None
+    params: Optional[Dict[str, Any]] = None
 
 
 class SourceConfigResponse(BaseModel):
     id: str
-    type: SourceType
+    source_id: str
     name: str
     enabled: bool
     use_global_keywords: bool
-    params: SourceParams
+    params: Dict[str, Any] = Field(default_factory=dict)
     created_at: Optional[datetime] = None
 
 
@@ -101,7 +104,7 @@ class ExtractionRunResponse(BaseModel):
 class TrendResultResponse(BaseModel):
     id: str
     source: str
-    source_type: SourceType
+    source_type: str
     title: str
     url: str
     description: str = ""

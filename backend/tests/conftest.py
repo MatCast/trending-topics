@@ -1,0 +1,206 @@
+"""Shared test fixtures for the backend test suite.
+
+Mocks firebase_admin at the sys.modules level so the app can import
+without the actual Firebase SDK installed.
+"""
+
+import sys
+from unittest.mock import MagicMock, patch
+from datetime import datetime, timezone
+
+import pytest
+
+# --- Mock firebase_admin BEFORE any app imports ---
+# This must happen before importing the FastAPI app since auth.py and
+# firebase_client.py both import from firebase_admin at module level.
+
+mock_firebase_admin = MagicMock()
+mock_firebase_admin.auth = MagicMock()
+mock_firebase_admin.credentials = MagicMock()
+mock_firebase_admin.firestore = MagicMock()
+sys.modules["firebase_admin"] = mock_firebase_admin
+sys.modules["firebase_admin.auth"] = mock_firebase_admin.auth
+sys.modules["firebase_admin.credentials"] = mock_firebase_admin.credentials
+sys.modules["firebase_admin.firestore"] = mock_firebase_admin.firestore
+
+# Now we can safely import the app
+from fastapi.testclient import TestClient
+from app.main import app
+from app.auth import verify_firebase_token
+
+
+# --- Mock Firestore Data ---
+
+MOCK_CATALOG = {
+    "reddit": {
+        "name": "Reddit",
+        "description": "Monitor subreddits for rising posts",
+        "icon": "reddit",
+        "website_url": "https://reddit.com",
+        "category": "social",
+        "supports_keywords": True,
+        "is_multi_instance": True,
+        "visibility": "public",
+        "config_schema": {
+            "subreddit": {"type": "string", "required": True, "label": "Subreddit name"}
+        },
+        "default_params": {},
+    },
+    "hackernews": {
+        "name": "Hacker News",
+        "description": "Top stories filtered by your keywords",
+        "icon": "hackernews",
+        "website_url": "https://news.ycombinator.com",
+        "category": "tech",
+        "supports_keywords": True,
+        "is_multi_instance": False,
+        "visibility": "public",
+        "config_schema": {},
+        "default_params": {"url": "https://hnrss.org/newest?points=10"},
+    },
+    "bluesky": {
+        "name": "Bluesky",
+        "description": "Search posts using your global keywords",
+        "icon": "bluesky",
+        "website_url": "https://bsky.app",
+        "category": "social",
+        "supports_keywords": True,
+        "is_multi_instance": False,
+        "visibility": "public",
+        "config_schema": {},
+        "default_params": {},
+    },
+    "indiehackers": {
+        "name": "Indie Hackers",
+        "description": "Top stories from Indie Hackers RSS feed",
+        "icon": "indiehackers",
+        "website_url": "https://indiehackers.com",
+        "category": "entrepreneurship",
+        "supports_keywords": True,
+        "is_multi_instance": False,
+        "visibility": "public",
+        "config_schema": {},
+        "default_params": {},
+    },
+}
+
+
+def _make_user_sources():
+    """Create a fresh copy of mock user sources."""
+    return [
+        {
+            "id": "src_001",
+            "source_id": "reddit",
+            "name": "r/startups",
+            "enabled": True,
+            "use_global_keywords": False,
+            "params": {"subreddit": "startups"},
+            "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc),
+        },
+        {
+            "id": "src_002",
+            "source_id": "hackernews",
+            "name": "Hacker News",
+            "enabled": True,
+            "use_global_keywords": True,
+            "params": {"url": "https://hnrss.org/newest?points=10"},
+            "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc),
+        },
+    ]
+
+
+def _mock_verify_token():
+    """Mock Firebase token verification."""
+    return {"uid": "test_user_123", "email": "test@example.com", "name": "Test User"}
+
+
+@pytest.fixture(autouse=True)
+def mock_firebase():
+    """Patch firebase_client functions with in-memory mocks."""
+    import app.firebase_client as fb_module
+
+    user_sources = _make_user_sources()
+
+    # Catalog functions
+    def mock_list_catalog(user_tier="free"):
+        tier_access = {"free": {"public"}, "beta": {"public", "beta"}, "pro": {"public", "beta", "pro"}}
+        allowed = tier_access.get(user_tier, {"public"})
+        return [
+            {"id": sid, **sdata}
+            for sid, sdata in MOCK_CATALOG.items()
+            if sdata.get("visibility", "public") in allowed
+        ]
+
+    def mock_get_catalog(source_id):
+        data = MOCK_CATALOG.get(source_id)
+        if data:
+            return {"id": source_id, **data}
+        return None
+
+    def mock_list_sources(uid):
+        return list(user_sources)
+
+    def mock_create_source(uid, source_data):
+        source_id = source_data.get("source_id", "")
+        catalog_entry = mock_get_catalog(source_id)
+        if not catalog_entry:
+            raise ValueError(f"Unknown source_id: '{source_id}'")
+
+        is_multi = catalog_entry.get("is_multi_instance", False)
+        if not is_multi:
+            for existing in user_sources:
+                if existing["source_id"] == source_id:
+                    existing["enabled"] = True
+                    return {**existing, "existed": True}
+
+        new_id = f"src_{len(user_sources) + 1:03d}"
+        new_source = {"id": new_id, **source_data, "created_at": datetime.now(timezone.utc)}
+        if not new_source.get("name"):
+            new_source["name"] = catalog_entry.get("name", source_id)
+        user_sources.append(new_source)
+        return new_source
+
+    def mock_update_source(uid, source_id, update_data):
+        for src in user_sources:
+            if src["id"] == source_id:
+                src.update(update_data)
+                return src
+        raise Exception(f"Source {source_id} not found")
+
+    def mock_delete_source(uid, source_id):
+        user_sources[:] = [s for s in user_sources if s["id"] != source_id]
+
+    # Patch the module-level functions
+    with patch.object(fb_module, "list_catalog_sources", side_effect=mock_list_catalog), \
+         patch.object(fb_module, "get_catalog_source", side_effect=mock_get_catalog), \
+         patch.object(fb_module, "list_sources", side_effect=mock_list_sources), \
+         patch.object(fb_module, "create_source", side_effect=mock_create_source), \
+         patch.object(fb_module, "update_source", side_effect=mock_update_source), \
+         patch.object(fb_module, "delete_source", side_effect=mock_delete_source), \
+         patch.object(fb_module, "get_or_create_user", return_value={"uid": "test_user_123"}), \
+         patch.object(fb_module, "get_user_settings", return_value={
+             "global_keywords": ["AI", "startup"],
+             "time_window_hours": 3,
+             "max_trends_per_source": 3,
+         }), \
+         patch.object(fb_module, "get_admin_config", return_value={
+             "source_weights": {"reddit": 1.0, "hackernews": 1.0},
+             "default_retention_days": 15,
+         }), \
+         patch.object(fb_module, "store_results", return_value=None), \
+         patch.object(fb_module, "seed_source_catalog", return_value=None), \
+         patch.object(fb_module, "init_firebase", return_value=None):
+
+        yield fb_module
+
+
+@pytest.fixture
+def client(mock_firebase):
+    """FastAPI TestClient with mocked Firebase."""
+    # Override the auth dependency
+    app.dependency_overrides[verify_firebase_token] = _mock_verify_token
+
+    with TestClient(app) as c:
+        yield c
+
+    app.dependency_overrides.clear()

@@ -1,6 +1,6 @@
 # Trend Finder Dashboard
 
-A full-stack web application designed to identify trending topics from Reddit, Hacker News, and Bluesky to help you create viral LinkedIn content.
+A full-stack web application designed to identify trending topics from Reddit, Hacker News, and Bluesky and others to help you create viral LinkedIn content.
 
 ## Features
 - **Multi-Source Research**: Fetches real-time trends from Reddit subreddits, Hacker News Top stories, and Bluesky.
