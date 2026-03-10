@@ -1,4 +1,6 @@
-# AI Trend-to-LinkedIn Automation Todo
+# Trending News Finder
+
+## Automation Todo
 
 ## 1. Project Initialization
 - [x] Initialize Git repository.
@@ -57,3 +59,9 @@ This is to be defined and not implemented until a clear plan is established.
 - [x] Implement authentication protection on all frontend routes except /login.
 - [x] Fix Bluesky extraction not returning data due to API 'since' + 'OR' keyword bug.
 
+## 10. Reddit OAuth & Rate Limits
+- [x] Plan and Architectural Review
+- [ ] Backend Implementation (Reddit Auth router, Token storage in Firestore)
+- [ ] Backend Implementation (Parser update to use OAuth token, Enforce Tier limits)
+- [ ] Frontend Implementation (Connect Reddit button, Callback page handling)
+- [ ] Verification (Local OAuth flow, Tier limit testing)
