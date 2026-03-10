@@ -120,6 +120,11 @@ def mock_firebase():
     import app.firebase_client as fb_module
 
     user_sources = _make_user_sources()
+    user_keywords = [
+        {"id": "kw_001", "text": "AI", "enabled": True, "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+        {"id": "kw_002", "text": "startup", "enabled": True, "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+        {"id": "kw_003", "text": "blockchain", "enabled": False, "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+    ]
 
     # Catalog functions
     def mock_list_catalog(user_tier="free"):
@@ -170,6 +175,62 @@ def mock_firebase():
     def mock_delete_source(uid, source_id):
         user_sources[:] = [s for s in user_sources if s["id"] != source_id]
 
+    # Keyword functions
+    def mock_list_keywords(uid):
+        return list(user_keywords)
+
+    def mock_list_enabled_keywords(uid):
+        return [kw["text"] for kw in user_keywords if kw.get("enabled")]
+
+    def mock_create_keywords(uid, keywords, user_tier="free"):
+        existing_texts = {kw["text"].lower() for kw in user_keywords}
+        created = []
+        seen = set()
+        for kw_raw in keywords:
+            kw = kw_raw.strip()
+            if not kw:
+                continue
+            kw_lower = kw.lower()
+            if kw_lower in existing_texts or kw_lower in seen:
+                continue
+            new_id = f"kw_{len(user_keywords) + len(created) + 1:03d}"
+            keyword_data = {"id": new_id, "text": kw, "enabled": True, "created_at": datetime.now(timezone.utc)}
+            user_keywords.append(keyword_data)
+            created.append(keyword_data)
+            seen.add(kw_lower)
+        return created
+
+    def mock_update_keyword(uid, keyword_id, update_data):
+        for kw in user_keywords:
+            if kw["id"] == keyword_id:
+                kw.update(update_data)
+                return kw
+        raise Exception(f"Keyword {keyword_id} not found")
+
+    def mock_bulk_update_keywords(uid, keyword_ids, update_data):
+        count = 0
+        for kw in user_keywords:
+            if kw["id"] in keyword_ids:
+                kw.update(update_data)
+                count += 1
+        return count
+
+    def mock_delete_keywords(uid, keyword_ids):
+        count = 0
+        for kid in keyword_ids:
+            for i, kw in enumerate(user_keywords):
+                if kw["id"] == kid:
+                    user_keywords.pop(i)
+                    count += 1
+                    break
+        return count
+
+    def mock_delete_keyword(uid, keyword_id):
+        for i, kw in enumerate(user_keywords):
+            if kw["id"] == keyword_id:
+                user_keywords.pop(i)
+                return
+
     # Patch the module-level functions
     with patch.object(fb_module, "list_catalog_sources", side_effect=mock_list_catalog), \
          patch.object(fb_module, "get_catalog_source", side_effect=mock_get_catalog), \
@@ -177,9 +238,15 @@ def mock_firebase():
          patch.object(fb_module, "create_source", side_effect=mock_create_source), \
          patch.object(fb_module, "update_source", side_effect=mock_update_source), \
          patch.object(fb_module, "delete_source", side_effect=mock_delete_source), \
+         patch.object(fb_module, "list_keywords", side_effect=mock_list_keywords), \
+         patch.object(fb_module, "list_enabled_keywords", side_effect=mock_list_enabled_keywords), \
+         patch.object(fb_module, "create_keywords", side_effect=mock_create_keywords), \
+         patch.object(fb_module, "update_keyword", side_effect=mock_update_keyword), \
+         patch.object(fb_module, "bulk_update_keywords", side_effect=mock_bulk_update_keywords), \
+         patch.object(fb_module, "delete_keywords", side_effect=mock_delete_keywords), \
+         patch.object(fb_module, "delete_keyword", side_effect=mock_delete_keyword), \
          patch.object(fb_module, "get_or_create_user", return_value={"uid": "test_user_123"}), \
          patch.object(fb_module, "get_user_settings", return_value={
-             "global_keywords": ["AI", "startup"],
              "time_window_hours": 3,
              "max_trends_per_source": 3,
          }), \

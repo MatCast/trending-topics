@@ -173,7 +173,6 @@ def get_or_create_user(uid: str, email: str = "", display_name: str = "") -> Dic
         "display_name": display_name,
         "created_at": datetime.now(timezone.utc),
         "settings": {
-            "global_keywords": [],
             "time_window_hours": 3,
             "max_trends_per_source": 3,
             "result_retention_days": 15,
@@ -294,6 +293,141 @@ def delete_source(uid: str, source_id: str):
     """Delete a user source config."""
     db = get_db()
     db.collection("users").document(uid).collection("user_sources").document(source_id).delete()
+
+
+# --- Keyword Operations ---
+
+DEFAULT_KEYWORD_LIMITS = {
+    "free": 20,
+    "pro": 100,
+    "unlimited": -1,
+}
+
+
+def get_keyword_limit(user_tier: str = "free") -> int:
+    """Get max keywords for a user tier. Returns -1 for unlimited."""
+    return DEFAULT_KEYWORD_LIMITS.get(user_tier, DEFAULT_KEYWORD_LIMITS["free"])
+
+
+def list_keywords(uid: str) -> List[Dict[str, Any]]:
+    """List all keywords for a user."""
+    db = get_db()
+    docs = db.collection("users").document(uid).collection("keywords").stream()
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
+def list_enabled_keywords(uid: str) -> List[str]:
+    """List only enabled keyword texts. Used for extraction."""
+    db = get_db()
+    docs = (
+        db.collection("users").document(uid).collection("keywords")
+        .where("enabled", "==", True)
+        .stream()
+    )
+    return [doc.to_dict().get("text", "") for doc in docs if doc.to_dict().get("text")]
+
+
+def create_keywords(uid: str, keywords: List[str], user_tier: str = "free") -> List[Dict[str, Any]]:
+    """Create keywords in bulk. Trims, deduplicates (case-insensitive), enforces limits.
+
+    Returns list of created keyword dicts.
+    """
+    db = get_db()
+    keywords_ref = db.collection("users").document(uid).collection("keywords")
+
+    # Get existing keywords for dedup
+    existing_docs = list(keywords_ref.stream())
+    existing_texts = {doc.to_dict().get("text", "").lower() for doc in existing_docs}
+    current_count = len(existing_docs)
+
+    # Check limit
+    limit = get_keyword_limit(user_tier)
+
+    # Process and deduplicate input
+    created = []
+    seen = set()
+    for kw_raw in keywords:
+        kw = kw_raw.strip()
+        if not kw:
+            continue
+        kw_lower = kw.lower()
+        if kw_lower in existing_texts or kw_lower in seen:
+            continue
+
+        # Check limit (-1 = unlimited)
+        if limit != -1 and (current_count + len(created)) >= limit:
+            logger.warning(f"Keyword limit ({limit}) reached for user {uid}")
+            break
+
+        now = datetime.now(timezone.utc)
+        doc_ref = keywords_ref.document()
+        keyword_data = {
+            "text": kw,
+            "enabled": True,
+            "created_at": now,
+        }
+        doc_ref.set(keyword_data)
+        created.append({"id": doc_ref.id, **keyword_data})
+        seen.add(kw_lower)
+
+    logger.info(f"Created {len(created)} keywords for user {uid}")
+    return created
+
+
+def update_keyword(uid: str, keyword_id: str, update_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Update a single keyword (e.g., toggle enabled)."""
+    db = get_db()
+    kw_ref = db.collection("users").document(uid).collection("keywords").document(keyword_id)
+    kw_ref.update(update_data)
+    updated = kw_ref.get()
+    return {"id": keyword_id, **updated.to_dict()}
+
+
+def bulk_update_keywords(uid: str, keyword_ids: List[str], update_data: Dict[str, Any]) -> int:
+    """Bulk update keywords (e.g., enable/disable multiple)."""
+    db = get_db()
+    batch = db.batch()
+    count = 0
+    keywords_ref = db.collection("users").document(uid).collection("keywords")
+
+    for kid in keyword_ids:
+        batch.update(keywords_ref.document(kid), update_data)
+        count += 1
+        if count >= 400:
+            batch.commit()
+            batch = db.batch()
+
+    if count % 400 != 0:
+        batch.commit()
+
+    return count
+
+
+def delete_keywords(uid: str, keyword_ids: List[str]) -> int:
+    """Bulk delete keywords."""
+    db = get_db()
+    batch = db.batch()
+    count = 0
+    keywords_ref = db.collection("users").document(uid).collection("keywords")
+
+    for kid in keyword_ids:
+        batch.delete(keywords_ref.document(kid))
+        count += 1
+        if count >= 400:
+            batch.commit()
+            batch = db.batch()
+
+    if count % 400 != 0:
+        batch.commit()
+
+    logger.info(f"Deleted {count} keywords for user {uid}")
+    return count
+
+
+def delete_keyword(uid: str, keyword_id: str):
+    """Delete a single keyword."""
+    db = get_db()
+    db.collection("users").document(uid).collection("keywords").document(keyword_id).delete()
 
 
 # --- Results Operations ---

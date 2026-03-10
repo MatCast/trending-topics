@@ -55,7 +55,7 @@ def run_scheduled_extractions() -> Dict[str, Any]:
 
         try:
             sources = fb.list_sources(uid)
-            global_keywords = settings.get("global_keywords", [])
+            global_keywords = fb.list_enabled_keywords(uid)
             time_window = settings.get("time_window_hours", 3)
             max_trends = settings.get("max_trends_per_source", 3)
 

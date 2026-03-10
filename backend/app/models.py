@@ -59,6 +59,24 @@ class SourceConfigResponse(BaseModel):
     created_at: Optional[datetime] = None
 
 
+# --- Keywords ---
+
+class KeywordCreate(BaseModel):
+    keywords: List[str] = Field(..., min_length=1)
+
+
+class KeywordResponse(BaseModel):
+    id: str
+    text: str
+    enabled: bool = True
+    created_at: Optional[datetime] = None
+
+
+class KeywordBulkAction(BaseModel):
+    keyword_ids: List[str] = Field(..., min_length=1)
+    action: str = Field(..., pattern="^(enable|disable|delete)$")
+
+
 # --- User Settings ---
 
 class ScheduleConfig(BaseModel):
@@ -69,14 +87,12 @@ class ScheduleConfig(BaseModel):
 
 
 class UserSettingsUpdate(BaseModel):
-    global_keywords: Optional[List[str]] = None
     time_window_hours: Optional[int] = Field(None, ge=1, le=168)
     max_trends_per_source: Optional[int] = Field(None, ge=1, le=50)
     schedule: Optional[ScheduleConfig] = None
 
 
 class UserSettingsResponse(BaseModel):
-    global_keywords: List[str] = Field(default_factory=list)
     time_window_hours: int = 3
     max_trends_per_source: int = 3
     result_retention_days: int = 15

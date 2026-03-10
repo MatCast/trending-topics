@@ -218,11 +218,14 @@ const globalKeywords = ref<string[]>([])
 const newKeyword = ref('')
 
 function addKeyword() {
-  const kw = newKeyword.value.trim()
-  if (kw && !globalKeywords.value.includes(kw)) {
-    globalKeywords.value.push(kw)
-    newKeyword.value = ''
+  // Split by commas, trim each, filter empty and duplicates
+  const parts = newKeyword.value.split(',').map(s => s.trim()).filter(Boolean)
+  for (const kw of parts) {
+    if (!globalKeywords.value.some(existing => existing.toLowerCase() === kw.toLowerCase())) {
+      globalKeywords.value.push(kw)
+    }
   }
+  newKeyword.value = ''
 }
 
 // Step 2: Multi-instance source drafts (e.g., subreddits to be saved)
@@ -306,15 +309,22 @@ async function fetchCatalog() {
 async function saveAndContinue() {
   isSaving.value = true
   try {
-    // Save user settings
+    // Save user settings (without keywords — they're separate now)
     await apiFetch('/api/settings', {
       method: 'PUT',
       body: {
-        global_keywords: globalKeywords.value,
         time_window_hours: timeWindowHours.value,
         max_trends_per_source: maxTrendsPerSource.value,
       },
     })
+
+    // Save keywords via keywords API
+    if (globalKeywords.value.length > 0) {
+      await apiFetch('/api/keywords', {
+        method: 'POST',
+        body: { keywords: globalKeywords.value },
+      })
+    }
 
     // Save multi-instance sources
     for (const [_sourceId, instances] of Object.entries(pendingMultiInstances.value)) {

@@ -39,7 +39,7 @@ async def extract(
     time_window = settings.get("time_window_hours", 3)
     max_trends = settings.get("max_trends_per_source", 3)
     use_keywords = True
-    global_keywords = settings.get("global_keywords", [])
+    global_keywords = fb.list_enabled_keywords(uid)
 
     if body:
         if body.time_window_hours is not None:

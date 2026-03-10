@@ -11,36 +11,7 @@
     </div>
 
     <div v-else class="space-y-6">
-      <!-- Global Keywords -->
-      <div class="card bg-base-100 shadow-xl border border-base-300">
-        <div class="card-body">
-          <h2 class="card-title">Global Keywords</h2>
-          <p class="text-base-content/60 text-sm mb-3">Keywords used for filtering trends across keyword-based sources.</p>
 
-          <div class="join w-full">
-            <input
-              v-model="newKeyword"
-              type="text"
-              placeholder="Add a keyword..."
-              class="input input-bordered join-item flex-1"
-              @keyup.enter="addKeyword"
-            />
-            <button class="btn btn-primary join-item" @click="addKeyword">Add</button>
-          </div>
-
-          <div class="flex flex-wrap gap-2 mt-3">
-            <div
-              v-for="(kw, idx) in settings.global_keywords"
-              :key="idx"
-              class="badge badge-lg badge-primary gap-2"
-            >
-              {{ kw }}
-              <button @click="removeKeyword(idx)">✕</button>
-            </div>
-            <span v-if="!settings.global_keywords?.length" class="text-base-content/40 text-sm">No keywords</span>
-          </div>
-        </div>
-      </div>
 
       <!-- Extraction Preferences -->
       <div class="card bg-base-100 shadow-xl border border-base-300">
@@ -139,7 +110,6 @@ const showSuccess = ref(false)
 const newKeyword = ref('')
 
 const settings = ref<any>({
-  global_keywords: [],
   time_window_hours: 3,
   max_trends_per_source: 3,
 })
@@ -156,7 +126,6 @@ async function fetchSettings() {
   try {
     const data = await apiFetch<any>('/api/settings')
     settings.value = {
-      global_keywords: data.global_keywords || [],
       time_window_hours: data.time_window_hours || 3,
       max_trends_per_source: data.max_trends_per_source || 3,
     }
@@ -181,19 +150,7 @@ watch(
   { deep: true }
 )
 
-function addKeyword() {
-  const kw = newKeyword.value.trim()
-  if (kw && !settings.value.global_keywords.includes(kw)) {
-    settings.value.global_keywords.push(kw)
-    newKeyword.value = ''
-    saveSettings()
-  }
-}
 
-function removeKeyword(idx: number) {
-  settings.value.global_keywords.splice(idx, 1)
-  saveSettings()
-}
 
 async function saveSettings() {
   if (isSaving.value) return

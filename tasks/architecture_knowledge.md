@@ -42,4 +42,11 @@ The application runs as a containerized dual-service architecture orchestrated b
 - **Catalog Seeding**: Called on app startup via `seed_source_catalog()`. Only creates missing entries — never overwrites existing ones.
 - **Visibility Tiers**: Catalog entries have a `visibility` field (`disabled`, `public`, `beta`, `pro`). Currently all are `public`. Future-proofed for user tier filtering.
 - **Dynamic Frontend**: All source rendering (sources page, onboarding, dashboard filters/icons) is driven by `GET /api/sources/catalog`. Adding a new source only requires a catalog Firestore doc + a parser class.
-- **Testing**: Backend tests use `sys.modules`-level mocking of `firebase_admin` so tests run without the SDK installed. 13 tests cover catalog, user source CRUD, and extraction.
+- **Testing**: Backend tests use `sys.modules`-level mocking of `firebase_admin` so tests run without the SDK installed. 21 tests cover catalog, user source CRUD, extraction, and keyword CRUD.
+
+## 8. Keywords Sub-Collection Architecture
+- **Keywords Collection**: Per-user keywords stored in `users/{uid}/keywords/` sub-collection with fields: `text`, `enabled`, `created_at`.
+- **Extraction**: `extraction.py` and `scheduler.py` call `list_enabled_keywords(uid)` which queries only `enabled=True` keywords from the sub-collection.
+- **Keyword Limits**: `DEFAULT_KEYWORD_LIMITS` maps user tiers to max keywords (`free: 20`, `pro: 100`, `unlimited: -1`). Enforced in `create_keywords()`.
+- **API Endpoints**: `GET/POST /api/keywords`, `PUT /api/keywords/{id}`, `POST /api/keywords/bulk` (bulk enable/disable/delete), `DELETE /api/keywords/{id}`.
+- **Frontend**: Dedicated `/keywords` management page with table, bulk selection, toggle enabled, comma-separated add input. Keywords removed from `/settings` page.

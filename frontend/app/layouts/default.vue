@@ -15,6 +15,7 @@
       <div v-if="isAuthenticated" class="flex-none gap-2">
         <NuxtLink to="/" class="btn btn-ghost btn-sm">Dashboard</NuxtLink>
         <NuxtLink to="/sources" class="btn btn-ghost btn-sm">Sources</NuxtLink>
+        <NuxtLink to="/keywords" class="btn btn-ghost btn-sm">Keywords</NuxtLink>
         <NuxtLink to="/settings" class="btn btn-ghost btn-sm">Settings</NuxtLink>
 
         <div class="dropdown dropdown-end">
