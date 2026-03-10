@@ -22,7 +22,7 @@ class RedditParser(TrendParser):
         url = f"https://www.reddit.com/r/{subreddit}/rising.json"
 
         try:
-            headers = {"User-Agent": "LinkedInTrendBot/2.0"}
+            headers = {"User-Agent": "TrendingNews/2.0"}
             resp = requests.get(url, headers=headers, timeout=10)
             resp.raise_for_status()
             data = resp.json()

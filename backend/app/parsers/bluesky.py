@@ -50,7 +50,7 @@ class BlueskyParser(TrendParser):
 
         url = "https://bsky.social/xrpc/app.bsky.feed.searchPosts"
 
-        headers = {"User-Agent": "LinkedInTrendBot/2.0"}
+        headers = {"User-Agent": "TrendingNews/2.0"}
         if self.session:
             headers["Authorization"] = f"Bearer {self.session.get('accessJwt')}"
 

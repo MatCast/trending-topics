@@ -24,9 +24,9 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'Trend Finder — Find Viral LinkedIn Topics',
+      title: 'Trending News Finder — Find Viral Topics',
       meta: [
-        { name: 'description', content: 'Discover trending topics from Reddit, Hacker News, and Bluesky to create viral LinkedIn posts.' },
+        { name: 'description', content: 'Discover trending topics from Reddit, Hacker News, Bluesky, and more.' },
       ],
       link: [
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap' },

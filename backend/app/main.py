@@ -17,9 +17,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="LinkedIn Trend Finder API",
+    title="Trend Finder API",
     description="API for finding trending topics across Reddit, Hacker News, and Bluesky.",
     version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
 )
 
 # CORS — allow frontend origin
@@ -47,7 +49,7 @@ async def startup():
     service_account = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH")
     init_firebase(service_account)
     seed_source_catalog()
-    logger.info("LinkedIn Trend Finder API started.")
+    logger.info("Trend Finder API started.")
 
 
 @app.get("/api/health")
