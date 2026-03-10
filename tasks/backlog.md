@@ -9,7 +9,7 @@ These are free RSS-based sources focused on **business storytelling** (founder j
 |--------|----------|-------------|
 | **Medium** (Entrepreneurship) | `https://medium.com/feed/tag/entrepreneurship` | Personal essays, founder stories, lessons learned. High volume. |
 | **Starter Story** | `https://www.starterstory.com/feed` | Founder interviews: "How I built X to $Y/month." Pure storytelling. |
-| **The Hustle** | `https://thehustle.co/feed/` | Punchy, viral-style business stories. Great for LinkedIn repurposing. |
+| **The Hustle** | `https://thehustle.co/feed/` | Punchy, viral-style business stories.|
 
 ### Medium Priority
 | Source | RSS Feed | Description |

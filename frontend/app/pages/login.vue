@@ -10,7 +10,7 @@
             </svg>
           </div>
           <h1 class="text-4xl font-bold mb-3">Trend Finder</h1>
-          <p class="text-base-content/60 text-lg">Discover trending topics to create viral LinkedIn posts.</p>
+          <p class="text-base-content/60 text-lg">Discover trending news topics.</p>
         </div>
 
         <!-- Features -->

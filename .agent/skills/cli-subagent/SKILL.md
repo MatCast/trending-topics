@@ -10,7 +10,6 @@ This skill acts as a manual for the Main Architect Agent to spawn and control Ge
 Workers need to know *where* they are and *how* to run code.
 - **Project Rules**: Always pass the `@.agent/worker_context.md` file to the worker. It contains python paths and project structure info.
 - **State**: Always pass `@plan.md` so the worker knows its role in the bigger picture.
-- **Environment**: If the worker needs to run code, explicitly state: "Use the virtualenv at ~/.virtualenvs/linkedin_posts/".
 
 ## Parallel Execution (Git Worktrees)
 **CRITICAL:** When spawning multiple sub-agents to work on different tasks simultaneously, they **MUST NOT** share the same working directory. They will overwrite each other's git active branches. You must use `git worktree`.
