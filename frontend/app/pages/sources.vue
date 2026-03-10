@@ -1,0 +1,249 @@
+<template>
+  <div class="max-w-4xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold">Sources</h1>
+        <p class="text-base-content/60 text-sm">Manage your trending topic sources.</p>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="isLoading" class="flex justify-center py-16">
+      <span class="loading loading-spinner loading-lg text-primary"></span>
+    </div>
+
+    <div v-else class="space-y-6">
+      <!-- Dynamic source cards from catalog -->
+      <div
+        v-for="catalogSource in catalog"
+        :key="catalogSource.id"
+        class="card bg-base-100 shadow-xl border border-base-300"
+      >
+        <div class="card-body">
+          <!-- Source header -->
+          <div class="flex items-center justify-between">
+            <h2 class="card-title gap-2">
+              <!-- Dynamic icon from composable -->
+              <svg v-if="isSvgIcon(catalogSource.icon)" class="w-6 h-6" :class="getIconConfig(catalogSource.icon).svgClass" viewBox="0 0 24 24" fill="currentColor">
+                <path :d="getIconConfig(catalogSource.icon).svgPath" />
+              </svg>
+              <span v-else :class="getIconConfig(catalogSource.icon).textClass">
+                {{ getIconConfig(catalogSource.icon).text }}
+              </span>
+              {{ catalogSource.name }}
+            </h2>
+
+            <!-- Singleton: show toggle or enable button -->
+            <template v-if="!catalogSource.is_multi_instance">
+              <div v-if="getSingletonSource(catalogSource.id)">
+                <input
+                  type="checkbox"
+                  class="toggle toggle-success"
+                  v-model="getSingletonSource(catalogSource.id)!.enabled"
+                  @change="toggleSource(getSingletonSource(catalogSource.id)!)"
+                />
+              </div>
+              <button v-else class="btn btn-primary btn-sm" @click="addSingletonSource(catalogSource)">Enable</button>
+            </template>
+          </div>
+
+          <p class="text-base-content/60 text-sm">{{ catalogSource.description }}</p>
+          <a
+            v-if="catalogSource.website_url"
+            :href="catalogSource.website_url"
+            target="_blank"
+            rel="noopener"
+            class="link link-hover text-xs text-base-content/40"
+          >{{ catalogSource.website_url }}</a>
+
+          <!-- Multi-instance sources: add form + list -->
+          <template v-if="catalogSource.is_multi_instance">
+            <!-- Dynamic config form from config_schema -->
+            <div class="form-control mt-4" v-for="(fieldSchema, fieldKey) in catalogSource.config_schema" :key="fieldKey">
+              <div class="join w-full">
+                <span v-if="catalogSource.id === 'reddit'" class="join-item btn btn-disabled">r/</span>
+                <input
+                  v-model="multiInstanceInput[catalogSource.id]"
+                  type="text"
+                  :placeholder="fieldSchema.placeholder || `Add ${fieldSchema.label}...`"
+                  class="input input-bordered join-item flex-1"
+                  :class="{ 'input-error': multiInstanceError[catalogSource.id] }"
+                  @keyup.enter="addMultiInstanceSource(catalogSource)"
+                  @input="multiInstanceError[catalogSource.id] = ''"
+                />
+                <button class="btn btn-primary join-item" @click="addMultiInstanceSource(catalogSource)">Add</button>
+              </div>
+              <label v-if="multiInstanceError[catalogSource.id]" class="label">
+                <span class="label-text-alt text-error font-medium">{{ multiInstanceError[catalogSource.id] }}</span>
+              </label>
+            </div>
+
+            <!-- List of user's instances -->
+            <div class="space-y-2 mt-4">
+              <div
+                v-for="src in getMultiInstanceSources(catalogSource.id)"
+                :key="src.id"
+                class="flex items-center justify-between p-3 rounded-lg"
+                :class="src.enabled ? 'bg-base-200' : 'bg-base-200/50 opacity-60'"
+              >
+                <div class="flex items-center gap-3">
+                  <input type="checkbox" class="toggle toggle-sm toggle-success" v-model="src.enabled" @change="toggleSource(src)" />
+                  <span class="font-medium">{{ src.name }}</span>
+                  <label class="label cursor-pointer gap-2">
+                    <span class="label-text text-xs opacity-60">Keywords</span>
+                    <input type="checkbox" class="toggle toggle-xs toggle-primary" v-model="src.use_global_keywords" @change="updateSource(src)" />
+                  </label>
+                </div>
+                <button class="btn btn-ghost btn-sm btn-square text-error" @click="deleteSource(src)">✕</button>
+              </div>
+              <p v-if="!getMultiInstanceSources(catalogSource.id).length" class="text-base-content/40 text-sm p-3">
+                No {{ catalogSource.name }} sources configured
+              </p>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+definePageMeta({ layout: 'default' })
+
+const { apiFetch } = useApi()
+const { getIconConfig, isSvgIcon } = useSourceIcons()
+
+const catalog = ref<any[]>([])
+const sources = ref<any[]>([])
+const isLoading = ref(true)
+
+// Input state for multi-instance sources (keyed by catalog source id)
+const multiInstanceInput = ref<Record<string, string>>({})
+const multiInstanceError = ref<Record<string, string>>({})
+
+// Computed helpers
+function getSingletonSource(sourceId: string) {
+  return sources.value.find(s => s.source_id === sourceId) || null
+}
+
+function getMultiInstanceSources(sourceId: string) {
+  return sources.value.filter(s => s.source_id === sourceId)
+}
+
+async function fetchData() {
+  isLoading.value = true
+  try {
+    const [catalogData, sourcesData] = await Promise.all([
+      apiFetch<any[]>('/api/sources/catalog'),
+      apiFetch<any[]>('/api/sources'),
+    ])
+    catalog.value = catalogData
+    sources.value = sourcesData
+  } catch (error) {
+    console.error('Failed to fetch data:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function addSingletonSource(catalogSource: any) {
+  try {
+    const newSource = await apiFetch<any>('/api/sources', {
+      method: 'POST',
+      body: {
+        source_id: catalogSource.id,
+        enabled: true,
+        use_global_keywords: true,
+      },
+    })
+    sources.value.push(newSource)
+  } catch (error) {
+    console.error('Failed to add source:', error)
+  }
+}
+
+async function addMultiInstanceSource(catalogSource: any) {
+  const inputKey = catalogSource.id
+  const inputVal = (multiInstanceInput.value[inputKey] || '').trim()
+  multiInstanceError.value[inputKey] = ''
+
+  if (!inputVal) return
+
+  // Get first config field key (e.g., 'subreddit')
+  const fieldKey = Object.keys(catalogSource.config_schema)[0]
+
+  // Reddit-specific validation
+  if (catalogSource.id === 'reddit') {
+    const redditRegex = /^[a-zA-Z0-9_]{3,21}$/
+    if (!redditRegex.test(inputVal)) {
+      multiInstanceError.value[inputKey] = 'Invalid subreddit name (3-21 chars, no spaces/special chars)'
+      return
+    }
+    // Case-insensitive uniqueness check
+    const isDuplicate = getMultiInstanceSources(catalogSource.id).some(
+      s => s.params?.[fieldKey]?.toLowerCase() === inputVal.toLowerCase()
+    )
+    if (isDuplicate) {
+      multiInstanceError.value[inputKey] = `r/${inputVal} is already in your list`
+      return
+    }
+  }
+
+  try {
+    const newSource = await apiFetch<any>('/api/sources', {
+      method: 'POST',
+      body: {
+        source_id: catalogSource.id,
+        enabled: true,
+        use_global_keywords: false,
+        params: { [fieldKey]: inputVal },
+      },
+    })
+
+    if (newSource.existed) {
+      multiInstanceError.value[inputKey] = `${inputVal} is already in your list`
+      multiInstanceInput.value[inputKey] = ''
+      return
+    }
+
+    sources.value.push(newSource)
+    multiInstanceInput.value[inputKey] = ''
+  } catch (error) {
+    console.error('Failed to add source:', error)
+    multiInstanceError.value[inputKey] = 'Failed to add. Please try again.'
+  }
+}
+
+async function toggleSource(src: any) {
+  try {
+    await apiFetch(`/api/sources/${src.id}`, {
+      method: 'PUT',
+      body: { enabled: src.enabled },
+    })
+  } catch (error) {
+    console.error('Failed to toggle source:', error)
+  }
+}
+
+async function updateSource(src: any) {
+  try {
+    await apiFetch(`/api/sources/${src.id}`, {
+      method: 'PUT',
+      body: { use_global_keywords: src.use_global_keywords },
+    })
+  } catch (error) {
+    console.error('Failed to update source:', error)
+  }
+}
+
+async function deleteSource(src: any) {
+  try {
+    await apiFetch(`/api/sources/${src.id}`, { method: 'DELETE' })
+    sources.value = sources.value.filter(s => s.id !== src.id)
+  } catch (error) {
+    console.error('Failed to delete source:', error)
+  }
+}
+
+onMounted(() => fetchData())
+</script>

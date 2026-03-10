@@ -1,0 +1,300 @@
+<template>
+  <div>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-2xl font-bold">Dashboard</h1>
+        <p class="text-base-content/60 text-sm">Your trending topics from configured sources.</p>
+      </div>
+
+      <div class="flex gap-2">
+        <button
+          class="btn btn-primary gap-2"
+          :class="{ 'btn-disabled': isExtracting }"
+          @click="runExtraction"
+        >
+          <span v-if="isExtracting" class="loading loading-spinner loading-sm"></span>
+          <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          {{ isExtracting ? 'Searching...' : 'Run Extraction' }}
+        </button>
+
+        <button class="btn btn-outline btn-sm gap-2" @click="exportCSV" :disabled="!results.length">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Export CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Extraction result toast -->
+    <div v-if="lastRunMessage" class="alert alert-info mb-4 shadow-lg">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{{ lastRunMessage }}</span>
+      <button class="btn btn-ghost btn-xs" @click="lastRunMessage = ''">✕</button>
+    </div>
+
+    <!-- Dynamic Filters from catalog -->
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button
+        class="btn btn-sm"
+        :class="activeFilter === null ? 'btn-primary' : 'btn-ghost'"
+        @click="activeFilter = null"
+      >
+        All
+      </button>
+      <button
+        v-for="catalogSource in catalog"
+        :key="catalogSource.id"
+        class="btn btn-sm gap-1"
+        :class="activeFilter === catalogSource.id ? 'btn-primary' : 'btn-ghost'"
+        @click="activeFilter = catalogSource.id"
+      >
+        <svg v-if="isSvgIcon(catalogSource.icon)" class="w-4 h-4" :class="getIconConfig(catalogSource.icon).svgClass" viewBox="0 0 24 24" fill="currentColor">
+          <path :d="getIconConfig(catalogSource.icon).svgPath" />
+        </svg>
+        <span v-else :class="getIconConfig(catalogSource.icon).textClass" class="text-sm">
+          {{ getIconConfig(catalogSource.icon).text }}
+        </span>
+        {{ catalogSource.name }}
+      </button>
+
+      <!-- Sort -->
+      <div class="ml-auto">
+        <select class="select select-bordered select-sm" v-model="sortBy">
+          <option value="created_at">Newest</option>
+          <option value="trend_score">Highest Score</option>
+          <option value="ups">Most Upvotes</option>
+          <option value="comments">Most Comments</option>
+          <option value="title">Title</option>
+          <option value="source">Source</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Loading state -->
+    <div v-if="isLoadingResults" class="flex justify-center py-16">
+      <span class="loading loading-spinner loading-lg text-primary"></span>
+    </div>
+
+    <!-- Empty state -->
+    <div v-else-if="!results.length" class="text-center py-16">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-base-300 mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12A2 2 0 007 21h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+      </div>
+      <h3 class="text-lg font-semibold mb-1">No results yet</h3>
+      <p class="text-base-content/60 text-sm mb-4">Run an extraction to find trending topics.</p>
+      <button class="btn btn-primary btn-sm" @click="runExtraction">Run Extraction</button>
+    </div>
+
+    <!-- Results Table -->
+    <div v-else class="overflow-x-auto">
+      <table class="table table-zebra w-full">
+        <thead>
+          <tr>
+            <th class="w-12 cursor-pointer hover:text-primary select-none" @click="toggleSort('source')">
+              Source
+              <span v-if="sortBy === 'source'" class="ml-1">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th class="cursor-pointer hover:text-primary select-none" @click="toggleSort('title')">
+              Title
+              <span v-if="sortBy === 'title'" class="ml-1">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th class="w-20 text-right cursor-pointer hover:text-primary select-none" @click="toggleSort('trend_score')">
+              Score
+              <span v-if="sortBy === 'trend_score'" class="ml-1">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th class="w-16 text-right cursor-pointer hover:text-primary select-none" @click="toggleSort('ups')">
+              👍
+              <span v-if="sortBy === 'ups'" class="ml-1">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th class="w-16 text-right cursor-pointer hover:text-primary select-none" @click="toggleSort('comments')">
+              💬
+              <span v-if="sortBy === 'comments'" class="ml-1">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th class="w-32 cursor-pointer hover:text-primary select-none" @click="toggleSort('created_at')">
+              Date
+              <span v-if="sortBy === 'created_at'" class="ml-1">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="result in filteredResults"
+            :key="result.id"
+            class="hover"
+          >
+            <td>
+              <div class="tooltip" :data-tip="result.source">
+                <!-- Dynamic source icon -->
+                <svg v-if="isSvgIcon(result.source_type)" class="w-5 h-5" :class="getIconConfig(result.source_type).svgClass" viewBox="0 0 24 24" fill="currentColor">
+                  <path :d="getIconConfig(result.source_type).svgPath" />
+                </svg>
+                <span v-else :class="getIconConfig(result.source_type).textClass">
+                  {{ getIconConfig(result.source_type).text }}
+                </span>
+              </div>
+            </td>
+            <td>
+              <div>
+                <a
+                  :href="result.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="link link-hover font-medium text-sm"
+                >
+                  {{ result.title }}
+                </a>
+                <p class="text-xs text-base-content/50 mt-1 line-clamp-1">
+                  {{ result.source }} · {{ result.description?.slice(0, 120) }}
+                </p>
+              </div>
+            </td>
+            <td class="text-right">
+              <span class="badge badge-ghost font-mono">{{ Math.round(result.trend_score) }}</span>
+            </td>
+            <td class="text-right text-sm">{{ result.ups }}</td>
+            <td class="text-right text-sm">{{ result.comments }}</td>
+            <td class="text-xs text-base-content/60">{{ formatDate(result.created_at) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div v-if="totalResults > pageSize" class="flex justify-center mt-6">
+      <div class="join">
+        <button class="join-item btn btn-sm" :disabled="page <= 1" @click="page--">«</button>
+        <button class="join-item btn btn-sm">Page {{ page }}</button>
+        <button class="join-item btn btn-sm" :disabled="page * pageSize >= totalResults" @click="page++">»</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+definePageMeta({ layout: 'default' })
+
+const { apiFetch } = useApi()
+const { getIconConfig, isSvgIcon } = useSourceIcons()
+
+// Catalog data for dynamic filter buttons
+const catalog = ref<any[]>([])
+
+const results = ref<any[]>([])
+const totalResults = ref(0)
+const page = ref(1)
+const pageSize = ref(50)
+const sortBy = ref('created_at')
+const sortOrder = ref<'asc' | 'desc'>('desc')
+const activeFilter = ref<string | null>(null)
+const isLoadingResults = ref(true)
+const isExtracting = ref(false)
+const lastRunMessage = ref('')
+
+// Filtered results (client-side for source type since we also do server-side)
+const filteredResults = computed(() => {
+  if (!activeFilter.value) return results.value
+  return results.value.filter(r => r.source_type === activeFilter.value)
+})
+
+// Fetch catalog and results
+async function fetchCatalog() {
+  try {
+    catalog.value = await apiFetch<any[]>('/api/sources/catalog')
+  } catch (error) {
+    console.error('Failed to fetch catalog:', error)
+  }
+}
+
+async function fetchResults() {
+  isLoadingResults.value = true
+  try {
+    const params = new URLSearchParams({
+      sort_by: sortBy.value,
+      sort_order: sortOrder.value,
+      page: String(page.value),
+      page_size: String(pageSize.value),
+    })
+    if (activeFilter.value) {
+      params.set('source_type', activeFilter.value)
+    }
+
+    const data = await apiFetch<any>(`/api/results?${params}`)
+    results.value = data.results || []
+    totalResults.value = data.total || 0
+  } catch (error) {
+    console.error('Failed to fetch results:', error)
+  } finally {
+    isLoadingResults.value = false
+  }
+}
+
+// Toggle sorting
+function toggleSort(field: string) {
+  if (sortBy.value === field) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortBy.value = field
+    sortOrder.value = 'desc'
+  }
+}
+
+// Run extraction
+async function runExtraction() {
+  isExtracting.value = true
+  lastRunMessage.value = ''
+  try {
+    const data = await apiFetch<any>('/api/extract', { method: 'POST', body: {} })
+    lastRunMessage.value = `Found ${data.results_count} trending topics!`
+    await fetchResults()
+  } catch (error: any) {
+    lastRunMessage.value = `Extraction failed: ${error.data?.detail || error.message}`
+  } finally {
+    isExtracting.value = false
+  }
+}
+
+// Export CSV
+async function exportCSV() {
+  try {
+    const { getIdToken } = useAuth()
+    const token = await getIdToken()
+    const config = useRuntimeConfig()
+    const url = `${config.public.apiBaseUrl}/api/results/export/csv`
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const blob = await res.blob()
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = 'trends_export.csv'
+    a.click()
+    URL.revokeObjectURL(a.href)
+  } catch (error) {
+    console.error('CSV export failed:', error)
+  }
+}
+
+// Format date
+function formatDate(dateStr: string) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+// Watch for filter/sort/page changes
+watch([sortBy, sortOrder, activeFilter, page], () => fetchResults())
+
+// Initial load
+onMounted(async () => {
+  await Promise.all([fetchCatalog(), fetchResults()])
+})
+</script>

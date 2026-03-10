@@ -6,3 +6,16 @@ prompts/
 keys/
 # Sub-agent worktrees
 workers/
+
+# Node/Nuxt
+node_modules/
+.output/
+.nuxt/
+.nitro/
+dist/
+.env*
+!.env.example
+
+# Docker
+.docker-volumes/
+docker-compose.override.yml

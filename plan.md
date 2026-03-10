@@ -4,11 +4,18 @@ This is the Single Source of Truth for the Architect and sub-agents. Both should
 
 ## Phases
 * Phase 1 (Scaffolding): [Completed]
-* Phase 2 (Backend/Core): [Pending]
-* Phase 3 (Frontend/Formatting): [Pending]
+* Phase 2 (Backend/Core): [Phase 2.1 Completed - Trend Fetching & Storage]
+* Phase 3 (Frontend/Formatting): [Phase 3.1 Completed - Basic UI & Settings]
+* Phase 4 (Containerization): [Completed]
 
 ## Active Tasks
-* [Completed] Create `ping_services.sh` test script
+* [Completed] Containerize app for local development (`docker-compose.yml`)
+* [Completed] Fix extraction validation and visibility issues
+* [Completed] Implement subreddit uniqueness and auto-save keywords
+* [Completed] Implement ascending/descending sorting in extraction dashboard
+* [Completed] Implement routing authentication protection (redirect to login)
+* [Completed] Source Catalog Refactor — top-level `sources` collection with visibility/tiering, dynamic frontend rendering
+* [Completed] Keywords Sub-Collection Refactor — keywords as sub-collection with enable/disable, management page, tiered limits
 
 ## Agent Tracking & Context
 * **Sub-Agent 1**: *Inactive*
