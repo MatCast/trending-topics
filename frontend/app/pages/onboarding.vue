@@ -273,6 +273,19 @@ const singletonToggles = ref<Record<string, boolean>>({})
 const timeWindowHours = ref(3)
 const maxTrendsPerSource = ref(3)
 
+// Check if user already completed onboarding
+async function checkOnboardingStatus() {
+  try {
+    const existingSources = await apiFetch<any[]>('/api/sources')
+    if (existingSources && existingSources.length > 0) {
+      navigateTo('/')
+      return
+    }
+  } catch (error) {
+    console.error('Failed to check onboarding status:', error)
+  }
+}
+
 // Fetch catalog on mount
 async function fetchCatalog() {
   isLoadingCatalog.value = true
@@ -332,5 +345,8 @@ async function saveAndContinue() {
   }
 }
 
-onMounted(() => fetchCatalog())
+onMounted(async () => {
+  await checkOnboardingStatus()
+  await fetchCatalog()
+})
 </script>
