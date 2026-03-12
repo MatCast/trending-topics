@@ -109,10 +109,25 @@ class ExtractionRequest(BaseModel):
 
 
 class ExtractionRunResponse(BaseModel):
-    run_id: str
+    extraction_id: str
     status: str = "completed"
     results_count: int
     results: List["TrendResultResponse"]
+
+
+class ExtractionResponse(BaseModel):
+    id: str
+    created_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    results_count: int
+    sources: List[str]
+
+
+class ExtractionListResponse(BaseModel):
+    extractions: List[ExtractionResponse]
+    total: int
+    page: int = 1
+    page_size: int = 50
 
 
 # --- Trend Results ---
@@ -128,7 +143,7 @@ class TrendResultResponse(BaseModel):
     ups: int = 0
     comments: int = 0
     created_at: Optional[datetime] = None
-    run_id: Optional[str] = None
+    extraction_id: Optional[str] = None
 
 
 class ResultsListResponse(BaseModel):

@@ -52,6 +52,15 @@ This is to be defined and not implemented until a clear plan is established.
 - [ ] Make sources own collection with data which are the same for all users (urls, icons etc. ). This would also allow the frontend to display any new source added to the DB.
 - [ ] Implement the new way to store sources.
 
+# 10. Rework Extractions Architecture
+- [x] Analyze existing results and extraction architecture
+- [x] Define what will change (how extraction and results will be linked)
+- [x] Present clarifying questions to user
+- [x] Create detailed execution plan in `tasks/todo.md` and `plan.md`
+- [x] Execute Backend API Rework
+- [x] Execute Frontend Extractions/Results Architecture
+- [x] Ensure cleanup of extractions
+
 ## Bugs
 - [x] Make reddit rubreddits unique: a user cannot add a subreddit which is already added.
 - [x] In settings: when a user adds a keyword simply adding it or removing it should make the change take effect without having to save.

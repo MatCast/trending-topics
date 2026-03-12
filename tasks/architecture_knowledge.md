@@ -50,3 +50,10 @@ The application runs as a containerized dual-service architecture orchestrated b
 - **Keyword Limits**: `DEFAULT_KEYWORD_LIMITS` maps user tiers to max keywords (`free: 20`, `pro: 100`, `unlimited: -1`). Enforced in `create_keywords()`.
 - **API Endpoints**: `GET/POST /api/keywords`, `PUT /api/keywords/{id}`, `POST /api/keywords/bulk` (bulk enable/disable/delete), `DELETE /api/keywords/{id}`.
 - **Frontend**: Dedicated `/keywords` management page with table, bulk selection, toggle enabled, comma-separated add input. Keywords removed from `/settings` page.
+
+## 9. Extractions and Results Architecture
+- **Extractions Collection**: Metadata for each extraction run is stored in `users/{uid}/extractions/{extraction_id}`. This includes Date, Sources Used, Number of Results, and TTL (`expires_at`).
+- **Results Collection (Flat)**: Individual extracted topics are stored in a flat sub-collection `users/{uid}/results/` rather than nested under extractions. They are linked back to the parent via an `extraction_id` field.
+- **Why Flat?**: Firestore queries on indexed fields incur read costs purely based on the number of returned documents. Querying a flat collection with `.where('extraction_id', '==', X)` costs exactly the same as querying a sub-collection. However, a flat collection simplifies Cleanup (TTL).
+- **TTL & Cleanup**: Both Extractions and Results share standard `expires_at` fields. A single scheduled Cloud Function deletes expired documents from both collections simultaneously without needing complex cascading delete logic.
+- **Frontend Dashboard**: The main dashboard `GET /api/extractions` lists extraction history to minimize reads instead of fetching all historical results at once. Clicking an extraction navigates to `/extractions/[id]` to query only that specific `extraction_id`.

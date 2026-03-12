@@ -432,65 +432,73 @@ def delete_keyword(uid: str, keyword_id: str):
 
 # --- Results Operations ---
 
-def store_results(uid: str, run_id: str, results: List[Dict[str, Any]], retention_days: int = 15):
-    """Store extraction results in Firestore with TTL."""
+def store_results(
+    uid: str,
+    extraction_id: str,
+    results: List[Dict[str, Any]],
+    sources_used: List[str],
+    retention_days: int = 15
+):
+    """Store extraction run metadata and its results in Firestore with TTL."""
     db = get_db()
-    expires_at = datetime.now(timezone.utc) + timedelta(days=retention_days)
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=retention_days)
     batch = db.batch()
 
+    # 1. Create the Extraction document
+    extraction_ref = db.collection("users").document(uid).collection("extractions").document(extraction_id)
+    extraction_data = {
+        "id": extraction_id,
+        "created_at": now,
+        "expires_at": expires_at,
+        "results_count": len(results),
+        "sources": sources_used,
+    }
+    batch.set(extraction_ref, extraction_data)
+
+    # 2. Store individual results
     results_ref = db.collection("users").document(uid).collection("results")
 
     for result in results:
         doc_ref = results_ref.document()
-        now = datetime.now(timezone.utc)
 
         # Update the result dict in-place so it's returned to the caller with its new fields
         result["id"] = doc_ref.id
-        result["run_id"] = run_id
+        result["extraction_id"] = extraction_id
         result["created_at"] = now
         result["expires_at"] = expires_at
 
         batch.set(doc_ref, result)
 
     batch.commit()
-    logger.info(f"Stored {len(results)} results for user {uid}, run {run_id}")
+    logger.info(f"Stored extraction {extraction_id} with {len(results)} results for user {uid}")
 
 
-def list_results(
+def list_extractions(
     uid: str,
-    source_type: Optional[str] = None,
-    sort_by: str = "created_at",
-    sort_order: str = "desc",
     page: int = 1,
     page_size: int = 50,
 ) -> tuple[List[Dict[str, Any]], int]:
-    """List results for a user with optional filtering and pagination."""
+    """List extraction history for a user with pagination."""
     db = get_db()
-    query = db.collection("users").document(uid).collection("results")
-
+    query = db.collection("users").document(uid).collection("extractions")
+    
     # Sort
-    direction = firestore.Query.DESCENDING if sort_order == "desc" else firestore.Query.ASCENDING
-    query = query.order_by(sort_by, direction=direction)
+    query = query.order_by("created_at", direction=firestore.Query.DESCENDING)
 
-    # Filtering for expired results and source_type in memory to avoid needing complex composite indexes
+    # Filter expired extractions in memory
     now = datetime.now(timezone.utc)
-
-    # Get total count
     all_docs = list(query.stream())
 
-    # Filter in memory
     filtered_docs = []
     for doc in all_docs:
         data = doc.to_dict()
-        if source_type and data.get("source_type") != source_type:
-            continue
         if data.get("expires_at", now + timedelta(days=1)) <= now:
             continue
         filtered_docs.append(doc)
 
     total = len(filtered_docs)
 
-    # Paginate
     start = (page - 1) * page_size
     end = start + page_size
     page_docs = filtered_docs[start:end]
@@ -499,14 +507,73 @@ def list_results(
     return results, total
 
 
-def get_all_results_for_export(uid: str) -> List[Dict[str, Any]]:
-    """Get all non-expired results for CSV export."""
+def list_results(
+    uid: str,
+    extraction_id: Optional[str] = None,
+    source_type: Optional[str] = None,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
+    page: int = 1,
+    page_size: int = 50,
+) -> tuple[List[Dict[str, Any]], int]:
+    """List results for a user, optionally filtered by extraction_id or source_type."""
+    db = get_db()
+    
+    # Base query
+    query = db.collection("users").document(uid).collection("results")
+
+    # If using extraction_id, query specifically for it to save reads
+    if extraction_id:
+        query = query.where("extraction_id", "==", extraction_id)
+    
+    if source_type:
+        query = query.where("source_type", "==", source_type)
+
+    # Note: FireStore requires a composite index if combining where() and order_by(). 
+    # For now, we will fetch and sort in memory if extraction_id or source_type is used.
+    
+    if not extraction_id and not source_type:
+        direction = firestore.Query.DESCENDING if sort_order == "desc" else firestore.Query.ASCENDING
+        query = query.order_by(sort_by, direction=direction)
+
+    all_docs = list(query.stream())
+    now = datetime.now(timezone.utc)
+
+    # Filter in memory for expired out of safety
+    filtered_docs = []
+    for doc in all_docs:
+        data = doc.to_dict()
+        if data.get("expires_at", now + timedelta(days=1)) <= now:
+            continue
+        filtered_docs.append(data)
+
+    # Sort in memory if extraction_id is used since we skipped order_by to avoid composite index requirement
+    if extraction_id:
+        reverse = sort_order == "desc"
+        # Safely sort using get
+        filtered_docs.sort(key=lambda x: x.get(sort_by) if x.get(sort_by) is not None else "", reverse=reverse)
+
+    total = len(filtered_docs)
+
+    # Paginate
+    start = (page - 1) * page_size
+    end = start + page_size
+    page_docs = filtered_docs[start:end]
+
+    results = [{"id": doc.get("id"), **doc} for doc in page_docs]
+    return results, total
+
+
+def get_all_results_for_export(uid: str, extraction_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Get all non-expired results for CSV export, optionally filtered by extraction_id."""
     db = get_db()
 
-    query = (
-        db.collection("users").document(uid).collection("results")
-        .order_by("created_at", direction=firestore.Query.DESCENDING)
-    )
+    query = db.collection("users").document(uid).collection("results")
+    
+    if extraction_id:
+        query = query.where("extraction_id", "==", extraction_id)
+    else:
+        query = query.order_by("created_at", direction=firestore.Query.DESCENDING)
 
     now = datetime.now(timezone.utc)
     docs = query.stream()
@@ -529,19 +596,19 @@ def delete_result(uid: str, result_id: str):
 # --- Cleanup Operations ---
 
 def cleanup_expired_results():
-    """Delete all expired results across all users. Called by scheduled job."""
+    """Delete all expired results and extractions across all users. Called by scheduled job."""
     db = get_db()
     now = datetime.now(timezone.utc)
     deleted_count = 0
 
     users = db.collection("users").stream()
     for user_doc in users:
+        # 1. Clean up Results
         results_query = (
             user_doc.reference.collection("results")
             .where("expires_at", "<=", now)
         )
         expired_docs = results_query.stream()
-
         batch = db.batch()
         batch_count = 0
         for doc in expired_docs:
@@ -549,7 +616,6 @@ def cleanup_expired_results():
             batch_count += 1
             deleted_count += 1
 
-            # Firestore batches have a 500 limit
             if batch_count >= 400:
                 batch.commit()
                 batch = db.batch()
@@ -558,7 +624,29 @@ def cleanup_expired_results():
         if batch_count > 0:
             batch.commit()
 
-    logger.info(f"Cleaned up {deleted_count} expired results.")
+        # 2. Clean up Extractions
+        extractions_query = (
+            user_doc.reference.collection("extractions")
+            .where("expires_at", "<=", now)
+        )
+        expired_extractions = extractions_query.stream()
+        
+        batch = db.batch()
+        batch_count = 0
+        for doc in expired_extractions:
+            batch.delete(doc.reference)
+            batch_count += 1
+            deleted_count += 1
+
+            if batch_count >= 400:
+                batch.commit()
+                batch = db.batch()
+                batch_count = 0
+
+        if batch_count > 0:
+            batch.commit()
+
+    logger.info(f"Cleaned up {deleted_count} expired documents (results + extractions).")
     return deleted_count
 
 

@@ -8,7 +8,7 @@ def test_extraction_with_catalog_sources(client, mock_firebase):
     # Patch at the router level where run_extraction is imported
     with patch("app.routers.extraction.run_extraction") as mock_run:
         mock_run.return_value = {
-            "run_id": "test-run-001",
+            "extraction_id": "test-run-001",
             "status": "completed",
             "results_count": 2,
             "results": [
@@ -55,7 +55,7 @@ def test_extraction_skips_disabled_sources(client, mock_firebase):
     """Disabled sources are passed to run_extraction (it handles filtering internally)."""
     with patch("app.routers.extraction.run_extraction") as mock_run:
         mock_run.return_value = {
-            "run_id": "test-run-002",
+            "extraction_id": "test-run-002",
             "status": "completed",
             "results_count": 0,
             "results": [],
