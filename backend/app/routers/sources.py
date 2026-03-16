@@ -36,11 +36,13 @@ async def create_source(
     """Create a new source subscription."""
     uid = token_data["uid"]
     fb.get_or_create_user(uid, token_data.get("email", ""), token_data.get("name", ""))
-
     source_data = body.model_dump()
 
+    # TODO: get user tier from user profile when tiers are implemented
+    user_tier = "free"
+
     try:
-        result = fb.create_source(uid, source_data)
+        result = fb.create_source(uid, source_data, user_tier=user_tier)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -56,12 +58,17 @@ async def update_source(
     """Update an existing source configuration."""
     uid = token_data["uid"]
     update_data = body.model_dump(exclude_none=True)
+    # TODO: get user tier from user profile
+    user_tier = "free"
 
     try:
-        result = fb.update_source(uid, source_id, update_data)
+        result = fb.update_source(uid, source_id, update_data, user_tier=user_tier)
         return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=404, detail=f"Source not found: {e}")
+        logger.error(f"Failed to update source {source_id}: {e}")
+        raise HTTPException(status_code=404, detail="Source not found")
 
 
 @router.delete("/{source_id}", status_code=204)

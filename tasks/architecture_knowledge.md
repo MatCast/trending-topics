@@ -57,3 +57,10 @@ The application runs as a containerized dual-service architecture orchestrated b
 - **Why Flat?**: Firestore queries on indexed fields incur read costs purely based on the number of returned documents. Querying a flat collection with `.where('extraction_id', '==', X)` costs exactly the same as querying a sub-collection. However, a flat collection simplifies Cleanup (TTL).
 - **TTL & Cleanup**: Both Extractions and Results share standard `expires_at` fields. A single scheduled Cloud Function deletes expired documents from both collections simultaneously without needing complex cascading delete logic.
 - **Frontend Dashboard**: The main dashboard `GET /api/extractions` lists extraction history to minimize reads instead of fetching all historical results at once. Clicking an extraction navigates to `/extractions/[id]` to query only that specific `extraction_id`.
+
+## 10. Source Tier Limits
+- **Logic**: Enforced primarily on the **enablement** of multi-instance sources (e.g., Reddit) to allow users to catalog as many sources as they wish while capping active processing.
+- **Limits**: Defined in `firebase_client.py` via `DEFAULT_REDDIT_SOURCE_LIMITS` (e.g., `free: 3`, `beta: 10`, `pro: -1`).
+- **Enforcement**:
+    - **Backend**: `update_source` raises `ValueError` if enabling a source exceeds the tier's active count. `create_source` defaults new additions to `disabled` if the limit is already met.
+    - **Frontend**: `toggleSource` reverts to its previous state on backend rejection and displays a limit-specific error message.

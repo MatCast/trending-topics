@@ -215,7 +215,7 @@ def list_sources(uid: str) -> List[Dict[str, Any]]:
     return [{"id": doc.id, **doc.to_dict()} for doc in docs]
 
 
-def create_source(uid: str, source_data: Dict[str, Any]) -> Dict[str, Any]:
+def create_source(uid: str, source_data: Dict[str, Any], user_tier: str = "free") -> Dict[str, Any]:
     """Create a new user source subscription. Validates against catalog.
 
     Args:
@@ -244,22 +244,45 @@ def create_source(uid: str, source_data: Dict[str, Any]) -> Dict[str, Any]:
     merged_params = {**default_params, **source_data.get("params", {})}
     source_data["params"] = merged_params
 
-    if is_multi:
-        # Multi-instance: check for duplicate by specific param (e.g., subreddit for reddit)
-        if source_id == "reddit":
-            subreddit = source_data.get("params", {}).get("subreddit", "").lower()
-            if subreddit:
-                existing = (
-                    db.collection("users").document(uid).collection("user_sources")
-                    .where("source_id", "==", source_id)
-                    .stream()
-                )
-                for doc in existing:
-                    if doc.to_dict().get("params", {}).get("subreddit", "").lower() == subreddit:
-                        logger.warning(f"Subreddit r/{subreddit} already exists for user {uid}")
-                        return {"id": doc.id, **doc.to_dict(), "existed": True}
-    else:
-        # Singleton: only one per source_id per user
+    # Deduplicate and Handle Limits
+    if source_id == "reddit":
+        limit = get_reddit_source_limit(user_tier)
+        subreddit = source_data.get("params", {}).get("subreddit", "").lower()
+        
+        if subreddit:
+            # Fetch all existing reddit sources for this user
+            existing_reddit_sources = list(
+                db.collection("users").document(uid).collection("user_sources")
+                .where("source_id", "==", "reddit")
+                .stream()
+            )
+            
+            active_count = sum(1 for d in existing_reddit_sources if d.to_dict().get("enabled", True))
+            
+            # 1. Check for duplicates first
+            for doc in existing_reddit_sources:
+                doc_data = doc.to_dict()
+                if doc_data.get("params", {}).get("subreddit", "").lower() == subreddit:
+                    # If user is trying to re-enable it
+                    if source_data.get("enabled", True) and not doc_data.get("enabled", True):
+                        if limit != -1 and active_count >= limit:
+                             logger.warning(f"Reddit source limit reached ({limit}) for user {uid}")
+                             # If they added it explicitly as enabled but are over limit, we keep it disabled
+                             return {"id": doc.id, **doc_data, "existed": True}
+                        
+                        doc.reference.update({"enabled": True})
+                        logger.info(f"Subreddit r/{subreddit} re-enabled for user {uid}")
+                        return {"id": doc.id, **doc_data, "enabled": True, "existed": True}
+                    
+                    return {"id": doc.id, **doc_data, "existed": True}
+
+            # 2. Truly new subreddit. If at limit, force disabled.
+            if limit != -1 and active_count >= limit:
+                logger.info(f"Limit reached ({limit}). Adding subreddit r/{subreddit} as disabled for {uid}")
+                source_data["enabled"] = False
+
+    elif not is_multi:
+        # Singleton: only one per source_id per user (e.g., hackernews, bluesky)
         existing = (
             db.collection("users").document(uid).collection("user_sources")
             .where("source_id", "==", source_id)
@@ -280,10 +303,39 @@ def create_source(uid: str, source_data: Dict[str, Any]) -> Dict[str, Any]:
     return {"id": doc_id, **source_data}
 
 
-def update_source(uid: str, source_id: str, update_data: Dict[str, Any]) -> Dict[str, Any]:
+def update_source(uid: str, source_id: str, update_data: Dict[str, Any], user_tier: str = "free") -> Dict[str, Any]:
     """Update a user source config."""
     db = get_db()
     source_ref = db.collection("users").document(uid).collection("user_sources").document(source_id)
+    
+    # Enforce Reddit Limit on Toggle
+    if update_data.get("enabled") is True:
+        source_doc = source_ref.get()
+        if source_doc.exists:
+            source_data = source_doc.to_dict()
+            if source_data.get("source_id") == "reddit" and not source_data.get("enabled", True):
+                limit = get_reddit_source_limit(user_tier)
+                if limit != -1:
+                    active_count = (
+                        db.collection("users").document(uid).collection("user_sources")
+                        .where("source_id", "==", "reddit")
+                        .where("enabled", "==", True)
+                        .stream()
+                    )
+                    # Use sum to count stream to avoid composite index if possible, 
+                    # but here where/where might need one. Let's stick to memory count for simplicity/safety.
+                    # Or just reuse the check from create_source
+                    existing_reddit_sources = list(
+                        db.collection("users").document(uid).collection("user_sources")
+                        .where("source_id", "==", "reddit")
+                        .stream()
+                    )
+                    active_count = sum(1 for d in existing_reddit_sources if d.to_dict().get("enabled", True))
+                    
+                    if active_count >= limit:
+                        logger.warning(f"Cannot enable Reddit source. Limit ({limit}) reached for user {uid}")
+                        raise ValueError(f"Limit reached. Your tier allows a maximum of {limit} active subreddits. Disable one to enable another.")
+
     source_ref.update(update_data)
     updated = source_ref.get()
     return {"id": source_id, **updated.to_dict()}
@@ -303,10 +355,21 @@ DEFAULT_KEYWORD_LIMITS = {
     "unlimited": -1,
 }
 
+DEFAULT_REDDIT_SOURCE_LIMITS = {
+    "free": 3,
+    "beta": 10,
+    "pro": -1,
+}
+
 
 def get_keyword_limit(user_tier: str = "free") -> int:
     """Get max keywords for a user tier. Returns -1 for unlimited."""
     return DEFAULT_KEYWORD_LIMITS.get(user_tier, DEFAULT_KEYWORD_LIMITS["free"])
+
+
+def get_reddit_source_limit(user_tier: str = "free") -> int:
+    """Get max reddit sources for a user tier. Returns -1 for unlimited."""
+    return DEFAULT_REDDIT_SOURCE_LIMITS.get(user_tier, DEFAULT_REDDIT_SOURCE_LIMITS["free"])
 
 
 def list_keywords(uid: str) -> List[Dict[str, Any]]:

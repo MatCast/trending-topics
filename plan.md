@@ -4,7 +4,7 @@ This is the Single Source of Truth for the Architect and sub-agents. Both should
 
 ## Phases
 * Phase 1 (Scaffolding): [Completed]
-* Phase 2 (Backend/Core): [Phase 2.1 Completed - Trend Fetching & Storage]
+* Phase 2 (Backend/Core): [Phase 2.2 Completed - Reddit Tier Limits & Enablement Capping]
 * Phase 3 (Frontend/Formatting): [Phase 3.1 Completed - Basic UI & Settings]
 * Phase 4 (Containerization): [Completed]
 

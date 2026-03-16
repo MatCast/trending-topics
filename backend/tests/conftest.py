@@ -23,10 +23,10 @@ sys.modules["firebase_admin.auth"] = mock_firebase_admin.auth
 sys.modules["firebase_admin.credentials"] = mock_firebase_admin.credentials
 sys.modules["firebase_admin.firestore"] = mock_firebase_admin.firestore
 
-# Now we can safely import the app
-from fastapi.testclient import TestClient
-from app.main import app
-from app.auth import verify_firebase_token
+# Now we can safely import the app (noqa: E402 intentional for mocking)
+from fastapi.testclient import TestClient  # noqa: E402
+from app.main import app  # noqa: E402
+from app.auth import verify_firebase_token  # noqa: E402
 
 
 # --- Mock Firestore Data ---
@@ -145,11 +145,35 @@ def mock_firebase():
     def mock_list_sources(uid):
         return list(user_sources)
 
-    def mock_create_source(uid, source_data):
+    def mock_create_source(uid, source_data, user_tier="free"):
         source_id = source_data.get("source_id", "")
         catalog_entry = mock_get_catalog(source_id)
         if not catalog_entry:
             raise ValueError(f"Unknown source_id: '{source_id}'")
+
+        # Reddit Limit check (Mocked logic)
+        if source_id == "reddit":
+            limit = 3 if user_tier == "free" else 10
+            subreddit = source_data.get("params", {}).get("subreddit", "").lower()
+            
+            # Fetch active count
+            active_reddit = [s for s in user_sources if s.get("source_id") == "reddit" and s.get("enabled", True)]
+            active_count = len(active_reddit)
+
+            # Check duplicate
+            for src in user_sources:
+                if src.get("source_id") == "reddit" and src.get("params", {}).get("subreddit", "").lower() == subreddit:
+                    # If trying to re-enable
+                    if source_data.get("enabled", True) and not src.get("enabled", True):
+                        if active_count >= limit:
+                             return {**src, "existed": True}
+                        src["enabled"] = True
+                        return {**src, "existed": True}
+                    return {**src, "existed": True}
+            
+            # It's new. If at limit, force disabled.
+            if active_count >= limit:
+                source_data["enabled"] = False
 
         is_multi = catalog_entry.get("is_multi_instance", False)
         if not is_multi:
@@ -159,17 +183,36 @@ def mock_firebase():
                     return {**existing, "existed": True}
 
         new_id = f"src_{len(user_sources) + 1:03d}"
-        new_source = {"id": new_id, **source_data, "created_at": datetime.now(timezone.utc)}
+        new_source = {
+            "id": new_id,
+            **source_data,
+            "created_at": datetime.now(timezone.utc),
+            "enabled": source_data.get("enabled", True)
+        }
         if not new_source.get("name"):
             new_source["name"] = catalog_entry.get("name", source_id)
         user_sources.append(new_source)
         return new_source
 
-    def mock_update_source(uid, source_id, update_data):
-        for src in user_sources:
-            if src["id"] == source_id:
-                src.update(update_data)
-                return src
+    def mock_update_source(uid, source_id, update_data, user_tier="free"):
+        # Enforce Reddit Limit on Toggle in mock
+        if update_data.get("enabled") is True:
+            limit = 3 if user_tier == "free" else 10
+            active_reddit = [s for s in user_sources if s.get("source_id") == "reddit" and s.get("enabled", True)]
+            
+            # Find the source being updated
+            for src in user_sources:
+                if src["id"] == source_id:
+                    if src.get("source_id") == "reddit" and not src.get("enabled", True):
+                        if len(active_reddit) >= limit:
+                            raise ValueError(f"Limit reached. Your tier allows a maximum of {limit} active subreddits.")
+                    src.update(update_data)
+                    return src
+        else:
+            for src in user_sources:
+                if src["id"] == source_id:
+                    src.update(update_data)
+                    return src
         raise Exception(f"Source {source_id} not found")
 
     def mock_delete_source(uid, source_id):

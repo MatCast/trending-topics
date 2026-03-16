@@ -59,8 +59,18 @@
           <!-- Multi-instance sources: add form + list -->
           <template v-if="catalogSource.is_multi_instance">
             <!-- Dynamic config form from config_schema -->
-            <div class="form-control mt-4" v-for="(fieldSchema, fieldKey) in catalogSource.config_schema" :key="fieldKey">
-              <div class="join w-full">
+            <div class="form-control mt-4">
+              <div v-if="catalogSource.id === 'reddit'" class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-base-content/40">Add Subreddit</span>
+                <span 
+                  class="badge badge-sm font-bold"
+                  :class="isRedditLimitReached ? 'badge-warning' : 'badge-ghost'"
+                >
+                  {{ redditSourceCount }} / {{ redditLimit }} active
+                </span>
+              </div>
+              
+              <div class="join w-full" v-for="(fieldSchema, fieldKey) in catalogSource.config_schema" :key="fieldKey">
                 <span v-if="catalogSource.id === 'reddit'" class="join-item btn btn-disabled">r/</span>
                 <input
                   v-model="multiInstanceInput[catalogSource.id]"
@@ -71,8 +81,22 @@
                   @keyup.enter="addMultiInstanceSource(catalogSource)"
                   @input="multiInstanceError[catalogSource.id] = ''"
                 />
-                <button class="btn btn-primary join-item" @click="addMultiInstanceSource(catalogSource)">Add</button>
+                <button 
+                  class="btn btn-primary join-item" 
+                  @click="addMultiInstanceSource(catalogSource)"
+                >
+                  Add
+                </button>
               </div>
+
+              <!-- Limit Warning (Now shown below toggles if toggle fails, but we keep a generic info here) -->
+              <div v-if="isRedditLimitReached && catalogSource.id === 'reddit'" class="text-xs text-warning mt-2 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>At active limit. New subreddits will be added as disabled.</span>
+              </div>
+
               <label v-if="multiInstanceError[catalogSource.id]" class="label">
                 <span class="label-text-alt text-error font-medium">{{ multiInstanceError[catalogSource.id] }}</span>
               </label>
@@ -130,6 +154,15 @@ function getMultiInstanceSources(sourceId: string) {
   return sources.value.filter(s => s.source_id === sourceId)
 }
 
+// Limits (TODO: should come from user profile API)
+const redditLimit = computed(() => 3)
+const redditSourceCount = computed(() => 
+  sources.value.filter((s: any) => s.source_id === 'reddit' && s.enabled).length
+)
+const isRedditLimitReached = computed(() => {
+  return redditSourceCount.value >= redditLimit.value
+})
+
 async function fetchData() {
   isLoading.value = true
   try {
@@ -181,7 +214,7 @@ async function addMultiInstanceSource(catalogSource: any) {
     }
     // Case-insensitive uniqueness check
     const isDuplicate = getMultiInstanceSources(catalogSource.id).some(
-      s => s.params?.[fieldKey]?.toLowerCase() === inputVal.toLowerCase()
+      (s: any) => s.params?.[fieldKey]?.toLowerCase() === inputVal.toLowerCase()
     )
     if (isDuplicate) {
       multiInstanceError.value[inputKey] = `r/${inputVal} is already in your list`
@@ -201,27 +234,46 @@ async function addMultiInstanceSource(catalogSource: any) {
     })
 
     if (newSource.existed) {
-      multiInstanceError.value[inputKey] = `${inputVal} is already in your list`
-      multiInstanceInput.value[inputKey] = ''
-      return
+      if (newSource.enabled) {
+        multiInstanceError.value[inputKey] = `${inputVal} is already in your list`
+        multiInstanceInput.value[inputKey] = ''
+        return
+      } else {
+        // It existed but was disabled. The backend might have enabled it if possible.
+        // Let's just refresh our local list.
+        const idx = sources.value.findIndex(s => s.id === newSource.id)
+        if (idx !== -1) sources.value[idx] = newSource
+      }
+    } else {
+      sources.value.push(newSource)
     }
-
-    sources.value.push(newSource)
     multiInstanceInput.value[inputKey] = ''
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to add source:', error)
-    multiInstanceError.value[inputKey] = 'Failed to add. Please try again.'
+    const detail = error.data?.detail || 'Failed to add. Please try again.'
+    multiInstanceError.value[inputKey] = detail
   }
 }
 
 async function toggleSource(src: any) {
+  const originalState = !src.enabled
   try {
-    await apiFetch(`/api/sources/${src.id}`, {
+    const updated = await apiFetch<any>(`/api/sources/${src.id}`, {
       method: 'PUT',
       body: { enabled: src.enabled },
     })
-  } catch (error) {
+    // If backend forced it to stay disabled (legacy check, though we handle it via 400 now)
+    src.enabled = updated.enabled
+  } catch (error: any) {
     console.error('Failed to toggle source:', error)
+    // Revert local state on failure
+    src.enabled = originalState
+    
+    // Show error if it was a reddit limit error
+    if (src.source_id === 'reddit') {
+      const detail = error.data?.detail || 'Limit reached. Disable another to enable this one.'
+      multiInstanceError.value['reddit'] = detail
+    }
   }
 }
 
