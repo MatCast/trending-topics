@@ -58,12 +58,16 @@
         </thead>
         <tbody>
           <tr v-for="extraction in extractions" :key="extraction.id"
-            class="group cursor-pointer bg-base-100 hover:bg-base-100/90 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.25)] hover:-translate-y-2 rounded-2xl border border-base-300 hover:border-primary/30 active:scale-[0.97]"
-            @click="navigateTo(`/extractions/${extraction.id}`)">
+            class="group bg-base-100 hover:bg-base-100/90 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.25)] hover:-translate-y-2 rounded-2xl border border-base-300 hover:border-primary/30 active:scale-[0.97]"
+            :class="extraction.status === 'pending' ? 'cursor-wait opacity-80' : 'cursor-pointer'"
+            @click="extraction.status !== 'pending' && navigateTo(`/extractions/${extraction.id}`)">
             <td class="whitespace-nowrap font-medium py-8 pl-10 rounded-l-2xl border-l border-t border-b border-transparent group-hover:border-base-300/50">
               <div class="flex flex-col gap-1">
-                <span class="text-lg font-bold text-base-content tracking-tight group-hover:text-primary transition-colors">{{
-                  formatDate(extraction.created_at).split(',')[0] }}</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-lg font-bold text-base-content tracking-tight group-hover:text-primary transition-colors">{{
+                    formatDate(extraction.created_at).split(',')[0] }}</span>
+                  <span v-if="extraction.status === 'pending'" class="loading loading-spinner loading-xs text-primary"></span>
+                </div>
                 <span class="text-xs font-semibold text-base-content/40 tracking-wider uppercase">{{ formatDate(extraction.created_at).split(',')[1] }}</span>
               </div>
             </td>
@@ -112,10 +116,13 @@
 
 <script setup lang="ts">
 import { useSourceIcons } from '~/composables/useSourceIcons'
+import { doc, onSnapshot } from 'firebase/firestore'
 
 definePageMeta({ layout: 'default' })
 
 const { apiFetch } = useApi()
+const { $firebaseFirestore } = useNuxtApp()
+const { user } = useAuth()
 const { getIconConfig, isSvgIcon } = useSourceIcons()
 
 const extractions = ref<any[]>([])
@@ -125,6 +132,7 @@ const pageSize = ref(50)
 const isLoadingResults = ref(true)
 const isExtracting = ref(false)
 const lastRunMessage = ref('')
+const pendingListeners = new Map<string, () => void>()
 
 function getUniqueSources(sources: string[]) {
   if (!sources || !Array.isArray(sources)) return []
@@ -143,6 +151,48 @@ function getUniqueSources(sources: string[]) {
   return Array.from(types)
 }
 
+function setupExtractionListener(extractionId: string) {
+  if (!user.value?.uid || !extractionId || pendingListeners.has(extractionId)) return
+
+  const unsubscribe = onSnapshot(
+    doc($firebaseFirestore, 'users', user.value.uid, 'extractions', extractionId),
+    (snapshot) => {
+      const data = snapshot.data()
+      if (!data) return
+
+      const index = extractions.value.findIndex(e => e.id === extractionId)
+      if (index !== -1) {
+        // Update local object
+        extractions.value[index] = {
+          ...extractions.value[index],
+          ...data,
+          id: extractionId, // ensure ID stays
+        }
+
+        // If no longer pending, cleanup
+        if (data.status === 'completed' || data.status === 'failed') {
+          cleanupListener(extractionId)
+          if (data.status === 'completed') {
+            lastRunMessage.value = `Extraction completed! Found ${data.results_count || 0} topics.`
+          } else {
+            lastRunMessage.value = `Extraction failed: ${data.error || 'Unknown error'}`
+          }
+        }
+      }
+    }
+  )
+
+  pendingListeners.set(extractionId, unsubscribe)
+}
+
+function cleanupListener(extractionId: string) {
+  const unsubscribe = pendingListeners.get(extractionId)
+  if (unsubscribe) {
+    unsubscribe()
+    pendingListeners.delete(extractionId)
+  }
+}
+
 async function fetchExtractions() {
   isLoadingResults.value = true
   try {
@@ -154,6 +204,13 @@ async function fetchExtractions() {
     const data = await apiFetch<any>(`/api/extractions?${params}`)
     extractions.value = data.extractions || []
     totalResults.value = data.total || 0
+
+    // Restart listeners for any still-pending extractions
+    extractions.value.forEach(ext => {
+      if (ext.status === 'pending') {
+        setupExtractionListener(ext.id)
+      }
+    })
   } catch (error) {
     console.error('Failed to fetch extractions:', error)
   } finally {
@@ -168,12 +225,28 @@ async function runExtraction() {
   lastRunMessage.value = ''
   try {
     const data = await apiFetch<any>('/api/extract', { method: 'POST', body: {} })
-    lastRunMessage.value = `Found ${data.results_count} trending topics!`
 
-    if (data.extraction_id && data.results_count > 0) {
-      navigateTo(`/extractions/${data.extraction_id}`)
+    if (data.status === 'pending' || data.id) {
+      const extractionId = data.id || data.extraction_id
+      // Add to list immediately
+      extractions.value.unshift({
+        id: extractionId,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        sources: [],
+        results_count: 0,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      })
+
+      lastRunMessage.value = 'Extraction started in background...'
+      setupExtractionListener(extractionId)
     } else {
-      await fetchExtractions()
+      lastRunMessage.value = `Found ${data.results_count} trending topics!`
+      if (data.extraction_id && data.results_count > 0) {
+        navigateTo(`/extractions/${data.extraction_id}`)
+      } else {
+        await fetchExtractions()
+      }
     }
   } catch (error: any) {
     lastRunMessage.value = `Extraction failed: ${error.data?.detail || error.message}`
@@ -195,5 +268,10 @@ watch([page], () => fetchExtractions())
 // Initial load
 onMounted(async () => {
   await fetchExtractions()
+})
+
+onUnmounted(() => {
+  pendingListeners.forEach(unsubscribe => unsubscribe())
+  pendingListeners.clear()
 })
 </script>

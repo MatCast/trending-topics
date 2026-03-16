@@ -74,3 +74,15 @@ This is to be defined and not implemented until a clear plan is established.
 - [ ] Backend Implementation (Parser update to use OAuth token, Enforce Tier limits)
 - [ ] Frontend Implementation (Connect Reddit button, Callback page handling)
 - [ ] Verification (Local OAuth flow, Tier limit testing)
+
+## 11. Async Extractions via Subagents
+- [ ] **Subagent 1 (Backend Background Job)**
+  - [ ] Update `models.py` representations for status tracking
+  - [ ] Add `create_pending_extraction` in `firebase_client.py`
+  - [ ] Refactor `researcher.py` and `store_results` to update pending docs
+  - [ ] Wrap `run_extraction` in `fastapi.BackgroundTasks`
+- [ ] **Subagent 2 (Frontend Realtime UI)**
+  - [ ] Setup `getFirestore()` in `firebase.client.ts` plugin
+  - [ ] Dynamically inject pending extractions in dashboard
+  - [ ] Setup Firestore `onSnapshot` listeners to remove loading spinners
+

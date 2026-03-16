@@ -9,16 +9,11 @@ This is the Single Source of Truth for the Architect and sub-agents. Both should
 * Phase 4 (Containerization): [Completed]
 
 ## Active Tasks
-* [Completed] Containerize app for local development (`docker-compose.yml`)
-* [Completed] Fix extraction validation and visibility issues
-* [Completed] Implement subreddit uniqueness and auto-save keywords
-* [Completed] Implement ascending/descending sorting in extraction dashboard
-* [Completed] Implement routing authentication protection (redirect to login)
-* [Completed] Source Catalog Refactor — top-level `sources` collection with visibility/tiering, dynamic frontend rendering
-* [Completed] Keywords Sub-Collection Refactor — keywords as sub-collection with enable/disable, management page, tiered limits
+* [ ] **Subagent 1: Backend Priority** - Move extraction to background tasks and add 'pending' Firestore document initialization. Update endpoint to return instantly.
+* [ ] **Subagent 2: Frontend Priority** - Hook up Firestore onSnapshot listener to the `/extractions` dashboard to update polling UI state without locking main thread.
 
 ## Agent Tracking & Context
-* **Sub-Agent 1**: *Inactive*
-* **Sub-Agent 2**: *Inactive* (Assign specific task and context limit here)
+* **Subagent 1**: *Pending* (Backend Extraction Background Job)
+* **Subagent 2**: *Pending* (Frontend Realtime UI Listener)
 
 *Note to Architect: Ensure each sub-agent is assigned strict files and an isolated goal to prevent context drift.*

@@ -1,7 +1,7 @@
 """Pydantic models for request/response validation."""
 
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime
 from enum import Enum
 
@@ -110,9 +110,10 @@ class ExtractionRequest(BaseModel):
 
 class ExtractionRunResponse(BaseModel):
     extraction_id: str
-    status: str = "completed"
+    status: Literal["pending", "completed", "failed"] = "completed"
     results_count: int
     results: List["TrendResultResponse"]
+    error: Optional[str] = None
 
 
 class ExtractionResponse(BaseModel):
@@ -121,6 +122,8 @@ class ExtractionResponse(BaseModel):
     expires_at: Optional[datetime] = None
     results_count: int
     sources: List[str]
+    status: Literal["pending", "completed", "failed"] = "completed"
+    error: Optional[str] = None
 
 
 class ExtractionListResponse(BaseModel):

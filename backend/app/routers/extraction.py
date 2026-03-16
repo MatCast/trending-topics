@@ -1,7 +1,7 @@
 """Extraction router — trigger trend extraction for a user."""
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks
 from typing import Optional
 import os
 
@@ -18,6 +18,7 @@ router = APIRouter(prefix="/api/extract", tags=["extraction"])
 
 @router.post("", response_model=ExtractionRunResponse)
 async def extract(
+    background_tasks: BackgroundTasks,
     body: ExtractionRequest = None,
     token_data: dict = Depends(verify_firebase_token),
 ):
@@ -49,16 +50,29 @@ async def extract(
         if body.use_keywords is not None:
             use_keywords = body.use_keywords
 
-    result = run_extraction(
+    # Generate sources_used for the pending doc
+    sources_used = list(set(s.get("source_id", s.get("type", "unknown")) for s in sources if s.get("enabled", True)))
+    # Create the pending extraction document
+    extraction_id = fb.create_pending_extraction(uid, sources_used)
+
+    # Add to background tasks
+    background_tasks.add_task(
+        run_extraction,
         uid=uid,
         sources=sources,
         global_keywords=global_keywords,
+        extraction_id=extraction_id,
         time_window_hours=time_window,
         max_trends_per_source=max_trends,
         use_keywords=use_keywords,
     )
 
-    return result
+    return {
+        "extraction_id": extraction_id,
+        "status": "pending",
+        "results_count": 0,
+        "results": [],
+    }
 
 
 @router.post("/scheduled", tags=["internal"])

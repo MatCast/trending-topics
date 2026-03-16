@@ -432,6 +432,38 @@ def delete_keyword(uid: str, keyword_id: str):
 
 # --- Results Operations ---
 
+def create_pending_extraction(uid: str, sources_used: List[str]) -> str:
+    """Create an extraction document with status 'pending' and return its ID."""
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    extraction_ref = db.collection("users").document(uid).collection("extractions").document()
+    extraction_id = extraction_ref.id
+
+    extraction_data = {
+        "id": extraction_id,
+        "created_at": now,
+        "status": "pending",
+        "sources": sources_used,
+        "results_count": 0,
+    }
+    extraction_ref.set(extraction_data)
+    logger.info(f"Created pending extraction {extraction_id} for user {uid}")
+    return extraction_id
+
+
+def update_extraction_status(uid: str, extraction_id: str, status: str, error: str = None):
+    """Update the status of an existing extraction document."""
+    db = get_db()
+    extraction_ref = db.collection("users").document(uid).collection("extractions").document(extraction_id)
+
+    update_data = {"status": status}
+    if error:
+        update_data["error"] = error
+
+    extraction_ref.update(update_data)
+    logger.info(f"Updated extraction {extraction_id} status to {status} for user {uid}")
+
+
 def store_results(
     uid: str,
     extraction_id: str,
@@ -439,22 +471,21 @@ def store_results(
     sources_used: List[str],
     retention_days: int = 15
 ):
-    """Store extraction run metadata and its results in Firestore with TTL."""
+    """Update extraction run metadata and store its results in Firestore with TTL."""
     db = get_db()
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(days=retention_days)
     batch = db.batch()
 
-    # 1. Create the Extraction document
+    # 1. Update the existing Extraction document
     extraction_ref = db.collection("users").document(uid).collection("extractions").document(extraction_id)
     extraction_data = {
-        "id": extraction_id,
-        "created_at": now,
+        "status": "completed",
         "expires_at": expires_at,
         "results_count": len(results),
         "sources": sources_used,
     }
-    batch.set(extraction_ref, extraction_data)
+    batch.update(extraction_ref, extraction_data)
 
     # 2. Store individual results
     results_ref = db.collection("users").document(uid).collection("results")
@@ -482,7 +513,7 @@ def list_extractions(
     """List extraction history for a user with pagination."""
     db = get_db()
     query = db.collection("users").document(uid).collection("extractions")
-    
+
     # Sort
     query = query.order_by("created_at", direction=firestore.Query.DESCENDING)
 
@@ -518,20 +549,20 @@ def list_results(
 ) -> tuple[List[Dict[str, Any]], int]:
     """List results for a user, optionally filtered by extraction_id or source_type."""
     db = get_db()
-    
+
     # Base query
     query = db.collection("users").document(uid).collection("results")
 
     # If using extraction_id, query specifically for it to save reads
     if extraction_id:
         query = query.where("extraction_id", "==", extraction_id)
-    
+
     if source_type:
         query = query.where("source_type", "==", source_type)
 
-    # Note: FireStore requires a composite index if combining where() and order_by(). 
+    # Note: FireStore requires a composite index if combining where() and order_by().
     # For now, we will fetch and sort in memory if extraction_id or source_type is used.
-    
+
     if not extraction_id and not source_type:
         direction = firestore.Query.DESCENDING if sort_order == "desc" else firestore.Query.ASCENDING
         query = query.order_by(sort_by, direction=direction)
@@ -569,7 +600,7 @@ def get_all_results_for_export(uid: str, extraction_id: Optional[str] = None) ->
     db = get_db()
 
     query = db.collection("users").document(uid).collection("results")
-    
+
     if extraction_id:
         query = query.where("extraction_id", "==", extraction_id)
     else:
@@ -630,7 +661,7 @@ def cleanup_expired_results():
             .where("expires_at", "<=", now)
         )
         expired_extractions = extractions_query.stream()
-        
+
         batch = db.batch()
         batch_count = 0
         for doc in expired_extractions:
