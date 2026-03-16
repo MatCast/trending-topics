@@ -7,6 +7,7 @@ without the actual Firebase SDK installed.
 import sys
 from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
+from contextlib import ExitStack
 
 import pytest
 
@@ -275,31 +276,38 @@ def mock_firebase():
                 return
 
     # Patch the module-level functions
-    with patch.object(fb_module, "list_catalog_sources", side_effect=mock_list_catalog), \
-         patch.object(fb_module, "get_catalog_source", side_effect=mock_get_catalog), \
-         patch.object(fb_module, "list_sources", side_effect=mock_list_sources), \
-         patch.object(fb_module, "create_source", side_effect=mock_create_source), \
-         patch.object(fb_module, "update_source", side_effect=mock_update_source), \
-         patch.object(fb_module, "delete_source", side_effect=mock_delete_source), \
-         patch.object(fb_module, "list_keywords", side_effect=mock_list_keywords), \
-         patch.object(fb_module, "list_enabled_keywords", side_effect=mock_list_enabled_keywords), \
-         patch.object(fb_module, "create_keywords", side_effect=mock_create_keywords), \
-         patch.object(fb_module, "update_keyword", side_effect=mock_update_keyword), \
-         patch.object(fb_module, "bulk_update_keywords", side_effect=mock_bulk_update_keywords), \
-         patch.object(fb_module, "delete_keywords", side_effect=mock_delete_keywords), \
-         patch.object(fb_module, "delete_keyword", side_effect=mock_delete_keyword), \
-         patch.object(fb_module, "get_or_create_user", return_value={"uid": "test_user_123"}), \
-         patch.object(fb_module, "get_user_settings", return_value={
-             "time_window_hours": 3,
-             "max_trends_per_source": 3,
-         }), \
-         patch.object(fb_module, "get_admin_config", return_value={
-             "source_weights": {"reddit": 1.0, "hackernews": 1.0},
-             "default_retention_days": 15,
-         }), \
-         patch.object(fb_module, "store_results", return_value=None), \
-         patch.object(fb_module, "seed_source_catalog", return_value=None), \
-         patch.object(fb_module, "init_firebase", return_value=None):
+    with ExitStack() as stack:
+        stack.enter_context(patch.object(fb_module, "list_catalog_sources", side_effect=mock_list_catalog))
+        stack.enter_context(patch.object(fb_module, "get_catalog_source", side_effect=mock_get_catalog))
+        stack.enter_context(patch.object(fb_module, "list_sources", side_effect=mock_list_sources))
+        stack.enter_context(patch.object(fb_module, "create_source", side_effect=mock_create_source))
+        stack.enter_context(patch.object(fb_module, "update_source", side_effect=mock_update_source))
+        stack.enter_context(patch.object(fb_module, "delete_source", side_effect=mock_delete_source))
+        stack.enter_context(patch.object(fb_module, "list_keywords", side_effect=mock_list_keywords))
+        stack.enter_context(patch.object(fb_module, "list_enabled_keywords", side_effect=mock_list_enabled_keywords))
+        stack.enter_context(patch.object(fb_module, "create_keywords", side_effect=mock_create_keywords))
+        stack.enter_context(patch.object(fb_module, "update_keyword", side_effect=mock_update_keyword))
+        stack.enter_context(patch.object(fb_module, "bulk_update_keywords", side_effect=mock_bulk_update_keywords))
+        stack.enter_context(patch.object(fb_module, "delete_keywords", side_effect=mock_delete_keywords))
+        stack.enter_context(patch.object(fb_module, "delete_keyword", side_effect=mock_delete_keyword))
+        stack.enter_context(patch.object(fb_module, "get_or_create_user", return_value={"uid": "test_user_123", "active_tier": "free"}))
+        stack.enter_context(patch.object(fb_module, "get_user_settings", return_value={
+            "time_window_hours": 3,
+            "max_trends_per_source": 3,
+        }))
+        stack.enter_context(patch.object(fb_module, "get_admin_config", return_value={
+            "source_weights": {"reddit": 1.0, "hackernews": 1.0},
+            "default_retention_days": 15,
+            "tier_limits": {
+                "keywords": {"free": 20, "pro": 100, "unlimited": -1},
+                "reddit_sources": {"free": 3, "beta": 10, "pro": -1},
+            }
+        }))
+        stack.enter_context(patch.object(fb_module, "store_results", return_value=None))
+        stack.enter_context(patch.object(fb_module, "create_pending_extraction", return_value="test-run-001"))
+        stack.enter_context(patch.object(fb_module, "update_extraction_status", return_value=None))
+        stack.enter_context(patch.object(fb_module, "seed_source_catalog", return_value=None))
+        stack.enter_context(patch.object(fb_module, "init_firebase", return_value=None))
 
         yield fb_module
 

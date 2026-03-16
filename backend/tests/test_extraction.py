@@ -39,9 +39,9 @@ def test_extraction_with_catalog_sources(client, mock_firebase):
         assert response.status_code == 200
 
         data = response.json()
-        assert data["status"] == "completed"
-        assert data["results_count"] == 2
-        assert len(data["results"]) == 2
+        assert data["status"] == "pending"
+        assert data["results_count"] == 0
+        assert len(data["results"]) == 0
 
         # Verify run_extraction was called with source_id-based sources
         mock_run.assert_called_once()
@@ -54,15 +54,11 @@ def test_extraction_with_catalog_sources(client, mock_firebase):
 def test_extraction_skips_disabled_sources(client, mock_firebase):
     """Disabled sources are passed to run_extraction (it handles filtering internally)."""
     with patch("app.routers.extraction.run_extraction") as mock_run:
-        mock_run.return_value = {
-            "extraction_id": "test-run-002",
-            "status": "completed",
-            "results_count": 0,
-            "results": [],
-        }
+        mock_run.return_value = None  # It's a background task now
 
         response = client.post("/api/extract", json={})
         assert response.status_code == 200
+        assert response.json()["status"] == "pending"
         mock_run.assert_called_once()
 
 

@@ -35,11 +35,9 @@ async def create_source(
 ):
     """Create a new source subscription."""
     uid = token_data["uid"]
-    fb.get_or_create_user(uid, token_data.get("email", ""), token_data.get("name", ""))
+    user = fb.get_or_create_user(uid, token_data.get("email", ""), token_data.get("name", ""))
     source_data = body.model_dump()
-
-    # TODO: get user tier from user profile when tiers are implemented
-    user_tier = "free"
+    user_tier = user.get("active_tier", "free")
 
     try:
         result = fb.create_source(uid, source_data, user_tier=user_tier)
@@ -57,9 +55,9 @@ async def update_source(
 ):
     """Update an existing source configuration."""
     uid = token_data["uid"]
+    user = fb.get_or_create_user(uid, token_data.get("email", ""), token_data.get("name", ""))
     update_data = body.model_dump(exclude_none=True)
-    # TODO: get user tier from user profile
-    user_tier = "free"
+    user_tier = user.get("active_tier", "free")
 
     try:
         result = fb.update_source(uid, source_id, update_data, user_tier=user_tier)

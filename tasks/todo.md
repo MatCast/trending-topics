@@ -86,3 +86,8 @@ This is to be defined and not implemented until a clear plan is established.
   - [ ] Dynamically inject pending extractions in dashboard
   - [ ] Setup Firestore `onSnapshot` listeners to remove loading spinners
 
+## 12. Tier Limits Refactor
+- [ ] Backend: Add `active_tier` to `users` collection defaults.
+- [ ] Backend: Move tier limit config to `admin/config` in Firestore.
+- [ ] Backend: Update `routers`/`sources.py` & `keywords.py` to use dynamic tier from user doc.
+- [ ] Backend: Update tests to pass under new configuration logic.

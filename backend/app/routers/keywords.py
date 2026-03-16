@@ -28,10 +28,8 @@ async def create_keywords(
     Trims whitespace, deduplicates (case-insensitive), enforces tier limits.
     """
     uid = token_data["uid"]
-    fb.get_or_create_user(uid, token_data.get("email", ""), token_data.get("name", ""))
-
-    # TODO: get user tier from user profile when tiers are implemented
-    user_tier = "free"
+    user = fb.get_or_create_user(uid, token_data.get("email", ""), token_data.get("name", ""))
+    user_tier = user.get("active_tier", "free")
 
     created = fb.create_keywords(uid, body.keywords, user_tier=user_tier)
     return created

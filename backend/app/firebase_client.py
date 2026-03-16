@@ -172,6 +172,7 @@ def get_or_create_user(uid: str, email: str = "", display_name: str = "") -> Dic
         "email": email,
         "display_name": display_name,
         "created_at": datetime.now(timezone.utc),
+        "active_tier": "free",
         "settings": {
             "time_window_hours": 3,
             "max_trends_per_source": 3,
@@ -349,6 +350,7 @@ def delete_source(uid: str, source_id: str):
 
 # --- Keyword Operations ---
 
+# Default Tier Limits for reference and fallbacks
 DEFAULT_KEYWORD_LIMITS = {
     "free": 20,
     "pro": 100,
@@ -364,12 +366,16 @@ DEFAULT_REDDIT_SOURCE_LIMITS = {
 
 def get_keyword_limit(user_tier: str = "free") -> int:
     """Get max keywords for a user tier. Returns -1 for unlimited."""
-    return DEFAULT_KEYWORD_LIMITS.get(user_tier, DEFAULT_KEYWORD_LIMITS["free"])
+    config = get_admin_config()
+    tier_limits = config.get("tier_limits", {}).get("keywords", {})
+    return tier_limits.get(user_tier, DEFAULT_KEYWORD_LIMITS.get(user_tier, 20))
 
 
 def get_reddit_source_limit(user_tier: str = "free") -> int:
     """Get max reddit sources for a user tier. Returns -1 for unlimited."""
-    return DEFAULT_REDDIT_SOURCE_LIMITS.get(user_tier, DEFAULT_REDDIT_SOURCE_LIMITS["free"])
+    config = get_admin_config()
+    tier_limits = config.get("tier_limits", {}).get("reddit_sources", {})
+    return tier_limits.get(user_tier, DEFAULT_REDDIT_SOURCE_LIMITS.get(user_tier, 3))
 
 
 def list_keywords(uid: str) -> List[Dict[str, Any]]:
@@ -754,8 +760,12 @@ def get_admin_config() -> Dict[str, Any]:
         return doc.to_dict()
     # Return defaults
     defaults = {
-        "source_weights": {"reddit": 1.0, "hackernews": 1.0, "bluesky": 1.0},
+        "source_weights": {"reddit": 1.0, "hackernews": 1.0, "bluesky": 1.0, "indiehackers": 1.0},
         "default_retention_days": 15,
+        "tier_limits": {
+            "keywords": DEFAULT_KEYWORD_LIMITS,
+            "reddit_sources": DEFAULT_REDDIT_SOURCE_LIMITS,
+        }
     }
     db.collection("admin").document("config").set(defaults)
     return defaults
