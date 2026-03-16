@@ -108,7 +108,7 @@ def run_extraction(
 
     # Store results in Firestore
     if final_trends:
-        sources_used = [s.get("name", "Unknown") for s in enabled_sources]
+        sources_used = list(set(s.get("source_id", s.get("type", "unknown")) for s in enabled_sources))
         fb.store_results(uid, run_id, final_trends, sources_used, retention_days)
 
     logger.info(f"Extraction {run_id} completed: {len(final_trends)} results for user {uid}")

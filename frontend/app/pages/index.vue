@@ -8,11 +8,7 @@
       </div>
 
       <div class="flex gap-2">
-        <button
-          class="btn btn-primary gap-2"
-          :class="{ 'btn-disabled': isExtracting }"
-          @click="runExtraction"
-        >
+        <button class="btn btn-primary gap-2" :class="{ 'btn-disabled': isExtracting }" @click="runExtraction">
           <span v-if="isExtracting" class="loading loading-spinner loading-sm"></span>
           <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -40,7 +36,8 @@
     <div v-else-if="!extractions.length" class="text-center py-16">
       <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-base-300 mb-4">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12A2 2 0 007 21h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 5H7a2 2 0 00-2 2v12A2 2 0 007 21h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
       </div>
       <h3 class="text-lg font-semibold mb-1">No extractions yet</h3>
@@ -49,44 +46,53 @@
     </div>
 
     <!-- Extractions Table -->
-    <div v-else class="overflow-x-auto">
-      <table class="table table-zebra w-full">
+    <div v-else class="overflow-x-auto pb-8">
+      <table class="table w-full border-separate border-spacing-y-4">
         <thead>
-          <tr>
-            <th>Date</th>
-            <th>Sources</th>
-            <th class="text-right">Results Count</th>
-            <th class="text-right">Expires On</th>
-            <th></th>
+          <tr class="text-base-content/40 border-none uppercase text-xs tracking-widest">
+            <th class="bg-transparent pl-8">Run Date</th>
+            <th class="bg-transparent">Target Platforms</th>
+            <th class="bg-transparent text-right">Topics Found</th>
+            <th class="bg-transparent text-right pr-8">Expires</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="extraction in extractions" :key="extraction.id" class="hover group">
-            <td class="whitespace-nowrap font-medium">
-              {{ formatDate(extraction.created_at) }}
+          <tr v-for="extraction in extractions" :key="extraction.id"
+            class="group cursor-pointer bg-base-100 hover:bg-base-100/90 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.25)] hover:-translate-y-2 rounded-2xl border border-base-300 hover:border-primary/30 active:scale-[0.97]"
+            @click="navigateTo(`/extractions/${extraction.id}`)">
+            <td class="whitespace-nowrap font-medium py-8 pl-10 rounded-l-2xl border-l border-t border-b border-transparent group-hover:border-base-300/50">
+              <div class="flex flex-col gap-1">
+                <span class="text-lg font-bold text-base-content tracking-tight group-hover:text-primary transition-colors">{{
+                  formatDate(extraction.created_at).split(',')[0] }}</span>
+                <span class="text-xs font-semibold text-base-content/40 tracking-wider uppercase">{{ formatDate(extraction.created_at).split(',')[1] }}</span>
+              </div>
             </td>
-            <td>
-               <div class="flex flex-wrap gap-1">
-                 <span v-for="source in extraction.sources" :key="source" class="badge badge-sm badge-ghost">
-                   {{ source }}
-                 </span>
-                 <span v-if="!extraction.sources || !extraction.sources.length" class="text-base-content/40 italic text-xs">Unknown</span>
-               </div>
+            <td class="py-8 border-t border-b border-transparent group-hover:border-base-300/50">
+              <div class="flex items-center gap-4">
+                <div v-for="type in getUniqueSources(extraction.sources)" :key="type" class="tooltip tooltip-bottom font-bold" :data-tip="type.toUpperCase()">
+                  <svg v-if="isSvgIcon(type)" class="w-7 h-7 transition-all duration-500 group-hover:scale-125" :class="getIconConfig(type).svgClass"
+                    viewBox="0 0 24 24" fill="currentColor">
+                    <path :d="getIconConfig(type).svgPath" />
+                  </svg>
+                  <span v-else :class="getIconConfig(type).textClass" class="text-2xl transition-all duration-500 group-hover:scale-125">
+                    {{ getIconConfig(type).text }}
+                  </span>
+                </div>
+                <span v-if="!getUniqueSources(extraction.sources).length" class="text-base-content/20 italic text-sm">No sources tracked</span>
+              </div>
             </td>
-            <td class="text-right font-mono">
-              {{ extraction.results_count }}
+            <td class="text-right py-8 border-t border-b border-transparent group-hover:border-base-300/50">
+              <div class="inline-flex flex-col items-end gap-1">
+                <span class="text-2xl font-black text-primary/80 group-hover:text-primary transition-colors font-mono">{{ extraction.results_count }}</span>
+                <span class="text-[10px] uppercase tracking-tighter text-base-content/40 font-bold">Total Trends</span>
+              </div>
             </td>
-            <td class="text-right text-xs text-base-content/60">
-              {{ formatDate(extraction.expires_at) }}
-            </td>
-            <td class="text-right w-12">
-               <button 
-                 class="btn btn-sm btn-ghost opacity-0 group-hover:opacity-100 transition-opacity" 
-                 title="View Results"
-                 @click="navigateTo(`/extractions/${extraction.id}`)"
-               >
-                 View
-               </button>
+            <td class="text-right py-8 pr-10 rounded-r-2xl border-r border-t border-b border-transparent group-hover:border-base-300/50">
+              <div class="flex flex-col items-end gap-0.5">
+                <span class="text-sm font-semibold text-base-content/60">{{ formatDate(extraction.expires_at).split(',')[0] }}</span>
+                <span class="text-[10px] uppercase font-bold text-error/40 group-hover:text-error/60 transition-colors">{{
+                  formatDate(extraction.expires_at).split(',')[1] }}</span>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -105,9 +111,12 @@
 </template>
 
 <script setup lang="ts">
+import { useSourceIcons } from '~/composables/useSourceIcons'
+
 definePageMeta({ layout: 'default' })
 
 const { apiFetch } = useApi()
+const { getIconConfig, isSvgIcon } = useSourceIcons()
 
 const extractions = ref<any[]>([])
 const totalResults = ref(0)
@@ -116,6 +125,23 @@ const pageSize = ref(50)
 const isLoadingResults = ref(true)
 const isExtracting = ref(false)
 const lastRunMessage = ref('')
+
+function getUniqueSources(sources: string[]) {
+  if (!sources || !Array.isArray(sources)) return []
+  const types = new Set<string>()
+
+  sources.forEach(s => {
+    if (!s) return
+    const raw = s.toLowerCase()
+    if (raw.includes('reddit')) types.add('reddit')
+    else if (raw.includes('hacker news') || raw.includes('hackernews')) types.add('hackernews')
+    else if (raw.includes('bluesky')) types.add('bluesky')
+    else if (raw.includes('indie hackers') || raw.includes('indiehackers')) types.add('indiehackers')
+    // Filter out everything else to ensure only clean icons are shown
+  })
+
+  return Array.from(types)
+}
 
 async function fetchExtractions() {
   isLoadingResults.value = true
@@ -143,11 +169,11 @@ async function runExtraction() {
   try {
     const data = await apiFetch<any>('/api/extract', { method: 'POST', body: {} })
     lastRunMessage.value = `Found ${data.results_count} trending topics!`
-    
+
     if (data.extraction_id && data.results_count > 0) {
-        navigateTo(`/extractions/${data.extraction_id}`)
+      navigateTo(`/extractions/${data.extraction_id}`)
     } else {
-        await fetchExtractions()
+      await fetchExtractions()
     }
   } catch (error: any) {
     lastRunMessage.value = `Extraction failed: ${error.data?.detail || error.message}`
