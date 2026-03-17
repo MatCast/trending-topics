@@ -7,10 +7,13 @@ This is the Single Source of Truth for the Architect and sub-agents. Both should
 * Phase 2 (Backend/Core): [Phase 2.3 Completed - Firestore Tier Migration & User Profile API]
 * Phase 3 (Frontend/Formatting): [Phase 3.1 Completed - Basic UI & Settings]
 * Phase 4 (Containerization): [Completed]
+* Phase 5 (Deployment Configuration): [Completed]
+* Phase 6 (Security Hardening): [Completed]
 
 ## Active Tasks
-* [ ] **Subagent 1: Backend Priority** - Move extraction to background tasks and add 'pending' Firestore document initialization. Update endpoint to return instantly.
-* [ ] **Subagent 2: Frontend Priority** - Hook up Firestore onSnapshot listener to the `/extractions` dashboard to update polling UI state without locking main thread.
+* [ ] Execute manual deployments to Cloud Run and configure Firebase Auth domains
+
+
 
 ## Agent Tracking & Context
 * **Subagent 1**: *Pending* (Backend Extraction Background Job)

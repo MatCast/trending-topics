@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks
 from typing import Optional
 import os
 
-from ..auth import verify_firebase_token
+from ..auth import verify_firebase_token, verify_internal_api_key
 from ..models import ExtractionRequest, ExtractionRunResponse
 from ..services.researcher import run_extraction
 from ..services.scheduler import run_scheduled_extractions
@@ -77,18 +77,12 @@ async def extract(
 
 @router.post("/scheduled", tags=["internal"])
 async def run_scheduled(
-    x_cloudscheduler: Optional[str] = Header(None, alias="X-CloudScheduler"),
+    authorized: bool = Depends(verify_internal_api_key),
 ):
     """Internal endpoint called by Cloud Scheduler. Runs extractions for all scheduled users.
 
     Also triggers cleanup of expired results.
     """
-    # Simple auth: check for Cloud Scheduler header or an internal API key
-    internal_key = os.environ.get("INTERNAL_API_KEY", "")
-    if not x_cloudscheduler and not internal_key:
-        logger.warning("Scheduled endpoint called without scheduler header.")
-        # In production, you'd want stricter auth here
-
     # Run scheduled extractions
     extraction_summary = run_scheduled_extractions()
 

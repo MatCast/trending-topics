@@ -69,3 +69,10 @@ The application runs as a containerized dual-service architecture orchestrated b
 - **Endpoint**: `GET /api/users/me` provides a unified view of the authenticated user's profile.
 - **Content**: Includes `uid`, `email`, `active_tier`, `settings`, and the effective `tier_limits` for that user's specific tier.
 - **Frontend Integration**: Managed via `useUser.ts` composable. This ensures that when a user's tier is upgraded in the database, the frontend reflects new limits immediately upon profile refresh.
+
+## 12. Deployment Architecture (Google Cloud Run)
+- **Services**: Split into `backend-service` (FastAPI) and `frontend-service` (Nuxt Nitro).
+- **Auth**: Uses **Application Default Credentials (ADC)**. By running the backend in the same GCP project as Firestore, it inherits permissions automatically via the metadata server, eliminating the need for `service-account.json` in production.
+- **Environment Management**: Orchestrated via `env.prod.yaml` files. `gcloud` consumes these via the `--env-vars-file` flag, allowing for discrete, versioned configurations per environment.
+- **CORS**: The backend's `FRONTEND_URL` supports comma-separated origins. This allows the backend to serve both the production `.run.app` domain and local `localhost:3000` developers simultaneously.
+- **Security**: Services are public at the network layer (`--allow-unauthenticated`) but strictly gated at the application layer via Firebase token verification middleware.
