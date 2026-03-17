@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .firebase_client import init_firebase, seed_source_catalog
-from .routers import sources, extraction, results, schedule, admin, keywords, extractions
+from .routers import sources, extraction, results, schedule, admin, keywords, extractions, users
 
 # Setup logging
 logging.basicConfig(
@@ -42,6 +42,7 @@ app.include_router(results.router)
 app.include_router(schedule.router)
 app.include_router(admin.router)
 app.include_router(keywords.router)
+app.include_router(users.router)
 
 
 @app.on_event("startup")

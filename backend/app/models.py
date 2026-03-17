@@ -99,6 +99,21 @@ class UserSettingsResponse(BaseModel):
     schedule: ScheduleConfig = Field(default_factory=ScheduleConfig)
 
 
+# --- User Profile & Tiers ---
+
+class TierLimits(BaseModel):
+    keywords: int
+    reddit_sources: int
+
+
+class UserProfileResponse(BaseModel):
+    uid: str
+    email: str
+    active_tier: str
+    tier_limits: TierLimits
+    settings: UserSettingsResponse
+
+
 # --- Extraction ---
 
 class ExtractionRequest(BaseModel):

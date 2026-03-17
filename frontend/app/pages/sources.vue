@@ -66,7 +66,7 @@
                   class="badge badge-sm font-bold"
                   :class="isRedditLimitReached ? 'badge-warning' : 'badge-ghost'"
                 >
-                  {{ redditSourceCount }} / {{ redditLimit }} active
+                  {{ redditSourceCount }} / {{ isRedditUnlimited ? '∞' : redditLimit }} active
                 </span>
               </div>
               
@@ -136,6 +136,7 @@ definePageMeta({ layout: 'default' })
 
 const { apiFetch } = useApi()
 const { getIconConfig, isSvgIcon } = useSourceIcons()
+const { redditLimit, isRedditUnlimited, fetchProfile } = useUser()
 
 const catalog = ref<any[]>([])
 const sources = ref<any[]>([])
@@ -154,12 +155,12 @@ function getMultiInstanceSources(sourceId: string) {
   return sources.value.filter(s => s.source_id === sourceId)
 }
 
-// Limits (TODO: should come from user profile API)
-const redditLimit = computed(() => 3)
+// Limits
 const redditSourceCount = computed(() => 
   sources.value.filter((s: any) => s.source_id === 'reddit' && s.enabled).length
 )
 const isRedditLimitReached = computed(() => {
+  if (isRedditUnlimited.value) return false
   return redditSourceCount.value >= redditLimit.value
 })
 
@@ -169,6 +170,7 @@ async function fetchData() {
     const [catalogData, sourcesData] = await Promise.all([
       apiFetch<any[]>('/api/sources/catalog'),
       apiFetch<any[]>('/api/sources'),
+      fetchProfile()
     ])
     catalog.value = catalogData
     sources.value = sourcesData

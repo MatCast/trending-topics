@@ -58,9 +58,14 @@ The application runs as a containerized dual-service architecture orchestrated b
 - **TTL & Cleanup**: Both Extractions and Results share standard `expires_at` fields. A single scheduled Cloud Function deletes expired documents from both collections simultaneously without needing complex cascading delete logic.
 - **Frontend Dashboard**: The main dashboard `GET /api/extractions` lists extraction history to minimize reads instead of fetching all historical results at once. Clicking an extraction navigates to `/extractions/[id]` to query only that specific `extraction_id`.
 
-## 10. Source Tier Limits
+## 10. Source Tier Limits (Firestore Driven)
 - **Logic**: Enforced primarily on the **enablement** of multi-instance sources (e.g., Reddit) to allow users to catalog as many sources as they wish while capping active processing.
-- **Limits**: Defined in `firebase_client.py` via `DEFAULT_REDDIT_SOURCE_LIMITS` (e.g., `free: 3`, `beta: 10`, `pro: -1`).
+- **Limits**: Stored in `admin/config` in Firestore under `tier_limits`. `DEFAULT_KEYWORD_LIMITS` and `DEFAULT_REDDIT_SOURCE_LIMITS` constants serve as local fallbacks.
 - **Enforcement**:
-    - **Backend**: `update_source` raises `ValueError` if enabling a source exceeds the tier's active count. `create_source` defaults new additions to `disabled` if the limit is already met.
-    - **Frontend**: `toggleSource` reverts to its previous state on backend rejection and displays a limit-specific error message.
+    - **Backend**: Service methods (e.g., `create_source`, `create_keywords`) fetch user's `active_tier` and query Firestore for current limits.
+    - **Frontend**: The `sources.vue` page uses the `useUser` composable to fetch dynamic limits. It handles the "unlimited" case (`-1`) by displaying `∞` and bypassing local UI warnings.
+
+## 11. User Profile API
+- **Endpoint**: `GET /api/users/me` provides a unified view of the authenticated user's profile.
+- **Content**: Includes `uid`, `email`, `active_tier`, `settings`, and the effective `tier_limits` for that user's specific tier.
+- **Frontend Integration**: Managed via `useUser.ts` composable. This ensures that when a user's tier is upgraded in the database, the frontend reflects new limits immediately upon profile refresh.

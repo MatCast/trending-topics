@@ -76,18 +76,20 @@ This is to be defined and not implemented until a clear plan is established.
 - [ ] Verification (Local OAuth flow, Tier limit testing)
 
 ## 11. Async Extractions via Subagents
-- [ ] **Subagent 1 (Backend Background Job)**
-  - [ ] Update `models.py` representations for status tracking
-  - [ ] Add `create_pending_extraction` in `firebase_client.py`
-  - [ ] Refactor `researcher.py` and `store_results` to update pending docs
-  - [ ] Wrap `run_extraction` in `fastapi.BackgroundTasks`
-- [ ] **Subagent 2 (Frontend Realtime UI)**
-  - [ ] Setup `getFirestore()` in `firebase.client.ts` plugin
-  - [ ] Dynamically inject pending extractions in dashboard
-  - [ ] Setup Firestore `onSnapshot` listeners to remove loading spinners
+- [x] **Subagent 1 (Backend Background Job)**
+  - [x] Update `models.py` representations for status tracking
+  - [x] Add `create_pending_extraction` in `firebase_client.py`
+  - [x] Refactor `researcher.py` and `store_results` to update pending docs
+  - [x] Wrap `run_extraction` in `fastapi.BackgroundTasks`
+- [x] **Subagent 2 (Frontend Realtime UI)**
+  - [x] Setup `getFirestore()` in `firebase.client.ts` plugin
+  - [x] Dynamically inject pending extractions in dashboard
+  - [x] Setup Firestore `onSnapshot` listeners to remove loading spinners
 
 ## 12. Tier Limits Refactor
-- [ ] Backend: Add `active_tier` to `users` collection defaults.
-- [ ] Backend: Move tier limit config to `admin/config` in Firestore.
-- [ ] Backend: Update `routers`/`sources.py` & `keywords.py` to use dynamic tier from user doc.
-- [ ] Backend: Update tests to pass under new configuration logic.
+- [x] Backend: Add `active_tier` to `users` collection defaults.
+- [x] Backend: Move tier limit config to `admin/config` in Firestore.
+- [x] Backend: Update `routers`/`sources.py` & `keywords.py` to use dynamic tier from user doc.
+- [x] Backend: Update tests to pass under new configuration logic.
+- [x] Frontend: Create `/api/users/me` for dynamic limits.
+- [x] Frontend: Update `sources.vue` to reflect dynamic limits and handle unlimited case.
