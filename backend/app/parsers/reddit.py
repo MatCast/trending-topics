@@ -22,7 +22,15 @@ class RedditParser(TrendParser):
         url = f"https://www.reddit.com/r/{subreddit}/rising.json"
 
         try:
-            headers = {"User-Agent": "TrendingNews/2.0"}
+            # Emulate a real browser to bypass strict IP/bot filters on Reddit
+            headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                ),
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept": "application/json"
+            }
             resp = requests.get(url, headers=headers, timeout=10)
             resp.raise_for_status()
             data = resp.json()
