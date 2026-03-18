@@ -12,13 +12,13 @@
       </div>
 
       <!-- Navigation links (Authenticated) -->
-      <div v-if="isAuthenticated" class="flex-none gap-2">
+      <div v-if="isAuthenticated" class="flex-none flex items-center gap-2">
         <!-- Desktop Links -->
-        <div class="hidden md:flex gap-2 mr-2">
-          <NuxtLink to="/" class="btn btn-ghost btn-sm" active-class="btn-active">Dashboard</NuxtLink>
-          <NuxtLink to="/sources" class="btn btn-ghost btn-sm" active-class="btn-active">Sources</NuxtLink>
-          <NuxtLink to="/keywords" class="btn btn-ghost btn-sm" active-class="btn-active">Keywords</NuxtLink>
-          <NuxtLink to="/settings" class="btn btn-ghost btn-sm" active-class="btn-active">Settings</NuxtLink>
+        <div class="hidden md:flex items-center gap-6 mr-4">
+          <NuxtLink to="/" class="text-sm font-medium text-base-content/70 hover:text-base-content transition-colors py-1 border-b-2 border-transparent" active-class="!text-primary !border-primary">Dashboard</NuxtLink>
+          <NuxtLink to="/sources" class="text-sm font-medium text-base-content/70 hover:text-base-content transition-colors py-1 border-b-2 border-transparent" active-class="!text-primary !border-primary">Sources</NuxtLink>
+          <NuxtLink to="/keywords" class="text-sm font-medium text-base-content/70 hover:text-base-content transition-colors py-1 border-b-2 border-transparent" active-class="!text-primary !border-primary">Keywords</NuxtLink>
+          <NuxtLink to="/settings" class="text-sm font-medium text-base-content/70 hover:text-base-content transition-colors py-1 border-b-2 border-transparent" active-class="!text-primary !border-primary">Settings</NuxtLink>
         </div>
 
         <div class="dropdown dropdown-end">
@@ -26,7 +26,7 @@
             <div class="w-8 rounded-full">
               <img v-if="user?.photoURL" :src="user?.photoURL" :alt="user?.displayName || 'User'" />
               <div v-else class="bg-primary text-primary-content flex items-center justify-center w-full h-full rounded-full text-sm font-bold">
-                {{ (user?.displayName || user?.email || '?')[0].toUpperCase() }}
+                {{ (user?.displayName || user?.email || '?').charAt(0).toUpperCase() }}
               </div>
             </div>
           </div>

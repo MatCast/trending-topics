@@ -13,9 +13,10 @@
 - [x] Finalize checks on `pages/settings.vue` (Already fully flex/fluid).
 
 ## Bug Fixing Phase
-- [/] Debug `btm-nav` layout issues (stickiness and vertical stacking).
-- [ ] Fix positioning in `layouts/default.vue`.
-- [ ] Verify horizontal alignment and fixed behavior.
+- [x] Debug `btm-nav` layout issues (stickiness and vertical stacking).
+- [x] Fix positioning in `layouts/default.vue`.
+- [x] Verify horizontal alignment and fixed behavior.
+- [x] Restored Desktop Navbar profile icon alignment and implemented sleek active underline styles.
 
 ## Review & Results
 - **Navigation**: Implemented a fixed bottom tab bar (`btm-nav`) for mobile viewports across all pages via `layouts/default.vue`.
