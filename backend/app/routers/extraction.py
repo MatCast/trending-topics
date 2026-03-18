@@ -1,9 +1,7 @@
 """Extraction router — trigger trend extraction for a user."""
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks
-from typing import Optional
-import os
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 
 from ..auth import verify_firebase_token, verify_internal_api_key
 from ..models import ExtractionRequest, ExtractionRunResponse

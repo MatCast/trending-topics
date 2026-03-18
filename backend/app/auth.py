@@ -3,9 +3,8 @@
 import logging
 import os
 import secrets
-from typing import Optional
 
-from fastapi import Request, HTTPException, Depends, Header
+from fastapi import HTTPException, Depends, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from firebase_admin import auth
 
@@ -53,8 +52,8 @@ async def verify_admin(token_data: dict = Depends(verify_firebase_token)) -> dic
 
 
 async def verify_internal_api_key(
-    x_internal_key: Optional[str] = Header(None, alias="X-Internal-Key"),
-    x_cloudscheduler: Optional[str] = Header(None, alias="X-CloudScheduler"),
+    x_internal_key: str = Header(None, alias="X-Internal-Key"),
+    x_cloudscheduler: str = Header(None, alias="X-CloudScheduler"),
 ) -> bool:
     """Verifies that the request comes from a trusted internal source (Scheduler or API Key)."""
     # 1. Check for X-Internal-Key (Shared Secret)
@@ -63,7 +62,6 @@ async def verify_internal_api_key(
         return True
 
     # 2. Check for X-CloudScheduler (Trusting Cloud Run's header stripping for now)
-    # Note: In a highly sensitive environment, you should use OIDC token verification instead.
     if x_cloudscheduler == "true":
         return True
 

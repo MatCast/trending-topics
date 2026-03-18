@@ -64,3 +64,60 @@ To run the entire application (frontend + backend) locally using Docker Compose:
 - **Backend**: FastAPI, Firestore, Firebase Admin SDK.
 - **Infrastucture**: Docker, Google Cloud Run, Cloud Scheduler.
 
+## 🚀 Deployment to Google Cloud Run
+
+This project is configured for seamless deployment to **Google Cloud Run** in the `europe-west1` region.
+
+### 1. Prerequisites
+- Install the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install).
+- Authenticate and set your project:
+  ```bash
+  gcloud auth login
+  gcloud config set project trending-news-finder
+  ```
+
+### 2. Configuration (`.env.yaml`)
+Instead of standard `.env` files, use YAML for production environment variables.
+
+**Backend (`backend/.env.yaml`):**
+```yaml
+ENV: "production"
+INTERNAL_API_KEY: "your-shared-secret"
+FRONTEND_URL: "https://your-frontend-url.run.app"
+# (Other variables from .env.example)
+```
+
+**Frontend (`frontend/.env.yaml`):**
+```yaml
+NUXT_PUBLIC_API_BASE_URL: "https://your-backend-url.run.app"
+# (Firebase config variables from .env.example)
+```
+
+### 3. Deploy Commands
+
+Deploy from the root of each service:
+
+**Deploy Backend:**
+```bash
+cd backend
+gcloud run deploy backend-service \
+  --source . \
+  --region europe-west1 \
+  --allow-unauthenticated \
+  --env-vars-file .env.yaml
+```
+
+**Deploy Frontend:**
+```bash
+cd ../frontend
+gcloud run deploy frontend-service \
+  --source . \
+  --region europe-west1 \
+  --allow-unauthenticated \
+  --env-vars-file .env.yaml
+```
+
+### 4. Post-Deployment
+1. **CORS**: Ensure the backend's `FRONTEND_URL` in `.env.yaml` includes the actual frontend URL.
+2. **Firebase Auth**: Add your frontend URL to the **Authorized Domains** list in the Firebase Console.
+3. **Scheduler**: Configure a Cloud Scheduler job to hit `/api/extract/scheduled` using an OIDC token or `X-Internal-Key` header.
