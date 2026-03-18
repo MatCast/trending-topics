@@ -30,8 +30,10 @@ export function useAuth() {
     const provider = new GoogleAuthProvider()
     try {
       await signInWithPopup($firebaseAuth, provider)
-    } catch (error) {
-      console.error('Sign in failed:', error)
+    } catch (error: any) {
+      if (error?.code !== 'auth/popup-closed-by-user' && error?.code !== 'auth/cancelled-popup-request') {
+        console.error('Sign in failed:', error)
+      }
       throw error
     }
   }

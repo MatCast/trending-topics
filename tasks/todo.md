@@ -1,20 +1,25 @@
-# Deployment Task List
+# UI Mobile Optimization: Plan & Status
 
-## Setup & Configuration (To be done by Agent)
-- [x] Update `backend/app/main.py` CORS middleware to parse a comma-separated list of origins.
-- [x] Create `backend/.dockerignore` (Crucial: ignore `keys/` directory and `.env`).
-- [x] Create `frontend/.dockerignore` (Ignore `node_modules`, `.output`, `.nuxt`, `.env`).
-- [x] Update `plan.md` to reflect the deployment phase.
+## Planning Phase
+- [x] Acknowledge architecture (Docker Compose servers already running).
+- [x] Update `lessons.md` and `architecture_knowledge.md` to cement continuous learning regarding environment execution.
+- [x] Use Browser Subagent to assess UI layout issues on `localhost:3000` dynamically via a mobile viewport. (Failed, used Static Analysis)
+- [x] Draft an alignment questionnaire for returned options (User finalized Tab Bar + Cards).
 
-## Security Hardening (To be done by Agent)
-- [x] Fix Broken Access Control in `admin.py` by requiring the `user['active_tier'] == 'admin'`.
-- [x] Fix Unauthenticated Execution in `extraction.py` by raising a 401 instead of just warning on the `/scheduled` endpoint.
-- [x] Disable Swagger UI Docs in production via environment variable fallback.
+## Execution Phase
+- [x] Refactor Nuxt `layouts/default.vue` to introduce `btm-nav` on mobile and hide top-nav links.
+- [x] Refactor `pages/index.vue` to add a responsive card list for Extractions that renders only on mobile.
+- [x] Assess and identically refactor `pages/sources.vue` and `pages/keywords.vue` tables.
+- [x] Finalize checks on `pages/settings.vue` (Already fully flex/fluid).
 
-## Manual User Actions (Post-Setup)
-- [ ] Authenticate `gcloud` and set project to `trending-news-finder`.
-- [ ] Enable Cloud Run and Cloud Build APIs.
-- [ ] Deploy the backend to Cloud Run (without passing `FIREBASE_SERVICE_ACCOUNT_PATH`, using `--env-vars-file env.prod.yaml`).
-- [ ] Deploy the frontend to Cloud Run (passing backend URL as `NUXT_PUBLIC_API_BASE_URL` and Firebase config, using `--env-vars-file env.prod.yaml`).
-- [ ] Add the frontend `.run.app` domain to Firebase Authentication Authorized Domains.
-- [ ] Add the frontend `.run.app` domain to Firebase Authentication Authorized Domains.
+## Bug Fixing Phase
+- [x] Debug `btm-nav` layout issues (stickiness and vertical stacking).
+- [x] Fix positioning in `layouts/default.vue`.
+- [x] Verify horizontal alignment and fixed behavior.
+- [x] Restored Desktop Navbar profile icon alignment and implemented sleek active underline styles.
+
+## Review & Results
+- **Navigation**: Implemented a fixed bottom tab bar (`btm-nav`) for mobile viewports across all pages via `layouts/default.vue`.
+- **Extracts & Keywords**: Replaced wide HTML `<table>` elements with responsive stacked cards visible exclusively on mobile (`md:hidden`).
+- **Sources & Settings**: Verified that existing grid/flex layouts natively adapt without layout shifting.
+- **Verification**: `npm run build` completed successfully with zero Vue parsing errors.

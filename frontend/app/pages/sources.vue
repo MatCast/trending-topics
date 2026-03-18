@@ -22,15 +22,15 @@
         <div class="card-body">
           <!-- Source header -->
           <div class="flex items-center justify-between">
-            <h2 class="card-title gap-2">
+            <h2 class="card-title gap-2 flex-wrap min-w-0">
               <!-- Dynamic icon from composable -->
-              <svg v-if="isSvgIcon(catalogSource.icon)" class="w-6 h-6" :class="getIconConfig(catalogSource.icon).svgClass" viewBox="0 0 24 24" fill="currentColor">
+              <svg v-if="isSvgIcon(catalogSource.icon)" class="w-6 h-6 shrink-0" :class="getIconConfig(catalogSource.icon).svgClass" viewBox="0 0 24 24" fill="currentColor">
                 <path :d="getIconConfig(catalogSource.icon).svgPath" />
               </svg>
-              <span v-else :class="getIconConfig(catalogSource.icon).textClass">
+              <span v-else class="shrink-0" :class="getIconConfig(catalogSource.icon).textClass">
                 {{ getIconConfig(catalogSource.icon).text }}
               </span>
-              {{ catalogSource.name }}
+              <span class="truncate">{{ catalogSource.name }}</span>
             </h2>
 
             <!-- Singleton: show toggle or enable button -->
@@ -47,23 +47,23 @@
             </template>
           </div>
 
-          <p class="text-base-content/60 text-sm">{{ catalogSource.description }}</p>
+          <p class="text-base-content/60 text-sm mt-3">{{ catalogSource.description }}</p>
           <a
             v-if="catalogSource.website_url"
             :href="catalogSource.website_url"
             target="_blank"
             rel="noopener"
-            class="link link-hover text-xs text-base-content/40"
+            class="link link-hover text-xs text-base-content/40 break-all"
           >{{ catalogSource.website_url }}</a>
 
           <!-- Multi-instance sources: add form + list -->
           <template v-if="catalogSource.is_multi_instance">
             <!-- Dynamic config form from config_schema -->
             <div class="form-control mt-4">
-              <div v-if="catalogSource.id === 'reddit'" class="flex items-center justify-between mb-2">
+              <div v-if="catalogSource.id === 'reddit'" class="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <span class="text-xs font-semibold uppercase tracking-wider text-base-content/40">Add Subreddit</span>
                 <span 
-                  class="badge badge-sm font-bold"
+                  class="badge badge-sm font-bold truncate max-w-full"
                   :class="isRedditLimitReached ? 'badge-warning' : 'badge-ghost'"
                 >
                   {{ redditSourceCount }} / {{ isRedditUnlimited ? '∞' : redditLimit }} active
@@ -110,15 +110,15 @@
                 class="flex items-center justify-between p-3 rounded-lg"
                 :class="src.enabled ? 'bg-base-200' : 'bg-base-200/50 opacity-60'"
               >
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 flex-1 min-w-0">
                   <input type="checkbox" class="toggle toggle-sm toggle-success" v-model="src.enabled" @change="toggleSource(src)" />
-                  <span class="font-medium">{{ src.name }}</span>
-                  <label class="label cursor-pointer gap-2">
+                  <span class="font-medium truncate max-w-full">{{ src.name }}</span>
+                  <label class="label cursor-pointer gap-2 ml-auto sm:ml-0">
                     <span class="label-text text-xs opacity-60">Keywords</span>
                     <input type="checkbox" class="toggle toggle-xs toggle-primary" v-model="src.use_global_keywords" @change="updateSource(src)" />
                   </label>
                 </div>
-                <button class="btn btn-ghost btn-sm btn-square text-error" @click="deleteSource(src)">✕</button>
+                <button class="btn btn-ghost btn-sm btn-square text-error ml-2" @click="deleteSource(src)">✕</button>
               </div>
               <p v-if="!getMultiInstanceSources(catalogSource.id).length" class="text-base-content/40 text-sm p-3">
                 No {{ catalogSource.name }} sources configured
@@ -205,7 +205,8 @@ async function addMultiInstanceSource(catalogSource: any) {
   if (!inputVal) return
 
   // Get first config field key (e.g., 'subreddit')
-  const fieldKey = Object.keys(catalogSource.config_schema)[0]
+  const fieldKey = Object.keys(catalogSource.config_schema || {})[0] as string
+  if (!fieldKey) return
 
   // Reddit-specific validation
   if (catalogSource.id === 'reddit') {

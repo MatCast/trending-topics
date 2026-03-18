@@ -10,7 +10,7 @@ The application runs as a containerized dual-service architecture orchestrated b
 
 ## 2. Environment & Execution Patterns
 - **Direct Implementation**: Overarching changes on the full-stack containerized structure are executed directly by the Architect. Subagents and Git worktrees are discouraged for system-wide refactors due to setup overhead and context drift.
-- **Docker Compose**: Used as the primary local development environment (`docker-compose.yml`), unifying networking between the Nuxt client and FastAPI backend.
+- **Docker Compose**: Used as the primary local development environment (`docker-compose.yml`), unifying networking between the Nuxt client and FastAPI backend. **CRITICAL: NEVER run `npm run dev` or `fastapi run` directly on the host machine. Assume the servers are already running within their Docker containers on ports 3000 and 8000.**
 
 ## 3. Frontend Architecture (Nuxt.js + DaisyUI)
 - **Directory**: `frontend/` (primarily `frontend/app/`).
