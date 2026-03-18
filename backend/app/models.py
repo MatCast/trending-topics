@@ -1,7 +1,7 @@
 """Pydantic models for request/response validation."""
 
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime
 from enum import Enum
 
@@ -99,6 +99,21 @@ class UserSettingsResponse(BaseModel):
     schedule: ScheduleConfig = Field(default_factory=ScheduleConfig)
 
 
+# --- User Profile & Tiers ---
+
+class TierLimits(BaseModel):
+    keywords: int
+    reddit_sources: int
+
+
+class UserProfileResponse(BaseModel):
+    uid: str
+    email: str
+    active_tier: str
+    tier_limits: TierLimits
+    settings: UserSettingsResponse
+
+
 # --- Extraction ---
 
 class ExtractionRequest(BaseModel):
@@ -109,10 +124,28 @@ class ExtractionRequest(BaseModel):
 
 
 class ExtractionRunResponse(BaseModel):
-    run_id: str
-    status: str = "completed"
+    extraction_id: str
+    status: Literal["pending", "completed", "failed"] = "completed"
     results_count: int
     results: List["TrendResultResponse"]
+    error: Optional[str] = None
+
+
+class ExtractionResponse(BaseModel):
+    id: str
+    created_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    results_count: int
+    sources: List[str]
+    status: Literal["pending", "completed", "failed"] = "completed"
+    error: Optional[str] = None
+
+
+class ExtractionListResponse(BaseModel):
+    extractions: List[ExtractionResponse]
+    total: int
+    page: int = 1
+    page_size: int = 50
 
 
 # --- Trend Results ---
@@ -128,7 +161,7 @@ class TrendResultResponse(BaseModel):
     ups: int = 0
     comments: int = 0
     created_at: Optional[datetime] = None
-    run_id: Optional[str] = None
+    extraction_id: Optional[str] = None
 
 
 class ResultsListResponse(BaseModel):

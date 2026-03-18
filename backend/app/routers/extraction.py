@@ -1,11 +1,9 @@
 """Extraction router — trigger trend extraction for a user."""
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Header
-from typing import Optional
-import os
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 
-from ..auth import verify_firebase_token
+from ..auth import verify_firebase_token, verify_internal_api_key
 from ..models import ExtractionRequest, ExtractionRunResponse
 from ..services.researcher import run_extraction
 from ..services.scheduler import run_scheduled_extractions
@@ -18,6 +16,7 @@ router = APIRouter(prefix="/api/extract", tags=["extraction"])
 
 @router.post("", response_model=ExtractionRunResponse)
 async def extract(
+    background_tasks: BackgroundTasks,
     body: ExtractionRequest = None,
     token_data: dict = Depends(verify_firebase_token),
 ):
@@ -49,32 +48,39 @@ async def extract(
         if body.use_keywords is not None:
             use_keywords = body.use_keywords
 
-    result = run_extraction(
+    # Generate sources_used for the pending doc
+    sources_used = list(set(s.get("source_id", s.get("type", "unknown")) for s in sources if s.get("enabled", True)))
+    # Create the pending extraction document
+    extraction_id = fb.create_pending_extraction(uid, sources_used)
+
+    # Add to background tasks
+    background_tasks.add_task(
+        run_extraction,
         uid=uid,
         sources=sources,
         global_keywords=global_keywords,
+        extraction_id=extraction_id,
         time_window_hours=time_window,
         max_trends_per_source=max_trends,
         use_keywords=use_keywords,
     )
 
-    return result
+    return {
+        "extraction_id": extraction_id,
+        "status": "pending",
+        "results_count": 0,
+        "results": [],
+    }
 
 
 @router.post("/scheduled", tags=["internal"])
 async def run_scheduled(
-    x_cloudscheduler: Optional[str] = Header(None, alias="X-CloudScheduler"),
+    authorized: bool = Depends(verify_internal_api_key),
 ):
     """Internal endpoint called by Cloud Scheduler. Runs extractions for all scheduled users.
 
     Also triggers cleanup of expired results.
     """
-    # Simple auth: check for Cloud Scheduler header or an internal API key
-    internal_key = os.environ.get("INTERNAL_API_KEY", "")
-    if not x_cloudscheduler and not internal_key:
-        logger.warning("Scheduled endpoint called without scheduler header.")
-        # In production, you'd want stricter auth here
-
     # Run scheduled extractions
     extraction_summary = run_scheduled_extractions()
 

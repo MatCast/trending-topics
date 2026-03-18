@@ -50,3 +50,29 @@ The application runs as a containerized dual-service architecture orchestrated b
 - **Keyword Limits**: `DEFAULT_KEYWORD_LIMITS` maps user tiers to max keywords (`free: 20`, `pro: 100`, `unlimited: -1`). Enforced in `create_keywords()`.
 - **API Endpoints**: `GET/POST /api/keywords`, `PUT /api/keywords/{id}`, `POST /api/keywords/bulk` (bulk enable/disable/delete), `DELETE /api/keywords/{id}`.
 - **Frontend**: Dedicated `/keywords` management page with table, bulk selection, toggle enabled, comma-separated add input. Keywords removed from `/settings` page.
+
+## 9. Extractions and Results Architecture
+- **Extractions Collection**: Metadata for each extraction run is stored in `users/{uid}/extractions/{extraction_id}`. This includes Date, Sources Used, Number of Results, and TTL (`expires_at`).
+- **Results Collection (Flat)**: Individual extracted topics are stored in a flat sub-collection `users/{uid}/results/` rather than nested under extractions. They are linked back to the parent via an `extraction_id` field.
+- **Why Flat?**: Firestore queries on indexed fields incur read costs purely based on the number of returned documents. Querying a flat collection with `.where('extraction_id', '==', X)` costs exactly the same as querying a sub-collection. However, a flat collection simplifies Cleanup (TTL).
+- **TTL & Cleanup**: Both Extractions and Results share standard `expires_at` fields. A single scheduled Cloud Function deletes expired documents from both collections simultaneously without needing complex cascading delete logic.
+- **Frontend Dashboard**: The main dashboard `GET /api/extractions` lists extraction history to minimize reads instead of fetching all historical results at once. Clicking an extraction navigates to `/extractions/[id]` to query only that specific `extraction_id`.
+
+## 10. Source Tier Limits (Firestore Driven)
+- **Logic**: Enforced primarily on the **enablement** of multi-instance sources (e.g., Reddit) to allow users to catalog as many sources as they wish while capping active processing.
+- **Limits**: Stored in `admin/config` in Firestore under `tier_limits`. `DEFAULT_KEYWORD_LIMITS` and `DEFAULT_REDDIT_SOURCE_LIMITS` constants serve as local fallbacks.
+- **Enforcement**:
+    - **Backend**: Service methods (e.g., `create_source`, `create_keywords`) fetch user's `active_tier` and query Firestore for current limits.
+    - **Frontend**: The `sources.vue` page uses the `useUser` composable to fetch dynamic limits. It handles the "unlimited" case (`-1`) by displaying `∞` and bypassing local UI warnings.
+
+## 11. User Profile API
+- **Endpoint**: `GET /api/users/me` provides a unified view of the authenticated user's profile.
+- **Content**: Includes `uid`, `email`, `active_tier`, `settings`, and the effective `tier_limits` for that user's specific tier.
+- **Frontend Integration**: Managed via `useUser.ts` composable. This ensures that when a user's tier is upgraded in the database, the frontend reflects new limits immediately upon profile refresh.
+
+## 12. Deployment Architecture (Google Cloud Run)
+- **Services**: Split into `backend-service` (FastAPI) and `frontend-service` (Nuxt Nitro).
+- **Auth**: Uses **Application Default Credentials (ADC)**. By running the backend in the same GCP project as Firestore, it inherits permissions automatically via the metadata server, eliminating the need for `service-account.json` in production.
+- **Environment Management**: Orchestrated via `env.prod.yaml` files. `gcloud` consumes these via the `--env-vars-file` flag, allowing for discrete, versioned configurations per environment.
+- **CORS**: The backend's `FRONTEND_URL` supports comma-separated origins. This allows the backend to serve both the production `.run.app` domain and local `localhost:3000` developers simultaneously.
+- **Security**: Services are public at the network layer (`--allow-unauthenticated`) but strictly gated at the application layer via Firebase token verification middleware.

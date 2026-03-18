@@ -4,21 +4,19 @@ This is the Single Source of Truth for the Architect and sub-agents. Both should
 
 ## Phases
 * Phase 1 (Scaffolding): [Completed]
-* Phase 2 (Backend/Core): [Phase 2.1 Completed - Trend Fetching & Storage]
+* Phase 2 (Backend/Core): [Phase 2.3 Completed - Firestore Tier Migration & User Profile API]
 * Phase 3 (Frontend/Formatting): [Phase 3.1 Completed - Basic UI & Settings]
 * Phase 4 (Containerization): [Completed]
+* Phase 5 (Deployment Configuration): [Completed]
+* Phase 6 (Security Hardening): [Completed]
 
 ## Active Tasks
-* [Completed] Containerize app for local development (`docker-compose.yml`)
-* [Completed] Fix extraction validation and visibility issues
-* [Completed] Implement subreddit uniqueness and auto-save keywords
-* [Completed] Implement ascending/descending sorting in extraction dashboard
-* [Completed] Implement routing authentication protection (redirect to login)
-* [Completed] Source Catalog Refactor — top-level `sources` collection with visibility/tiering, dynamic frontend rendering
-* [Completed] Keywords Sub-Collection Refactor — keywords as sub-collection with enable/disable, management page, tiered limits
+* [ ] Execute manual deployments to Cloud Run and configure Firebase Auth domains
+
+
 
 ## Agent Tracking & Context
-* **Sub-Agent 1**: *Inactive*
-* **Sub-Agent 2**: *Inactive* (Assign specific task and context limit here)
+* **Subagent 1**: *Pending* (Backend Extraction Background Job)
+* **Subagent 2**: *Pending* (Frontend Realtime UI Listener)
 
 *Note to Architect: Ensure each sub-agent is assigned strict files and an isolated goal to prevent context drift.*

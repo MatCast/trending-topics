@@ -100,6 +100,7 @@ def get_db():
 
 # --- Source Catalog Operations ---
 
+
 def seed_source_catalog():
     """Seed the top-level sources catalog if it doesn't exist.
     Called once at startup.
@@ -158,7 +159,10 @@ def get_catalog_source(source_id: str) -> Optional[Dict[str, Any]]:
 
 # --- User Operations ---
 
-def get_or_create_user(uid: str, email: str = "", display_name: str = "") -> Dict[str, Any]:
+
+def get_or_create_user(
+    uid: str, email: str = "", display_name: str = ""
+) -> Dict[str, Any]:
     """Get user doc, create if doesn't exist. Returns user data."""
     db = get_db()
     user_ref = db.collection("users").document(uid)
@@ -172,6 +176,7 @@ def get_or_create_user(uid: str, email: str = "", display_name: str = "") -> Dic
         "email": email,
         "display_name": display_name,
         "created_at": datetime.now(timezone.utc),
+        "active_tier": "free",
         "settings": {
             "time_window_hours": 3,
             "max_trends_per_source": 3,
@@ -207,6 +212,7 @@ def update_user_settings(uid: str, settings: Dict[str, Any]) -> Dict[str, Any]:
 
 # --- User Source Config Operations ---
 
+
 def list_sources(uid: str) -> List[Dict[str, Any]]:
     """List all source configs for a user from user_sources sub-collection."""
     db = get_db()
@@ -215,7 +221,9 @@ def list_sources(uid: str) -> List[Dict[str, Any]]:
     return [{"id": doc.id, **doc.to_dict()} for doc in docs]
 
 
-def create_source(uid: str, source_data: Dict[str, Any]) -> Dict[str, Any]:
+def create_source(
+    uid: str, source_data: Dict[str, Any], user_tier: str = "free"
+) -> Dict[str, Any]:
     """Create a new user source subscription. Validates against catalog.
 
     Args:
@@ -228,7 +236,9 @@ def create_source(uid: str, source_data: Dict[str, Any]) -> Dict[str, Any]:
     # Validate source_id exists in catalog
     catalog_entry = get_catalog_source(source_id)
     if not catalog_entry:
-        raise ValueError(f"Unknown source_id: '{source_id}'. Source not found in catalog.")
+        raise ValueError(
+            f"Unknown source_id: '{source_id}'. Source not found in catalog."
+        )
 
     is_multi = catalog_entry.get("is_multi_instance", False)
 
@@ -244,24 +254,66 @@ def create_source(uid: str, source_data: Dict[str, Any]) -> Dict[str, Any]:
     merged_params = {**default_params, **source_data.get("params", {})}
     source_data["params"] = merged_params
 
-    if is_multi:
-        # Multi-instance: check for duplicate by specific param (e.g., subreddit for reddit)
-        if source_id == "reddit":
-            subreddit = source_data.get("params", {}).get("subreddit", "").lower()
-            if subreddit:
-                existing = (
-                    db.collection("users").document(uid).collection("user_sources")
-                    .where("source_id", "==", source_id)
-                    .stream()
+    # Deduplicate and Handle Limits
+    if source_id == "reddit":
+        limit = get_reddit_source_limit(user_tier)
+        subreddit = source_data.get("params", {}).get("subreddit", "").lower()
+
+        if subreddit:
+            # Fetch all existing reddit sources for this user
+            existing_reddit_sources = list(
+                db.collection("users")
+                .document(uid)
+                .collection("user_sources")
+                .where("source_id", "==", "reddit")
+                .stream()
+            )
+
+            active_count = sum(
+                1 for d in existing_reddit_sources if d.to_dict().get("enabled", True)
+            )
+
+            # 1. Check for duplicates first
+            for doc in existing_reddit_sources:
+                doc_data = doc.to_dict()
+                if doc_data.get("params", {}).get("subreddit", "").lower() == subreddit:
+                    # If user is trying to re-enable it
+                    if source_data.get("enabled", True) and not doc_data.get(
+                        "enabled", True
+                    ):
+                        if limit != -1 and active_count >= limit:
+                            logger.warning(
+                                f"Reddit source limit reached ({limit}) for user {uid}"
+                            )
+                            # If they added it explicitly as enabled but are over limit, we keep it disabled
+                            return {"id": doc.id, **doc_data, "existed": True}
+
+                        doc.reference.update({"enabled": True})
+                        logger.info(
+                            f"Subreddit r/{subreddit} re-enabled for user {uid}"
+                        )
+                        return {
+                            "id": doc.id,
+                            **doc_data,
+                            "enabled": True,
+                            "existed": True,
+                        }
+
+                    return {"id": doc.id, **doc_data, "existed": True}
+
+            # 2. Truly new subreddit. If at limit, force disabled.
+            if limit != -1 and active_count >= limit:
+                logger.info(
+                    f"Limit reached ({limit}). Adding subreddit r/{subreddit} as disabled for {uid}"
                 )
-                for doc in existing:
-                    if doc.to_dict().get("params", {}).get("subreddit", "").lower() == subreddit:
-                        logger.warning(f"Subreddit r/{subreddit} already exists for user {uid}")
-                        return {"id": doc.id, **doc.to_dict(), "existed": True}
-    else:
-        # Singleton: only one per source_id per user
+                source_data["enabled"] = False
+
+    elif not is_multi:
+        # Singleton: only one per source_id per user (e.g., hackernews, bluesky)
         existing = (
-            db.collection("users").document(uid).collection("user_sources")
+            db.collection("users")
+            .document(uid)
+            .collection("user_sources")
             .where("source_id", "==", source_id)
             .stream()
         )
@@ -269,7 +321,9 @@ def create_source(uid: str, source_data: Dict[str, Any]) -> Dict[str, Any]:
             # Re-enable the existing source instead of creating a duplicate
             doc.reference.update({"enabled": True})
             updated = doc.reference.get().to_dict()
-            logger.info(f"Source '{source_id}' already exists for user {uid}, re-enabled it.")
+            logger.info(
+                f"Source '{source_id}' already exists for user {uid}, re-enabled it."
+            )
             return {"id": doc.id, **updated, "existed": True}
 
     source_data["created_at"] = datetime.now(timezone.utc)
@@ -280,10 +334,61 @@ def create_source(uid: str, source_data: Dict[str, Any]) -> Dict[str, Any]:
     return {"id": doc_id, **source_data}
 
 
-def update_source(uid: str, source_id: str, update_data: Dict[str, Any]) -> Dict[str, Any]:
+def update_source(
+    uid: str, source_id: str, update_data: Dict[str, Any], user_tier: str = "free"
+) -> Dict[str, Any]:
     """Update a user source config."""
     db = get_db()
-    source_ref = db.collection("users").document(uid).collection("user_sources").document(source_id)
+    source_ref = (
+        db.collection("users")
+        .document(uid)
+        .collection("user_sources")
+        .document(source_id)
+    )
+
+    # Enforce Reddit Limit on Toggle
+    if update_data.get("enabled") is True:
+        source_doc = source_ref.get()
+        if source_doc.exists:
+            source_data = source_doc.to_dict()
+            if source_data.get("source_id") == "reddit" and not source_data.get(
+                "enabled", True
+            ):
+                limit = get_reddit_source_limit(user_tier)
+                if limit != -1:
+                    active_count = (
+                        db.collection("users")
+                        .document(uid)
+                        .collection("user_sources")
+                        .where("source_id", "==", "reddit")
+                        .where("enabled", "==", True)
+                        .stream()
+                    )
+                    # Use sum to count stream to avoid composite index if possible,
+                    # but here where/where might need one. Let's stick to memory count for simplicity/safety.
+                    # Or just reuse the check from create_source
+                    existing_reddit_sources = list(
+                        db.collection("users")
+                        .document(uid)
+                        .collection("user_sources")
+                        .where("source_id", "==", "reddit")
+                        .stream()
+                    )
+                    active_count = sum(
+                        1
+                        for d in existing_reddit_sources
+                        if d.to_dict().get("enabled", True)
+                    )
+
+                    if active_count >= limit:
+                        logger.warning(
+                            f"Cannot enable Reddit source. Limit ({limit}) reached for user {uid}"
+                        )
+                        raise ValueError(
+                            (f"Limit reached. Your tier allows a maximum of {limit}"
+                             " active subreddits. Disable one to enable another.")
+                        )
+
     source_ref.update(update_data)
     updated = source_ref.get()
     return {"id": source_id, **updated.to_dict()}
@@ -292,21 +397,39 @@ def update_source(uid: str, source_id: str, update_data: Dict[str, Any]) -> Dict
 def delete_source(uid: str, source_id: str):
     """Delete a user source config."""
     db = get_db()
-    db.collection("users").document(uid).collection("user_sources").document(source_id).delete()
+    db.collection("users").document(uid).collection("user_sources").document(
+        source_id
+    ).delete()
 
 
 # --- Keyword Operations ---
 
+# Default Tier Limits for reference and fallbacks
 DEFAULT_KEYWORD_LIMITS = {
     "free": 20,
     "pro": 100,
     "unlimited": -1,
 }
 
+DEFAULT_REDDIT_SOURCE_LIMITS = {
+    "free": 3,
+    "beta": 10,
+    "pro": -1,
+}
+
 
 def get_keyword_limit(user_tier: str = "free") -> int:
     """Get max keywords for a user tier. Returns -1 for unlimited."""
-    return DEFAULT_KEYWORD_LIMITS.get(user_tier, DEFAULT_KEYWORD_LIMITS["free"])
+    config = get_admin_config()
+    tier_limits = config.get("tier_limits", {}).get("keywords", {})
+    return tier_limits.get(user_tier, DEFAULT_KEYWORD_LIMITS.get(user_tier, 20))
+
+
+def get_reddit_source_limit(user_tier: str = "free") -> int:
+    """Get max reddit sources for a user tier. Returns -1 for unlimited."""
+    config = get_admin_config()
+    tier_limits = config.get("tier_limits", {}).get("reddit_sources", {})
+    return tier_limits.get(user_tier, DEFAULT_REDDIT_SOURCE_LIMITS.get(user_tier, 3))
 
 
 def list_keywords(uid: str) -> List[Dict[str, Any]]:
@@ -320,14 +443,18 @@ def list_enabled_keywords(uid: str) -> List[str]:
     """List only enabled keyword texts. Used for extraction."""
     db = get_db()
     docs = (
-        db.collection("users").document(uid).collection("keywords")
+        db.collection("users")
+        .document(uid)
+        .collection("keywords")
         .where("enabled", "==", True)
         .stream()
     )
     return [doc.to_dict().get("text", "") for doc in docs if doc.to_dict().get("text")]
 
 
-def create_keywords(uid: str, keywords: List[str], user_tier: str = "free") -> List[Dict[str, Any]]:
+def create_keywords(
+    uid: str, keywords: List[str], user_tier: str = "free"
+) -> List[Dict[str, Any]]:
     """Create keywords in bulk. Trims, deduplicates (case-insensitive), enforces limits.
 
     Returns list of created keyword dicts.
@@ -374,16 +501,22 @@ def create_keywords(uid: str, keywords: List[str], user_tier: str = "free") -> L
     return created
 
 
-def update_keyword(uid: str, keyword_id: str, update_data: Dict[str, Any]) -> Dict[str, Any]:
+def update_keyword(
+    uid: str, keyword_id: str, update_data: Dict[str, Any]
+) -> Dict[str, Any]:
     """Update a single keyword (e.g., toggle enabled)."""
     db = get_db()
-    kw_ref = db.collection("users").document(uid).collection("keywords").document(keyword_id)
+    kw_ref = (
+        db.collection("users").document(uid).collection("keywords").document(keyword_id)
+    )
     kw_ref.update(update_data)
     updated = kw_ref.get()
     return {"id": keyword_id, **updated.to_dict()}
 
 
-def bulk_update_keywords(uid: str, keyword_ids: List[str], update_data: Dict[str, Any]) -> int:
+def bulk_update_keywords(
+    uid: str, keyword_ids: List[str], update_data: Dict[str, Any]
+) -> int:
     """Bulk update keywords (e.g., enable/disable multiple)."""
     db = get_db()
     batch = db.batch()
@@ -427,70 +560,128 @@ def delete_keywords(uid: str, keyword_ids: List[str]) -> int:
 def delete_keyword(uid: str, keyword_id: str):
     """Delete a single keyword."""
     db = get_db()
-    db.collection("users").document(uid).collection("keywords").document(keyword_id).delete()
+    db.collection("users").document(uid).collection("keywords").document(
+        keyword_id
+    ).delete()
 
 
 # --- Results Operations ---
 
-def store_results(uid: str, run_id: str, results: List[Dict[str, Any]], retention_days: int = 15):
-    """Store extraction results in Firestore with TTL."""
+
+def create_pending_extraction(uid: str, sources_used: List[str]) -> str:
+    """Create an extraction document with status 'pending' and return its ID."""
     db = get_db()
-    expires_at = datetime.now(timezone.utc) + timedelta(days=retention_days)
+    now = datetime.now(timezone.utc)
+    extraction_ref = (
+        db.collection("users").document(uid).collection("extractions").document()
+    )
+    extraction_id = extraction_ref.id
+
+    extraction_data = {
+        "id": extraction_id,
+        "created_at": now,
+        "status": "pending",
+        "sources": sources_used,
+        "results_count": 0,
+    }
+    extraction_ref.set(extraction_data)
+    logger.info(f"Created pending extraction {extraction_id} for user {uid}")
+    return extraction_id
+
+
+def update_extraction_status(
+    uid: str, extraction_id: str, status: str, error: str = None
+):
+    """Update the status of an existing extraction document."""
+    db = get_db()
+    extraction_ref = (
+        db.collection("users")
+        .document(uid)
+        .collection("extractions")
+        .document(extraction_id)
+    )
+
+    update_data = {"status": status}
+    if error:
+        update_data["error"] = error
+
+    extraction_ref.update(update_data)
+    logger.info(f"Updated extraction {extraction_id} status to {status} for user {uid}")
+
+
+def store_results(
+    uid: str,
+    extraction_id: str,
+    results: List[Dict[str, Any]],
+    sources_used: List[str],
+    retention_days: int = 15,
+):
+    """Update extraction run metadata and store its results in Firestore with TTL."""
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=retention_days)
     batch = db.batch()
 
+    # 1. Update the existing Extraction document
+    extraction_ref = (
+        db.collection("users")
+        .document(uid)
+        .collection("extractions")
+        .document(extraction_id)
+    )
+    extraction_data = {
+        "status": "completed",
+        "expires_at": expires_at,
+        "results_count": len(results),
+        "sources": sources_used,
+    }
+    batch.update(extraction_ref, extraction_data)
+
+    # 2. Store individual results
     results_ref = db.collection("users").document(uid).collection("results")
 
     for result in results:
         doc_ref = results_ref.document()
-        now = datetime.now(timezone.utc)
 
         # Update the result dict in-place so it's returned to the caller with its new fields
         result["id"] = doc_ref.id
-        result["run_id"] = run_id
+        result["extraction_id"] = extraction_id
         result["created_at"] = now
         result["expires_at"] = expires_at
 
         batch.set(doc_ref, result)
 
     batch.commit()
-    logger.info(f"Stored {len(results)} results for user {uid}, run {run_id}")
+    logger.info(
+        f"Stored extraction {extraction_id} with {len(results)} results for user {uid}"
+    )
 
 
-def list_results(
+def list_extractions(
     uid: str,
-    source_type: Optional[str] = None,
-    sort_by: str = "created_at",
-    sort_order: str = "desc",
     page: int = 1,
     page_size: int = 50,
 ) -> tuple[List[Dict[str, Any]], int]:
-    """List results for a user with optional filtering and pagination."""
+    """List extraction history for a user with pagination."""
     db = get_db()
-    query = db.collection("users").document(uid).collection("results")
+    query = db.collection("users").document(uid).collection("extractions")
 
     # Sort
-    direction = firestore.Query.DESCENDING if sort_order == "desc" else firestore.Query.ASCENDING
-    query = query.order_by(sort_by, direction=direction)
+    query = query.order_by("created_at", direction=firestore.Query.DESCENDING)
 
-    # Filtering for expired results and source_type in memory to avoid needing complex composite indexes
+    # Filter expired extractions in memory
     now = datetime.now(timezone.utc)
-
-    # Get total count
     all_docs = list(query.stream())
 
-    # Filter in memory
     filtered_docs = []
     for doc in all_docs:
         data = doc.to_dict()
-        if source_type and data.get("source_type") != source_type:
-            continue
         if data.get("expires_at", now + timedelta(days=1)) <= now:
             continue
         filtered_docs.append(doc)
 
     total = len(filtered_docs)
 
-    # Paginate
     start = (page - 1) * page_size
     end = start + page_size
     page_docs = filtered_docs[start:end]
@@ -499,14 +690,82 @@ def list_results(
     return results, total
 
 
-def get_all_results_for_export(uid: str) -> List[Dict[str, Any]]:
-    """Get all non-expired results for CSV export."""
+def list_results(
+    uid: str,
+    extraction_id: Optional[str] = None,
+    source_type: Optional[str] = None,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
+    page: int = 1,
+    page_size: int = 50,
+) -> tuple[List[Dict[str, Any]], int]:
+    """List results for a user, optionally filtered by extraction_id or source_type."""
     db = get_db()
 
-    query = (
-        db.collection("users").document(uid).collection("results")
-        .order_by("created_at", direction=firestore.Query.DESCENDING)
-    )
+    # Base query
+    query = db.collection("users").document(uid).collection("results")
+
+    # If using extraction_id, query specifically for it to save reads
+    if extraction_id:
+        query = query.where("extraction_id", "==", extraction_id)
+
+    if source_type:
+        query = query.where("source_type", "==", source_type)
+
+    # Note: FireStore requires a composite index if combining where() and order_by().
+    # For now, we will fetch and sort in memory if extraction_id or source_type is used.
+
+    if not extraction_id and not source_type:
+        direction = (
+            firestore.Query.DESCENDING
+            if sort_order == "desc"
+            else firestore.Query.ASCENDING
+        )
+        query = query.order_by(sort_by, direction=direction)
+
+    all_docs = list(query.stream())
+    now = datetime.now(timezone.utc)
+
+    # Filter in memory for expired out of safety
+    filtered_docs = []
+    for doc in all_docs:
+        data = doc.to_dict()
+        if data.get("expires_at", now + timedelta(days=1)) <= now:
+            continue
+        filtered_docs.append(data)
+
+    # Sort in memory if extraction_id is used since we skipped order_by to avoid composite index requirement
+    if extraction_id:
+        reverse = sort_order == "desc"
+        # Safely sort using get
+        filtered_docs.sort(
+            key=lambda x: x.get(sort_by) if x.get(sort_by) is not None else "",
+            reverse=reverse,
+        )
+
+    total = len(filtered_docs)
+
+    # Paginate
+    start = (page - 1) * page_size
+    end = start + page_size
+    page_docs = filtered_docs[start:end]
+
+    results = [{"id": doc.get("id"), **doc} for doc in page_docs]
+    return results, total
+
+
+def get_all_results_for_export(
+    uid: str, extraction_id: Optional[str] = None
+) -> List[Dict[str, Any]]:
+    """Get all non-expired results for CSV export, optionally filtered by extraction_id."""
+    db = get_db()
+
+    query = db.collection("users").document(uid).collection("results")
+
+    if extraction_id:
+        query = query.where("extraction_id", "==", extraction_id)
+    else:
+        query = query.order_by("created_at", direction=firestore.Query.DESCENDING)
 
     now = datetime.now(timezone.utc)
     docs = query.stream()
@@ -523,25 +782,27 @@ def get_all_results_for_export(uid: str) -> List[Dict[str, Any]]:
 def delete_result(uid: str, result_id: str):
     """Delete a single result."""
     db = get_db()
-    db.collection("users").document(uid).collection("results").document(result_id).delete()
+    db.collection("users").document(uid).collection("results").document(
+        result_id
+    ).delete()
 
 
 # --- Cleanup Operations ---
 
+
 def cleanup_expired_results():
-    """Delete all expired results across all users. Called by scheduled job."""
+    """Delete all expired results and extractions across all users. Called by scheduled job."""
     db = get_db()
     now = datetime.now(timezone.utc)
     deleted_count = 0
 
     users = db.collection("users").stream()
     for user_doc in users:
-        results_query = (
-            user_doc.reference.collection("results")
-            .where("expires_at", "<=", now)
+        # 1. Clean up Results
+        results_query = user_doc.reference.collection("results").where(
+            "expires_at", "<=", now
         )
         expired_docs = results_query.stream()
-
         batch = db.batch()
         batch_count = 0
         for doc in expired_docs:
@@ -549,7 +810,6 @@ def cleanup_expired_results():
             batch_count += 1
             deleted_count += 1
 
-            # Firestore batches have a 500 limit
             if batch_count >= 400:
                 batch.commit()
                 batch = db.batch()
@@ -558,11 +818,35 @@ def cleanup_expired_results():
         if batch_count > 0:
             batch.commit()
 
-    logger.info(f"Cleaned up {deleted_count} expired results.")
+        # 2. Clean up Extractions
+        extractions_query = user_doc.reference.collection("extractions").where(
+            "expires_at", "<=", now
+        )
+        expired_extractions = extractions_query.stream()
+
+        batch = db.batch()
+        batch_count = 0
+        for doc in expired_extractions:
+            batch.delete(doc.reference)
+            batch_count += 1
+            deleted_count += 1
+
+            if batch_count >= 400:
+                batch.commit()
+                batch = db.batch()
+                batch_count = 0
+
+        if batch_count > 0:
+            batch.commit()
+
+    logger.info(
+        f"Cleaned up {deleted_count} expired documents (results + extractions)."
+    )
     return deleted_count
 
 
 # --- Admin Config ---
+
 
 def get_admin_config() -> Dict[str, Any]:
     """Get global admin configuration."""
@@ -572,8 +856,17 @@ def get_admin_config() -> Dict[str, Any]:
         return doc.to_dict()
     # Return defaults
     defaults = {
-        "source_weights": {"reddit": 1.0, "hackernews": 1.0, "bluesky": 1.0},
+        "source_weights": {
+            "reddit": 1.0,
+            "hackernews": 1.0,
+            "bluesky": 1.0,
+            "indiehackers": 1.0,
+        },
         "default_retention_days": 15,
+        "tier_limits": {
+            "keywords": DEFAULT_KEYWORD_LIMITS,
+            "reddit_sources": DEFAULT_REDDIT_SOURCE_LIMITS,
+        },
     }
     db.collection("admin").document("config").set(defaults)
     return defaults
@@ -588,6 +881,7 @@ def update_admin_config(update_data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # --- Schedule helpers ---
+
 
 def get_users_with_active_schedules() -> List[Dict[str, Any]]:
     """Get all users who have a non-manual schedule configured."""

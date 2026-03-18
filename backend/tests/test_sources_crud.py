@@ -91,3 +91,39 @@ def test_delete_source(client):
     list_response = client.get("/api/sources")
     source_ids = [s["id"] for s in list_response.json()]
     assert "src_001" not in source_ids
+
+
+def test_create_reddit_source_limit(client):
+    """POST /api/sources returns 400 when Reddit limit is reached."""
+    # User already has 1 reddit source (r/startups) from conftest
+    
+    # Add 2nd
+    response = client.post("/api/sources", json={
+        "source_id": "reddit",
+        "params": {"subreddit": "python"}
+    })
+    assert response.status_code == 201
+    
+    # Add 3rd
+    response = client.post("/api/sources", json={
+        "source_id": "reddit",
+        "params": {"subreddit": "fastapi"}
+    })
+    assert response.status_code == 201
+    
+    # Add 4th (Should succeed but be DISABLED by default for free tier)
+    response = client.post("/api/sources", json={
+        "source_id": "reddit",
+        "params": {"subreddit": "javascript"}
+    })
+    assert response.status_code == 201
+    assert response.json()["enabled"] is False
+    
+    # Try to ENABLE 4th (Should fail with 400)
+    source_id = response.json()["id"]
+    response = client.put(
+        f"/api/sources/{source_id}",
+        json={"enabled": True}
+    )
+    assert response.status_code == 400
+    assert "Limit reached" in response.json()["detail"]

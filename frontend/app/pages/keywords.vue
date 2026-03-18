@@ -35,7 +35,13 @@
               {{ isAdding ? '' : 'Add' }}
             </button>
           </div>
-          <p v-if="addError" class="text-error text-xs mt-1">{{ addError }}</p>
+          <div v-if="addError || isLimitReached" class="mt-1">
+            <p v-if="addError" class="text-error text-xs">{{ addError }}</p>
+            <div v-else-if="isLimitReached" class="text-warning text-xs flex items-center gap-1">
+              <span class="badge badge-warning badge-xs">Limit Reached</span>
+              <span>You've reached your limit of {{ keywordLimit }} keywords.</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -119,6 +125,7 @@
 definePageMeta({ layout: 'default' })
 
 const { apiFetch } = useApi()
+const { keywordLimit, isKeywordUnlimited, fetchProfile } = useUser()
 
 const keywords = ref<any[]>([])
 const isLoading = ref(true)
@@ -133,6 +140,11 @@ const isAllSelected = computed(() =>
 const isPartiallySelected = computed(() =>
   selectedIds.value.size > 0 && selectedIds.value.size < keywords.value.length
 )
+
+const isLimitReached = computed(() => {
+  if (isKeywordUnlimited.value) return false
+  return keywords.value.length >= keywordLimit.value
+})
 
 function toggleSelect(id: string) {
   if (selectedIds.value.has(id)) {
@@ -245,5 +257,8 @@ function formatDate(dateStr: string) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-onMounted(() => fetchKeywords())
+onMounted(() => {
+  fetchKeywords()
+  fetchProfile()
+})
 </script>

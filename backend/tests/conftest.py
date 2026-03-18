@@ -7,6 +7,7 @@ without the actual Firebase SDK installed.
 import sys
 from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
+from contextlib import ExitStack
 
 import pytest
 
@@ -23,10 +24,10 @@ sys.modules["firebase_admin.auth"] = mock_firebase_admin.auth
 sys.modules["firebase_admin.credentials"] = mock_firebase_admin.credentials
 sys.modules["firebase_admin.firestore"] = mock_firebase_admin.firestore
 
-# Now we can safely import the app
-from fastapi.testclient import TestClient
-from app.main import app
-from app.auth import verify_firebase_token
+# Now we can safely import the app (noqa: E402 intentional for mocking)
+from fastapi.testclient import TestClient  # noqa: E402
+from app.main import app  # noqa: E402
+from app.auth import verify_firebase_token  # noqa: E402
 
 
 # --- Mock Firestore Data ---
@@ -145,11 +146,35 @@ def mock_firebase():
     def mock_list_sources(uid):
         return list(user_sources)
 
-    def mock_create_source(uid, source_data):
+    def mock_create_source(uid, source_data, user_tier="free"):
         source_id = source_data.get("source_id", "")
         catalog_entry = mock_get_catalog(source_id)
         if not catalog_entry:
             raise ValueError(f"Unknown source_id: '{source_id}'")
+
+        # Reddit Limit check (Mocked logic)
+        if source_id == "reddit":
+            limit = 3 if user_tier == "free" else 10
+            subreddit = source_data.get("params", {}).get("subreddit", "").lower()
+            
+            # Fetch active count
+            active_reddit = [s for s in user_sources if s.get("source_id") == "reddit" and s.get("enabled", True)]
+            active_count = len(active_reddit)
+
+            # Check duplicate
+            for src in user_sources:
+                if src.get("source_id") == "reddit" and src.get("params", {}).get("subreddit", "").lower() == subreddit:
+                    # If trying to re-enable
+                    if source_data.get("enabled", True) and not src.get("enabled", True):
+                        if active_count >= limit:
+                             return {**src, "existed": True}
+                        src["enabled"] = True
+                        return {**src, "existed": True}
+                    return {**src, "existed": True}
+            
+            # It's new. If at limit, force disabled.
+            if active_count >= limit:
+                source_data["enabled"] = False
 
         is_multi = catalog_entry.get("is_multi_instance", False)
         if not is_multi:
@@ -159,17 +184,36 @@ def mock_firebase():
                     return {**existing, "existed": True}
 
         new_id = f"src_{len(user_sources) + 1:03d}"
-        new_source = {"id": new_id, **source_data, "created_at": datetime.now(timezone.utc)}
+        new_source = {
+            "id": new_id,
+            **source_data,
+            "created_at": datetime.now(timezone.utc),
+            "enabled": source_data.get("enabled", True)
+        }
         if not new_source.get("name"):
             new_source["name"] = catalog_entry.get("name", source_id)
         user_sources.append(new_source)
         return new_source
 
-    def mock_update_source(uid, source_id, update_data):
-        for src in user_sources:
-            if src["id"] == source_id:
-                src.update(update_data)
-                return src
+    def mock_update_source(uid, source_id, update_data, user_tier="free"):
+        # Enforce Reddit Limit on Toggle in mock
+        if update_data.get("enabled") is True:
+            limit = 3 if user_tier == "free" else 10
+            active_reddit = [s for s in user_sources if s.get("source_id") == "reddit" and s.get("enabled", True)]
+            
+            # Find the source being updated
+            for src in user_sources:
+                if src["id"] == source_id:
+                    if src.get("source_id") == "reddit" and not src.get("enabled", True):
+                        if len(active_reddit) >= limit:
+                            raise ValueError(f"Limit reached. Your tier allows a maximum of {limit} active subreddits.")
+                    src.update(update_data)
+                    return src
+        else:
+            for src in user_sources:
+                if src["id"] == source_id:
+                    src.update(update_data)
+                    return src
         raise Exception(f"Source {source_id} not found")
 
     def mock_delete_source(uid, source_id):
@@ -232,31 +276,38 @@ def mock_firebase():
                 return
 
     # Patch the module-level functions
-    with patch.object(fb_module, "list_catalog_sources", side_effect=mock_list_catalog), \
-         patch.object(fb_module, "get_catalog_source", side_effect=mock_get_catalog), \
-         patch.object(fb_module, "list_sources", side_effect=mock_list_sources), \
-         patch.object(fb_module, "create_source", side_effect=mock_create_source), \
-         patch.object(fb_module, "update_source", side_effect=mock_update_source), \
-         patch.object(fb_module, "delete_source", side_effect=mock_delete_source), \
-         patch.object(fb_module, "list_keywords", side_effect=mock_list_keywords), \
-         patch.object(fb_module, "list_enabled_keywords", side_effect=mock_list_enabled_keywords), \
-         patch.object(fb_module, "create_keywords", side_effect=mock_create_keywords), \
-         patch.object(fb_module, "update_keyword", side_effect=mock_update_keyword), \
-         patch.object(fb_module, "bulk_update_keywords", side_effect=mock_bulk_update_keywords), \
-         patch.object(fb_module, "delete_keywords", side_effect=mock_delete_keywords), \
-         patch.object(fb_module, "delete_keyword", side_effect=mock_delete_keyword), \
-         patch.object(fb_module, "get_or_create_user", return_value={"uid": "test_user_123"}), \
-         patch.object(fb_module, "get_user_settings", return_value={
-             "time_window_hours": 3,
-             "max_trends_per_source": 3,
-         }), \
-         patch.object(fb_module, "get_admin_config", return_value={
-             "source_weights": {"reddit": 1.0, "hackernews": 1.0},
-             "default_retention_days": 15,
-         }), \
-         patch.object(fb_module, "store_results", return_value=None), \
-         patch.object(fb_module, "seed_source_catalog", return_value=None), \
-         patch.object(fb_module, "init_firebase", return_value=None):
+    with ExitStack() as stack:
+        stack.enter_context(patch.object(fb_module, "list_catalog_sources", side_effect=mock_list_catalog))
+        stack.enter_context(patch.object(fb_module, "get_catalog_source", side_effect=mock_get_catalog))
+        stack.enter_context(patch.object(fb_module, "list_sources", side_effect=mock_list_sources))
+        stack.enter_context(patch.object(fb_module, "create_source", side_effect=mock_create_source))
+        stack.enter_context(patch.object(fb_module, "update_source", side_effect=mock_update_source))
+        stack.enter_context(patch.object(fb_module, "delete_source", side_effect=mock_delete_source))
+        stack.enter_context(patch.object(fb_module, "list_keywords", side_effect=mock_list_keywords))
+        stack.enter_context(patch.object(fb_module, "list_enabled_keywords", side_effect=mock_list_enabled_keywords))
+        stack.enter_context(patch.object(fb_module, "create_keywords", side_effect=mock_create_keywords))
+        stack.enter_context(patch.object(fb_module, "update_keyword", side_effect=mock_update_keyword))
+        stack.enter_context(patch.object(fb_module, "bulk_update_keywords", side_effect=mock_bulk_update_keywords))
+        stack.enter_context(patch.object(fb_module, "delete_keywords", side_effect=mock_delete_keywords))
+        stack.enter_context(patch.object(fb_module, "delete_keyword", side_effect=mock_delete_keyword))
+        stack.enter_context(patch.object(fb_module, "get_or_create_user", return_value={"uid": "test_user_123", "active_tier": "free"}))
+        stack.enter_context(patch.object(fb_module, "get_user_settings", return_value={
+            "time_window_hours": 3,
+            "max_trends_per_source": 3,
+        }))
+        stack.enter_context(patch.object(fb_module, "get_admin_config", return_value={
+            "source_weights": {"reddit": 1.0, "hackernews": 1.0},
+            "default_retention_days": 15,
+            "tier_limits": {
+                "keywords": {"free": 20, "pro": 100, "unlimited": -1},
+                "reddit_sources": {"free": 3, "beta": 10, "pro": -1},
+            }
+        }))
+        stack.enter_context(patch.object(fb_module, "store_results", return_value=None))
+        stack.enter_context(patch.object(fb_module, "create_pending_extraction", return_value="test-run-001"))
+        stack.enter_context(patch.object(fb_module, "update_extraction_status", return_value=None))
+        stack.enter_context(patch.object(fb_module, "seed_source_catalog", return_value=None))
+        stack.enter_context(patch.object(fb_module, "init_firebase", return_value=None))
 
         yield fb_module
 

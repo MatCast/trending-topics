@@ -18,6 +18,7 @@ router = APIRouter(prefix="/api/results", tags=["results"])
 
 @router.get("", response_model=ResultsListResponse)
 async def list_results(
+    extraction_id: Optional[str] = Query(None, description="Filter by a specific extraction ID"),
     source_type: Optional[str] = Query(None, description="Filter by source type: reddit, hackernews, bluesky"),
     sort_by: str = Query(
         "created_at",
@@ -33,6 +34,7 @@ async def list_results(
 
     results, total = fb.list_results(
         uid=uid,
+        extraction_id=extraction_id,
         source_type=source_type,
         sort_by=sort_by,
         sort_order=sort_order,
@@ -50,11 +52,12 @@ async def list_results(
 
 @router.get("/export/csv")
 async def export_csv(
+    extraction_id: Optional[str] = Query(None, description="Filter exports by extraction ID"),
     token_data: dict = Depends(verify_firebase_token),
 ):
     """Export all results as CSV download."""
     uid = token_data["uid"]
-    results = fb.get_all_results_for_export(uid)
+    results = fb.get_all_results_for_export(uid, extraction_id=extraction_id)
 
     # Build CSV in memory
     output = io.StringIO()
