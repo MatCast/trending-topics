@@ -45,62 +45,109 @@
       <button class="btn btn-primary btn-sm" @click="runExtraction">Run Extraction</button>
     </div>
 
-    <!-- Extractions Table -->
-    <div v-else class="overflow-x-auto pb-8">
-      <table class="table w-full border-separate border-spacing-y-4">
-        <thead>
-          <tr class="text-base-content/40 border-none uppercase text-xs tracking-widest">
-            <th class="bg-transparent pl-8">Run Date</th>
-            <th class="bg-transparent">Target Platforms</th>
-            <th class="bg-transparent text-right">Topics Found</th>
-            <th class="bg-transparent text-right pr-8">Expires</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="extraction in extractions" :key="extraction.id"
-            class="group bg-base-100 hover:bg-base-100/90 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.25)] hover:-translate-y-2 rounded-2xl border border-base-300 hover:border-primary/30 active:scale-[0.97]"
-            :class="extraction.status === 'pending' ? 'cursor-wait opacity-80' : 'cursor-pointer'"
-            @click="extraction.status !== 'pending' && navigateTo(`/extractions/${extraction.id}`)">
-            <td class="whitespace-nowrap font-medium py-8 pl-10 rounded-l-2xl border-l border-t border-b border-transparent group-hover:border-base-300/50">
-              <div class="flex flex-col gap-1">
-                <div class="flex items-center gap-2">
-                  <span class="text-lg font-bold text-base-content tracking-tight group-hover:text-primary transition-colors">{{
-                    formatDate(extraction.created_at).split(',')[0] }}</span>
-                  <span v-if="extraction.status === 'pending'" class="loading loading-spinner loading-xs text-primary"></span>
+    <!-- Extractions Table / Mobile Cards -->
+    <div v-else class="pb-8">
+      
+      <!-- Desktop Table -->
+      <div class="hidden md:block overflow-x-auto">
+        <table class="table w-full border-separate border-spacing-y-4">
+          <thead>
+            <tr class="text-base-content/40 border-none uppercase text-xs tracking-widest">
+              <th class="bg-transparent pl-8">Run Date</th>
+              <th class="bg-transparent">Target Platforms</th>
+              <th class="bg-transparent text-right">Topics Found</th>
+              <th class="bg-transparent text-right pr-8">Expires</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="extraction in extractions" :key="`desktop-${extraction.id}`"
+              class="group bg-base-100 hover:bg-base-100/90 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.25)] hover:-translate-y-2 rounded-2xl border border-base-300 hover:border-primary/30 active:scale-[0.97]"
+              :class="extraction.status === 'pending' ? 'cursor-wait opacity-80' : 'cursor-pointer'"
+              @click="extraction.status !== 'pending' && navigateTo(`/extractions/${extraction.id}`)">
+              <td class="whitespace-nowrap font-medium py-8 pl-10 rounded-l-2xl border-l border-t border-b border-transparent group-hover:border-base-300/50">
+                <div class="flex flex-col gap-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-lg font-bold text-base-content tracking-tight group-hover:text-primary transition-colors">{{
+                      formatDate(extraction.created_at).split(',')[0] }}</span>
+                    <span v-if="extraction.status === 'pending'" class="loading loading-spinner loading-xs text-primary"></span>
+                  </div>
+                  <span class="text-xs font-semibold text-base-content/40 tracking-wider uppercase">{{ formatDate(extraction.created_at).split(',')[1] }}</span>
                 </div>
-                <span class="text-xs font-semibold text-base-content/40 tracking-wider uppercase">{{ formatDate(extraction.created_at).split(',')[1] }}</span>
-              </div>
-            </td>
-            <td class="py-8 border-t border-b border-transparent group-hover:border-base-300/50">
-              <div class="flex items-center gap-4">
-                <div v-for="type in getUniqueSources(extraction.sources)" :key="type" class="tooltip tooltip-bottom font-bold" :data-tip="type.toUpperCase()">
-                  <svg v-if="isSvgIcon(type)" class="w-7 h-7 transition-all duration-500 group-hover:scale-125" :class="getIconConfig(type).svgClass"
-                    viewBox="0 0 24 24" fill="currentColor">
-                    <path :d="getIconConfig(type).svgPath" />
-                  </svg>
-                  <span v-else :class="getIconConfig(type).textClass" class="text-2xl transition-all duration-500 group-hover:scale-125">
-                    {{ getIconConfig(type).text }}
-                  </span>
+              </td>
+              <td class="py-8 border-t border-b border-transparent group-hover:border-base-300/50">
+                <div class="flex items-center gap-4">
+                  <div v-for="type in getUniqueSources(extraction.sources)" :key="type" class="tooltip tooltip-bottom font-bold" :data-tip="type.toUpperCase()">
+                    <svg v-if="isSvgIcon(type)" class="w-7 h-7 transition-all duration-500 group-hover:scale-125" :class="getIconConfig(type).svgClass"
+                      viewBox="0 0 24 24" fill="currentColor">
+                      <path :d="getIconConfig(type).svgPath" />
+                    </svg>
+                    <span v-else :class="getIconConfig(type).textClass" class="text-2xl transition-all duration-500 group-hover:scale-125">
+                      {{ getIconConfig(type).text }}
+                    </span>
+                  </div>
+                  <span v-if="!getUniqueSources(extraction.sources).length" class="text-base-content/20 italic text-sm">No sources tracked</span>
                 </div>
-                <span v-if="!getUniqueSources(extraction.sources).length" class="text-base-content/20 italic text-sm">No sources tracked</span>
+              </td>
+              <td class="text-right py-8 border-t border-b border-transparent group-hover:border-base-300/50">
+                <div class="inline-flex flex-col items-end gap-1">
+                  <span class="text-2xl font-black text-primary/80 group-hover:text-primary transition-colors font-mono">{{ extraction.results_count }}</span>
+                  <span class="text-[10px] uppercase tracking-tighter text-base-content/40 font-bold">Total Trends</span>
+                </div>
+              </td>
+              <td class="text-right py-8 pr-10 rounded-r-2xl border-r border-t border-b border-transparent group-hover:border-base-300/50">
+                <div class="flex flex-col items-end gap-0.5">
+                  <span class="text-sm font-semibold text-base-content/60">{{ formatDate(extraction.expires_at).split(',')[0] }}</span>
+                  <span class="text-[10px] uppercase font-bold text-error/40 group-hover:text-error/60 transition-colors">{{
+                    formatDate(extraction.expires_at).split(',')[1] }}</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile Cards -->
+      <div class="md:hidden flex flex-col gap-4 mt-2">
+        <div v-for="extraction in extractions" :key="`mobile-${extraction.id}`"
+          class="bg-base-100 rounded-xl shadow-md border border-base-300 p-4 relative"
+          :class="extraction.status === 'pending' ? 'opacity-80' : 'active:scale-[0.98] cursor-pointer'"
+          @click="extraction.status !== 'pending' && navigateTo(`/extractions/${extraction.id}`)">
+          
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-base font-bold text-base-content">{{ formatDate(extraction.created_at).split(',')[0] }}</span>
+                <span v-if="extraction.status === 'pending'" class="loading loading-spinner loading-xs text-primary"></span>
               </div>
-            </td>
-            <td class="text-right py-8 border-t border-b border-transparent group-hover:border-base-300/50">
-              <div class="inline-flex flex-col items-end gap-1">
-                <span class="text-2xl font-black text-primary/80 group-hover:text-primary transition-colors font-mono">{{ extraction.results_count }}</span>
-                <span class="text-[10px] uppercase tracking-tighter text-base-content/40 font-bold">Total Trends</span>
+              <p class="text-[10px] font-semibold text-base-content/50 uppercase tracking-widest">{{ formatDate(extraction.created_at).split(',')[1] }}</p>
+            </div>
+            
+            <div class="text-right">
+              <span class="text-[11px] font-semibold text-base-content/60">{{ formatDate(extraction.expires_at).split(',')[0] }}</span>
+              <p class="text-[9px] uppercase font-bold text-error/60">{{ formatDate(extraction.expires_at).split(',')[1] }}</p>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-end mt-4 pt-3 border-t border-base-200">
+            <div class="flex items-center gap-2">
+              <div v-for="type in getUniqueSources(extraction.sources)" :key="type">
+                <svg v-if="isSvgIcon(type)" class="w-5 h-5 text-base-content/70" :class="getIconConfig(type).svgClass" viewBox="0 0 24 24" fill="currentColor">
+                  <path :d="getIconConfig(type).svgPath" />
+                </svg>
+                <span v-else :class="getIconConfig(type).textClass" class="text-lg">
+                  {{ getIconConfig(type).text }}
+                </span>
               </div>
-            </td>
-            <td class="text-right py-8 pr-10 rounded-r-2xl border-r border-t border-b border-transparent group-hover:border-base-300/50">
-              <div class="flex flex-col items-end gap-0.5">
-                <span class="text-sm font-semibold text-base-content/60">{{ formatDate(extraction.expires_at).split(',')[0] }}</span>
-                <span class="text-[10px] uppercase font-bold text-error/40 group-hover:text-error/60 transition-colors">{{
-                  formatDate(extraction.expires_at).split(',')[1] }}</span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <span v-if="!getUniqueSources(extraction.sources).length" class="text-base-content/20 italic text-xs">No sources</span>
+            </div>
+            
+            <div class="flex items-baseline gap-1.5">
+              <span class="text-[10px] uppercase font-bold text-base-content/50">Topics</span>
+              <span class="text-xl font-black text-primary font-mono leading-none">{{ extraction.results_count }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Pagination -->

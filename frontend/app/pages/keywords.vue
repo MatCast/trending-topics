@@ -46,75 +46,132 @@
       </div>
 
       <!-- Bulk Actions Bar -->
-      <div v-if="selectedIds.size > 0" class="flex items-center gap-3 p-3 bg-base-300 rounded-xl sticky top-16 z-10">
-        <span class="text-sm font-medium">{{ selectedIds.size }} selected</span>
-        <button class="btn btn-success btn-xs" @click="bulkAction('enable')">Enable</button>
-        <button class="btn btn-warning btn-xs" @click="bulkAction('disable')">Disable</button>
-        <button class="btn btn-error btn-xs" @click="bulkAction('delete')">Delete</button>
-        <button class="btn btn-ghost btn-xs ml-auto" @click="selectedIds.clear()">Clear selection</button>
+      <div v-if="selectedIds.size > 0" class="flex flex-wrap items-center gap-2 p-3 bg-base-300 rounded-xl sticky top-16 z-10 shadow-sm">
+        <span class="text-sm font-medium w-full md:w-auto text-center md:text-left">{{ selectedIds.size }} selected</span>
+        <div class="flex flex-1 justify-center md:justify-start gap-2">
+          <button class="btn btn-success btn-xs" @click="bulkAction('enable')">Enable</button>
+          <button class="btn btn-warning btn-xs" @click="bulkAction('disable')">Disable</button>
+          <button class="btn btn-error btn-xs" @click="bulkAction('delete')">Delete</button>
+        </div>
+        <button class="btn btn-ghost btn-xs w-full md:w-auto md:ml-auto" @click="selectedIds.clear()">Clear selection</button>
       </div>
 
-      <!-- Keywords Table -->
+      <!-- Keywords List / Table -->
       <div class="card bg-base-100 shadow-xl border border-base-300">
-        <div class="card-body p-0">
-          <table class="table w-full" v-if="keywords.length">
-            <thead>
-              <tr>
-                <th class="w-10">
+        <div class="card-body p-0" v-if="keywords.length">
+          
+          <!-- Desktop Table -->
+          <div class="hidden md:block overflow-x-auto">
+            <table class="table w-full">
+              <thead>
+                <tr>
+                  <th class="w-10">
+                    <input
+                      type="checkbox"
+                      class="checkbox checkbox-sm"
+                      :checked="isAllSelected"
+                      :indeterminate="isPartiallySelected"
+                      @change="toggleSelectAll"
+                    />
+                  </th>
+                  <th>Keyword</th>
+                  <th class="w-24 text-center">Status</th>
+                  <th class="w-32">Added</th>
+                  <th class="w-16"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="kw in keywords"
+                  :key="`desktop-${kw.id}`"
+                  class="hover"
+                  :class="{ 'opacity-50': !kw.enabled }"
+                >
+                  <td>
+                    <input
+                      type="checkbox"
+                      class="checkbox checkbox-sm"
+                      :checked="selectedIds.has(kw.id)"
+                      @change="toggleSelect(kw.id)"
+                    />
+                  </td>
+                  <td class="font-medium">{{ kw.text }}</td>
+                  <td class="text-center">
+                    <input
+                      type="checkbox"
+                      class="toggle toggle-sm toggle-success"
+                      v-model="kw.enabled"
+                      @change="toggleEnabled(kw)"
+                    />
+                  </td>
+                  <td class="text-xs text-base-content/60">{{ formatDate(kw.created_at) }}</td>
+                  <td>
+                    <button class="btn btn-ghost btn-xs btn-square text-error" @click="deleteSingle(kw)">✕</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Mobile Cards -->
+          <div class="md:hidden flex flex-col gap-0 divide-y divide-base-300">
+            <!-- Mobile Select All Bar -->
+            <div class="flex items-center justify-between p-4 bg-base-200/50">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  class="checkbox checkbox-sm"
+                  :checked="isAllSelected"
+                  :indeterminate="isPartiallySelected"
+                  @change="toggleSelectAll"
+                />
+                <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Select All</span>
+              </label>
+            </div>
+            
+            <div
+              v-for="kw in keywords"
+              :key="`mobile-${kw.id}`"
+              class="flex flex-col p-4 gap-3 bg-base-100"
+              :class="{ 'opacity-60': !kw.enabled, 'bg-base-200/40': selectedIds.has(kw.id) }"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3">
                   <input
                     type="checkbox"
-                    class="checkbox checkbox-sm"
-                    :checked="isAllSelected"
-                    :indeterminate="isPartiallySelected"
-                    @change="toggleSelectAll"
-                  />
-                </th>
-                <th>Keyword</th>
-                <th class="w-24 text-center">Status</th>
-                <th class="w-32">Added</th>
-                <th class="w-16"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="kw in keywords"
-                :key="kw.id"
-                class="hover"
-                :class="{ 'opacity-50': !kw.enabled }"
-              >
-                <td>
-                  <input
-                    type="checkbox"
-                    class="checkbox checkbox-sm"
+                    class="checkbox checkbox-sm mt-1 border-base-content/30"
                     :checked="selectedIds.has(kw.id)"
                     @change="toggleSelect(kw.id)"
                   />
-                </td>
-                <td class="font-medium">{{ kw.text }}</td>
-                <td class="text-center">
-                  <input
-                    type="checkbox"
-                    class="toggle toggle-sm toggle-success"
-                    v-model="kw.enabled"
-                    @change="toggleEnabled(kw)"
-                  />
-                </td>
-                <td class="text-xs text-base-content/60">{{ formatDate(kw.created_at) }}</td>
-                <td>
-                  <button class="btn btn-ghost btn-xs btn-square text-error" @click="deleteSingle(kw)">✕</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          <!-- Empty state -->
-          <div v-else class="text-center py-12">
-            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-base-300 mb-3">
-              <span class="text-2xl">🏷️</span>
+                  <div>
+                    <span class="font-bold text-base-content block">{{ kw.text }}</span>
+                    <span class="text-[10px] text-base-content/50 uppercase tracking-wider font-semibold">{{ formatDate(kw.created_at) }}</span>
+                  </div>
+                </div>
+                <button class="btn btn-ghost btn-xs btn-circle text-error" @click="deleteSingle(kw)">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div class="flex items-center justify-between pl-8">
+                <span class="text-xs font-medium text-base-content/70">Status</span>
+                <input
+                  type="checkbox"
+                  class="toggle toggle-sm toggle-success"
+                  v-model="kw.enabled"
+                  @change="toggleEnabled(kw)"
+                />
+              </div>
             </div>
-            <h3 class="text-lg font-semibold mb-1">No keywords yet</h3>
-            <p class="text-base-content/60 text-sm">Add keywords above to start filtering trends.</p>
           </div>
+        </div>
+
+        <!-- Empty state -->
+        <div v-else class="text-center py-12">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-base-300 mb-3">
+            <span class="text-2xl">🏷️</span>
+          </div>
+          <h3 class="text-lg font-semibold mb-1">No keywords yet</h3>
+          <p class="text-base-content/60 text-sm">Add keywords above to start filtering trends.</p>
         </div>
       </div>
     </div>
