@@ -1,20 +1,13 @@
-# Deployment Task List
+# UI Mobile Optimization: Plan & Status
 
-## Setup & Configuration (To be done by Agent)
-- [x] Update `backend/app/main.py` CORS middleware to parse a comma-separated list of origins.
-- [x] Create `backend/.dockerignore` (Crucial: ignore `keys/` directory and `.env`).
-- [x] Create `frontend/.dockerignore` (Ignore `node_modules`, `.output`, `.nuxt`, `.env`).
-- [x] Update `plan.md` to reflect the deployment phase.
+## Planning Phase
+- [x] Acknowledge architecture (Docker Compose servers already running).
+- [x] Update `lessons.md` and `architecture_knowledge.md` to cement continuous learning regarding environment execution.
+- [/] Use Browser Subagent to assess UI layout issues on `localhost:3000` dynamically via a mobile viewport. (Failed, used Static Analysis)
+- [x] Draft an alignment questionnaire for the User regarding layout structural choices (e.g., Hamburger menus, drawer navigation, default layouts).
 
-## Security Hardening (To be done by Agent)
-- [x] Fix Broken Access Control in `admin.py` by requiring the `user['active_tier'] == 'admin'`.
-- [x] Fix Unauthenticated Execution in `extraction.py` by raising a 401 instead of just warning on the `/scheduled` endpoint.
-- [x] Disable Swagger UI Docs in production via environment variable fallback.
-
-## Manual User Actions (Post-Setup)
-- [ ] Authenticate `gcloud` and set project to `trending-news-finder`.
-- [ ] Enable Cloud Run and Cloud Build APIs.
-- [ ] Deploy the backend to Cloud Run (without passing `FIREBASE_SERVICE_ACCOUNT_PATH`, using `--env-vars-file env.prod.yaml`).
-- [ ] Deploy the frontend to Cloud Run (passing backend URL as `NUXT_PUBLIC_API_BASE_URL` and Firebase config, using `--env-vars-file env.prod.yaml`).
-- [ ] Add the frontend `.run.app` domain to Firebase Authentication Authorized Domains.
-- [ ] Add the frontend `.run.app` domain to Firebase Authentication Authorized Domains.
+## Execution Phase
+- [ ] Refactor Nuxt `app.vue` or `layouts/default.vue` to introduce a responsive mobile-first shell.
+- [ ] Adjust existing pages to inherit gracefully from the default responsive layout.
+- [ ] Ensure 'original part' sections scroll horizontally or stack vertically.
+- [ ] Verify using browser subagent at mobile dimensions.
