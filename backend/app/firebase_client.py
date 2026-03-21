@@ -895,3 +895,31 @@ def get_users_with_active_schedules() -> List[Dict[str, Any]]:
         if schedule.get("type", "manual") != "manual":
             active.append({"uid": user_doc.id, **data})
     return active
+
+
+def update_api_usage(api_name: str, remaining: int, reset_time: Optional[str] = None):
+    """Store the remaining API credits in the admin/metrics document."""
+    db = get_db()
+    ref = db.collection("admin").document("metrics")
+    now = datetime.now(timezone.utc)
+
+    update_data = {
+        f"api_usage.{api_name}.remaining": remaining,
+        f"api_usage.{api_name}.last_updated": now
+    }
+
+    if reset_time and reset_time.isdigit():
+        # RapidAPI returns reset_time in seconds until the quota resets
+        reset_seconds = int(reset_time)
+        reset_date = now + timedelta(seconds=reset_seconds)
+
+        # Store both the exact date and a human readable days/hours string
+        days = reset_seconds // 86400
+        hours = (reset_seconds % 86400) // 3600
+
+        update_data[f"api_usage.{api_name}.reset_date"] = reset_date
+        update_data[f"api_usage.{api_name}.reset_in_human"] = f"{days} days and {hours} hours"
+
+    ref.set(update_data, merge=True)
+
+
