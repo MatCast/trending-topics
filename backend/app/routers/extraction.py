@@ -49,7 +49,22 @@ async def extract(
             use_keywords = body.use_keywords
 
     # Generate sources_used for the pending doc
-    sources_used = list(set(s.get("source_id", s.get("type", "unknown")) for s in sources if s.get("enabled", True)))
+    # Generate sources_used for the pending doc
+    # Robust filtering: only include enabled sources, and for multi-instance (like reddit), require params
+    enabled_sources = []
+    for s in sources:
+        if not s.get("enabled", True):
+            continue
+        
+        sid = s.get("source_id", s.get("type", "unknown"))
+        # Safety: if it's reddit, it MUST have a subreddit param
+        if sid == "reddit" and not s.get("params", {}).get("subreddit"):
+            logger.warning(f"Skipping malformed reddit source for user {uid}: {s.get('id')}")
+            continue
+            
+        enabled_sources.append(s)
+
+    sources_used = list(set(s.get("source_id", s.get("type", "unknown")) for s in enabled_sources))
     # Create the pending extraction document
     extraction_id = fb.create_pending_extraction(uid, sources_used)
 
