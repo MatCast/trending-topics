@@ -385,8 +385,10 @@ def update_source(
                             f"Cannot enable Reddit source. Limit ({limit}) reached for user {uid}"
                         )
                         raise ValueError(
-                            (f"Limit reached. Your tier allows a maximum of {limit}"
-                             " active subreddits. Disable one to enable another.")
+                            (
+                                f"Limit reached. Your tier allows a maximum of {limit}"
+                                " active subreddits. Disable one to enable another."
+                            )
                         )
 
     source_ref.update(update_data)
@@ -465,7 +467,6 @@ def create_keywords(
     # Get existing keywords for dedup
     existing_docs = list(keywords_ref.stream())
     existing_texts = {doc.to_dict().get("text", "").lower() for doc in existing_docs}
-    current_count = len(existing_docs)
 
     # Check limit
     limit = get_keyword_limit(user_tier)
@@ -473,6 +474,10 @@ def create_keywords(
     # Process and deduplicate input
     created = []
     seen = set()
+    active_count_for_limits = sum(
+        1 for doc in existing_docs if doc.to_dict().get("enabled", True)
+    )
+
     for kw_raw in keywords:
         kw = kw_raw.strip()
         if not kw:
@@ -481,16 +486,19 @@ def create_keywords(
         if kw_lower in existing_texts or kw_lower in seen:
             continue
 
+        is_enabled = True
         # Check limit (-1 = unlimited)
-        if limit != -1 and (current_count + len(created)) >= limit:
-            logger.warning(f"Keyword limit ({limit}) reached for user {uid}")
-            break
+        if limit != -1 and active_count_for_limits >= limit:
+            is_enabled = False
+
+        if is_enabled:
+            active_count_for_limits += 1
 
         now = datetime.now(timezone.utc)
         doc_ref = keywords_ref.document()
         keyword_data = {
             "text": kw,
-            "enabled": True,
+            "enabled": is_enabled,
             "created_at": now,
         }
         doc_ref.set(keyword_data)
@@ -502,10 +510,33 @@ def create_keywords(
 
 
 def update_keyword(
-    uid: str, keyword_id: str, update_data: Dict[str, Any]
+    uid: str, keyword_id: str, update_data: Dict[str, Any], user_tier: str = "free"
 ) -> Dict[str, Any]:
     """Update a single keyword (e.g., toggle enabled)."""
     db = get_db()
+
+    if update_data.get("enabled") is True:
+        limit = get_keyword_limit(user_tier)
+        if limit != -1:
+            kw_doc = (
+                db.collection("users")
+                .document(uid)
+                .collection("keywords")
+                .document(keyword_id)
+                .get()
+            )
+            if kw_doc.exists and not kw_doc.to_dict().get("enabled", True):
+                # Count current active
+                keywords = list(
+                    db.collection("users").document(uid).collection("keywords").stream()
+                )
+                active_count = sum(
+                    1 for doc in keywords if doc.to_dict().get("enabled", True)
+                )
+                if active_count >= limit:
+                    raise ValueError(
+                        f"Limit reached. Your tier allows a maximum of {limit} active keywords."
+                    )
     kw_ref = (
         db.collection("users").document(uid).collection("keywords").document(keyword_id)
     )
@@ -515,10 +546,37 @@ def update_keyword(
 
 
 def bulk_update_keywords(
-    uid: str, keyword_ids: List[str], update_data: Dict[str, Any]
+    uid: str,
+    keyword_ids: List[str],
+    update_data: Dict[str, Any],
+    user_tier: str = "free",
 ) -> int:
     """Bulk update keywords (e.g., enable/disable multiple)."""
     db = get_db()
+
+    if update_data.get("enabled") is True:
+        limit = get_keyword_limit(user_tier)
+        if limit != -1:
+            keywords = list(
+                db.collection("users").document(uid).collection("keywords").stream()
+            )
+            active_count = sum(
+                1 for doc in keywords if doc.to_dict().get("enabled", True)
+            )
+
+            # Count how many of the requested keyword_ids are currently disabled
+            requested_set = set(keyword_ids)
+            toBeEnabledCount = sum(
+                1
+                for doc in keywords
+                if doc.id in requested_set and not doc.to_dict().get("enabled", True)
+            )
+
+            if active_count + toBeEnabledCount > limit:
+                # Instead of completely failing, limit to what's available or just fail
+                raise ValueError(
+                    f"Limit reached. Bulk enabling would exceed your maximum of {limit} active keywords."
+                )
     batch = db.batch()
     count = 0
     keywords_ref = db.collection("users").document(uid).collection("keywords")
@@ -905,7 +963,7 @@ def update_api_usage(api_name: str, remaining: int, reset_time: Optional[str] = 
 
     update_data = {
         f"api_usage.{api_name}.remaining": remaining,
-        f"api_usage.{api_name}.last_updated": now
+        f"api_usage.{api_name}.last_updated": now,
     }
 
     if reset_time and reset_time.isdigit():
@@ -918,8 +976,8 @@ def update_api_usage(api_name: str, remaining: int, reset_time: Optional[str] = 
         hours = (reset_seconds % 86400) // 3600
 
         update_data[f"api_usage.{api_name}.reset_date"] = reset_date
-        update_data[f"api_usage.{api_name}.reset_in_human"] = f"{days} days and {hours} hours"
+        update_data[f"api_usage.{api_name}.reset_in_human"] = (
+            f"{days} days and {hours} hours"
+        )
 
     ref.set(update_data, merge=True)
-
-

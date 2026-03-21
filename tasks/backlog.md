@@ -1,9 +1,6 @@
 # Backlog — Future Enhancements
 
 
-## Improve Onboarding Limits Showing
-Currently when you do the onboarding, you are not aware of how many keywords you can add and so on. Also you can add as many as you want even if you are on a non-paying tier so we should change that.
-
 ## Extractions Debugging
 Add some debugging instructions on the extractions page so that if users end up having no results, they would have some way to know what to do.
 
@@ -44,3 +41,5 @@ We moved to a Rapid API way of fetching data from Reddit to bypass Cloud Run blo
 ## DONE: Improve Extraction Readiness Check
 Fixed the issue where extractions would "hang" in pending. Implemented a real-time Firestore `onSnapshot` listener in the frontend that detects completion and automatically redirects the user to the results page. Requires Firestore Security Rules to be configured for read access.
 
+## DONE: Improve Onboarding Limits Showing
+Abstracted limit visibility into a reusable `UsageLimitBadge.vue` component to correctly enforce and display limits (for both keywords and multi-instance sources like Reddit) during the onboarding phase, achieving parity with the main application limits logic.

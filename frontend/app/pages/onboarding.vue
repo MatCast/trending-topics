@@ -30,7 +30,10 @@
           </p>
 
           <div class="form-control">
-            <label class="label"><span class="label-text">Add keywords</span></label>
+            <div class="label flex flex-wrap items-center justify-between pb-1">
+              <span class="label-text">Add keywords</span>
+              <UsageLimitBadge :current="activeKeywordCountDraft" :limit="keywordLimit" type="active" />
+            </div>
             <div class="join w-full">
               <input
                 v-model="newKeyword"
@@ -40,6 +43,12 @@
                 @keyup.enter="addKeyword"
               />
               <button class="btn btn-primary join-item" @click="addKeyword">Add</button>
+            </div>
+            <div v-if="isKeywordLimitReached" class="text-xs text-warning mt-2 flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>At active limit. Extra keywords will be added as disabled.</span>
             </div>
           </div>
 
@@ -78,7 +87,15 @@
 
             <!-- Dynamic config form -->
             <div class="form-control" v-for="(fieldSchema, fieldKey) in catalogSource.config_schema" :key="fieldKey">
-              <label class="label"><span class="label-text">Add {{ fieldSchema.label }}</span></label>
+              <div class="label flex flex-wrap items-center justify-between pb-1">
+                <span class="label-text">Add {{ fieldSchema.label }}</span>
+                <UsageLimitBadge
+                  v-if="catalogSource.id === 'reddit'"
+                  :current="redditSourceCount"
+                  :limit="redditLimit"
+                  type="active"
+                />
+              </div>
               <div class="join w-full">
                 <span v-if="catalogSource.id === 'reddit'" class="join-item btn btn-disabled">r/</span>
                 <input
@@ -95,6 +112,13 @@
               <label v-if="multiDraftError[catalogSource.id]" class="label">
                 <span class="label-text-alt text-error font-medium">{{ multiDraftError[catalogSource.id] }}</span>
               </label>
+
+              <div v-if="catalogSource.id === 'reddit' && isRedditLimitReached" class="text-xs text-warning mt-2 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>At active limit. New subreddits will be added as disabled.</span>
+              </div>
             </div>
 
             <!-- Pending instances list -->
@@ -102,10 +126,12 @@
               <div
                 v-for="(src, idx) in pendingMultiInstances[catalogSource.id] || []"
                 :key="idx"
-                class="flex items-center justify-between p-3 bg-base-200 rounded-lg"
+                class="flex items-center justify-between p-3 rounded-lg"
+                :class="src.enabled ? 'bg-base-200' : 'bg-base-200/50 opacity-60'"
               >
                 <div class="flex items-center gap-3">
-                  <span class="font-medium">{{ src.name }}</span>
+                  <input type="checkbox" class="toggle toggle-sm toggle-success" :checked="src.enabled" @change="toggleDraftSource($event, src, catalogSource.id)" />
+                  <span class="font-medium" :class="{'opacity-60': !src.enabled}">{{ src.name }}</span>
                   <label class="label cursor-pointer gap-2">
                     <span class="label-text text-xs opacity-60">Keywords</span>
                     <input type="checkbox" class="toggle toggle-sm toggle-primary" v-model="src.use_global_keywords" />
@@ -203,6 +229,7 @@ definePageMeta({ layout: 'default' })
 
 const { apiFetch } = useApi()
 const { getIconConfig, isSvgIcon } = useSourceIcons()
+const { redditLimit, isRedditUnlimited, keywordLimit, isKeywordUnlimited, fetchProfile } = useUser()
 
 const currentStep = ref(1)
 const isSaving = ref(false)
@@ -216,6 +243,16 @@ const singletonSources = computed(() => catalog.value.filter(s => !s.is_multi_in
 // Step 1: Keywords
 const globalKeywords = ref<string[]>([])
 const newKeyword = ref('')
+
+const activeKeywordCountDraft = computed(() => {
+  if (isKeywordUnlimited.value) return globalKeywords.value.length
+  return Math.min(globalKeywords.value.length, keywordLimit.value)
+})
+
+const isKeywordLimitReached = computed(() => {
+  if (isKeywordUnlimited.value) return false
+  return globalKeywords.value.length >= keywordLimit.value
+})
 
 function addKeyword() {
   // Split by commas, trim each, filter empty and duplicates
@@ -233,12 +270,20 @@ const multiInstanceDrafts = ref<Record<string, string>>({})
 const multiDraftError = ref<Record<string, string>>({})
 const pendingMultiInstances = ref<Record<string, any[]>>({})
 
+const redditSourceCount = computed(() =>
+  (pendingMultiInstances.value['reddit'] || []).filter(s => s.enabled).length
+)
+const isRedditLimitReached = computed(() => {
+  if (isRedditUnlimited.value) return false
+  return redditSourceCount.value >= redditLimit.value
+})
+
 function addDraftInstance(catalogSource: any) {
   const inputVal = (multiInstanceDrafts.value[catalogSource.id] || '').trim()
   multiDraftError.value[catalogSource.id] = ''
   if (!inputVal) return
 
-  const fieldKey = Object.keys(catalogSource.config_schema)[0]
+  const fieldKey = Object.keys(catalogSource.config_schema || {})[0] as string
 
   // Reddit-specific validation
   if (catalogSource.id === 'reddit') {
@@ -259,14 +304,32 @@ function addDraftInstance(catalogSource: any) {
   }
 
   const displayName = catalogSource.id === 'reddit' ? `r/${inputVal}` : inputVal
-  pendingMultiInstances.value[catalogSource.id].push({
+
+  let enabledByDefault = true
+  if (catalogSource.id === 'reddit' && isRedditLimitReached.value) {
+    enabledByDefault = false
+  }
+
+  pendingMultiInstances.value[catalogSource.id]!.push({
     source_id: catalogSource.id,
     name: displayName,
-    enabled: true,
+    enabled: enabledByDefault,
     use_global_keywords: false,
     params: { [fieldKey]: inputVal },
   })
   multiInstanceDrafts.value[catalogSource.id] = ''
+}
+
+function toggleDraftSource(event: Event, src: any, sourceId: string) {
+  const target = event.target as HTMLInputElement
+  if (target.checked && sourceId === 'reddit') {
+    if (!isRedditUnlimited.value && redditSourceCount.value >= redditLimit.value) {
+      target.checked = false
+      multiDraftError.value[sourceId] = 'Limit reached. Disable another to enable this one.'
+      return
+    }
+  }
+  src.enabled = target.checked
 }
 
 // Step 3: Singleton toggles
@@ -356,6 +419,7 @@ async function saveAndContinue() {
 }
 
 onMounted(async () => {
+  await fetchProfile()
   await checkOnboardingStatus()
   await fetchCatalog()
 })

@@ -1,23 +1,19 @@
-# Improve Extraction Readiness Check Plan
+# Improve Onboarding Tier Limits Plan
 
 ## Goal
-Improve the extraction readiness check. Currently, extractions stay in "pending" until the page is refreshed. We need to implement real-time updates using Firestore listeners so the UI updates automatically when an extraction is completed.
-
-## Proposed Changes
-
-### Frontend
-- [ ] Investigate `frontend/app/pages/index.vue` (or wherever extractions are listed) to see current fetching logic.
-- [ ] Add Firestore listener to the active extraction.
-- [ ] Trigger a data refresh for that specific extraction once the status changes to `completed`.
-
-### Backend
-- [ ] Review `backend/app/routers/extraction.py` to ensure the status is properly updated in Firestore.
-- [ ] Ensure `results_count` and `sources` are updated in the extraction document.
+Improve the onboarding page (`frontend/app/pages/onboarding.vue`) to respect user tier limits for keywords and sources (specifically Reddit), making it consistent with how limits are shown and enforced in the main application (`keywords.vue` and `sources.vue`).
 
 ## Tasks
-- [/] Initialize Plan and Research Current Implementation
-- [ ] Research Frontend Extraction Listing
-- [ ] Research Backend Extraction Status Updates
-- [ ] Implement Firestore Listener in Frontend
-- [ ] Verify Real-time Updates
+- [x] Initialize Plan and Research Current Implementation
+- [x] Create Reusable Component `UsageLimitBadge.vue`
+  - [x] Implement generic limit badge with warning support.
+- [x] Implement Keyword Limits in Onboarding & Main App
+  - [x] Fetch user profile via `useUser()` in onboarding.
+  - [x] Use `UsageLimitBadge` in `onboarding.vue` and `keywords.vue`.
+  - [x] Prevent adding keywords beyond the limit in onboarding.
+- [x] Implement Source Limits in Onboarding & Main App
+  - [x] Add computed properties for Reddit limits in onboarding.
+  - [x] Use `UsageLimitBadge` in `onboarding.vue` and `sources.vue`.
+  - [x] Update `addDraftInstance` in onboarding to add new subreddits as disabled if limit is reached.
+- [ ] Verify Changes
 - [ ] Finalize Documentation (Backlog, Lessons, Architecture)

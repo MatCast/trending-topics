@@ -16,8 +16,13 @@
       <!-- Add Keywords -->
       <div class="card bg-base-100 shadow-xl border border-base-300">
         <div class="card-body">
-          <h2 class="card-title text-base">Add Keywords</h2>
-          <p class="text-base-content/60 text-xs mb-2">Separate multiple keywords with commas.</p>
+          <div class="flex items-start justify-between mb-2">
+            <div>
+              <h2 class="card-title text-base mb-1">Add Keywords</h2>
+              <p class="text-base-content/60 text-xs m-0">Separate multiple keywords with commas.</p>
+            </div>
+            <UsageLimitBadge :current="activeKeywordCount" :limit="keywordLimit" type="active" />
+          </div>
           <div class="join w-full">
             <input
               v-model="newKeywordInput"
@@ -38,8 +43,10 @@
           <div v-if="addError || isLimitReached" class="mt-1">
             <p v-if="addError" class="text-error text-xs">{{ addError }}</p>
             <div v-else-if="isLimitReached" class="text-warning text-xs flex items-center gap-1">
-              <span class="badge badge-warning badge-xs">Limit Reached</span>
-              <span>You've reached your limit of {{ keywordLimit }} keywords.</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>At active limit. New keywords will be disabled.</span>
             </div>
           </div>
         </div>
@@ -100,8 +107,8 @@
                     <input
                       type="checkbox"
                       class="toggle toggle-sm toggle-success"
-                      v-model="kw.enabled"
-                      @change="toggleEnabled(kw)"
+                      :checked="kw.enabled"
+                      @change="toggleEnabled($event, kw)"
                     />
                   </td>
                   <td class="text-xs text-base-content/60">{{ formatDate(kw.created_at) }}</td>
@@ -157,8 +164,8 @@
                 <input
                   type="checkbox"
                   class="toggle toggle-sm toggle-success"
-                  v-model="kw.enabled"
-                  @change="toggleEnabled(kw)"
+                  :checked="kw.enabled"
+                  @change="toggleEnabled($event, kw)"
                 />
               </div>
             </div>
@@ -198,9 +205,11 @@ const isPartiallySelected = computed(() =>
   selectedIds.value.size > 0 && selectedIds.value.size < keywords.value.length
 )
 
+const activeKeywordCount = computed(() => keywords.value.filter(k => k.enabled).length)
+
 const isLimitReached = computed(() => {
   if (isKeywordUnlimited.value) return false
-  return keywords.value.length >= keywordLimit.value
+  return activeKeywordCount.value >= keywordLimit.value
 })
 
 function toggleSelect(id: string) {
@@ -256,15 +265,28 @@ async function addKeywords() {
   }
 }
 
-async function toggleEnabled(kw: any) {
+async function toggleEnabled(event: Event, kw: any) {
+  const target = event.target as HTMLInputElement
+  const newValue = target.checked;
+
+  if (newValue && isLimitReached.value) {
+    target.checked = false;
+    addError.value = 'Active limit reached. Disable another keyword first.';
+    return;
+  }
+
+  kw.enabled = newValue;
   try {
     await apiFetch(`/api/keywords/${kw.id}`, {
       method: 'PUT',
       body: { enabled: kw.enabled },
     })
-  } catch (error) {
+    addError.value = ''
+  } catch (error: any) {
     console.error('Failed to toggle keyword:', error)
     kw.enabled = !kw.enabled // revert
+    target.checked = kw.enabled
+    addError.value = error.data?.detail || 'Failed to toggle keyword.'
   }
 }
 

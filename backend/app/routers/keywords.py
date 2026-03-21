@@ -28,7 +28,9 @@ async def create_keywords(
     Trims whitespace, deduplicates (case-insensitive), enforces tier limits.
     """
     uid = token_data["uid"]
-    user = fb.get_or_create_user(uid, token_data.get("email", ""), token_data.get("name", ""))
+    user = fb.get_or_create_user(
+        uid, token_data.get("email", ""), token_data.get("name", "")
+    )
     user_tier = user.get("active_tier", "free")
 
     created = fb.create_keywords(uid, body.keywords, user_tier=user_tier)
@@ -49,9 +51,16 @@ async def update_keyword(
     if not update_data:
         raise HTTPException(status_code=400, detail="No valid fields to update")
 
+    user = fb.get_or_create_user(
+        uid, token_data.get("email", ""), token_data.get("name", "")
+    )
+    user_tier = user.get("active_tier", "free")
+
     try:
-        result = fb.update_keyword(uid, keyword_id, update_data)
+        result = fb.update_keyword(uid, keyword_id, update_data, user_tier=user_tier)
         return result
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Keyword not found: {e}")
 
@@ -63,18 +72,31 @@ async def bulk_action(
 ):
     """Bulk action on selected keywords: enable, disable, or delete."""
     uid = token_data["uid"]
+    user = fb.get_or_create_user(
+        uid, token_data.get("email", ""), token_data.get("name", "")
+    )
+    user_tier = user.get("active_tier", "free")
 
-    if body.action == "enable":
-        count = fb.bulk_update_keywords(uid, body.keyword_ids, {"enabled": True})
-        return {"action": "enable", "affected": count}
-    elif body.action == "disable":
-        count = fb.bulk_update_keywords(uid, body.keyword_ids, {"enabled": False})
-        return {"action": "disable", "affected": count}
-    elif body.action == "delete":
-        count = fb.delete_keywords(uid, body.keyword_ids)
-        return {"action": "delete", "affected": count}
-    else:
-        raise HTTPException(status_code=400, detail=f"Unknown action: {body.action}")
+    try:
+        if body.action == "enable":
+            count = fb.bulk_update_keywords(
+                uid, body.keyword_ids, {"enabled": True}, user_tier=user_tier
+            )
+            return {"action": "enable", "affected": count}
+        elif body.action == "disable":
+            count = fb.bulk_update_keywords(
+                uid, body.keyword_ids, {"enabled": False}, user_tier=user_tier
+            )
+            return {"action": "disable", "affected": count}
+        elif body.action == "delete":
+            count = fb.delete_keywords(uid, body.keyword_ids)
+            return {"action": "delete", "affected": count}
+        else:
+            raise HTTPException(
+                status_code=400, detail=f"Unknown action: {body.action}"
+            )
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
 
 
 @router.delete("/{keyword_id}", status_code=204)

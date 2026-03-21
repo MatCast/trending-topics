@@ -62,12 +62,7 @@
             <div class="form-control mt-4">
               <div v-if="catalogSource.id === 'reddit'" class="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <span class="text-xs font-semibold uppercase tracking-wider text-base-content/40">Add Subreddit</span>
-                <span 
-                  class="badge badge-sm font-bold truncate max-w-full"
-                  :class="isRedditLimitReached ? 'badge-warning' : 'badge-ghost'"
-                >
-                  {{ redditSourceCount }} / {{ isRedditUnlimited ? '∞' : redditLimit }} active
-                </span>
+                <UsageLimitBadge :current="redditSourceCount" :limit="redditLimit" type="active" />
               </div>
               
               <div class="join w-full" v-for="(fieldSchema, fieldKey) in catalogSource.config_schema" :key="fieldKey">
