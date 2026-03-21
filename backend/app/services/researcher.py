@@ -2,7 +2,6 @@
 
 import logging
 from typing import List, Dict, Any
-from uuid import uuid4
 
 from ..parsers.base import get_parser
 from .. import firebase_client as fb
@@ -34,7 +33,7 @@ def run_extraction(
         Dict with extraction_id, status, results_count, and results list.
     """
     logger.info(f"Starting extraction {extraction_id} for user {uid}")
-    
+
     try:
         # Get admin config for source weights
         admin_config = fb.get_admin_config()
@@ -54,12 +53,17 @@ def run_extraction(
 
         # Only process enabled sources
         enabled_sources = [s for s in sources if s.get("enabled", True)]
-        
+
         for source_config in enabled_sources:
             source_type = source_config.get("source_id", source_config.get("type", ""))
             source_name = source_config.get("name", "Unknown")
             params = source_config.get("params", {})
             weight = source_weights.get(source_type, 1.0)
+
+            if source_type == "reddit":
+                params["reddit_fetch_method"] = user_settings.get(
+                    "reddit_fetch_method", "rapidapi"
+                )
 
             # Determine keywords for this source
             source_keywords = keywords
@@ -103,10 +107,14 @@ def run_extraction(
                     selected += 1
 
         # Store results in Firestore
-        sources_used = list(set(s.get("source_id", s.get("type", "unknown")) for s in enabled_sources))
+        sources_used = list(
+            set(s.get("source_id", s.get("type", "unknown")) for s in enabled_sources)
+        )
         fb.store_results(uid, extraction_id, final_trends, sources_used, retention_days)
 
-        logger.info(f"Extraction {extraction_id} completed: {len(final_trends)} results for user {uid}")
+        logger.info(
+            f"Extraction {extraction_id} completed: {len(final_trends)} results for user {uid}"
+        )
 
         return {
             "extraction_id": extraction_id,
@@ -123,5 +131,5 @@ def run_extraction(
             "status": "failed",
             "results_count": 0,
             "results": [],
-            "error": str(e)
+            "error": str(e),
         }

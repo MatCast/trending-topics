@@ -8,6 +8,7 @@ from enum import Enum
 
 # --- Enums ---
 
+
 class ScheduleType(str, Enum):
     MANUAL = "manual"
     HOURLY = "hourly"
@@ -17,8 +18,10 @@ class ScheduleType(str, Enum):
 
 # --- Source Catalog ---
 
+
 class SourceCatalogEntry(BaseModel):
     """Represents a source definition in the top-level catalog."""
+
     id: str
     name: str
     description: str = ""
@@ -33,6 +36,7 @@ class SourceCatalogEntry(BaseModel):
 
 
 # --- Source Configuration (User Subscriptions) ---
+
 
 class SourceConfigCreate(BaseModel):
     source_id: str = Field(..., min_length=1, max_length=100)
@@ -61,6 +65,7 @@ class SourceConfigResponse(BaseModel):
 
 # --- Keywords ---
 
+
 class KeywordCreate(BaseModel):
     keywords: List[str] = Field(..., min_length=1)
 
@@ -79,6 +84,7 @@ class KeywordBulkAction(BaseModel):
 
 # --- User Settings ---
 
+
 class ScheduleConfig(BaseModel):
     type: ScheduleType = ScheduleType.MANUAL
     interval_hours: Optional[int] = Field(None, ge=1, le=168)  # For hourly
@@ -90,6 +96,7 @@ class UserSettingsUpdate(BaseModel):
     time_window_hours: Optional[int] = Field(None, ge=1, le=168)
     max_trends_per_source: Optional[int] = Field(None, ge=1, le=50)
     schedule: Optional[ScheduleConfig] = None
+    reddit_fetch_method: Optional[Literal["rapidapi", "direct"]] = None
 
 
 class UserSettingsResponse(BaseModel):
@@ -97,9 +104,11 @@ class UserSettingsResponse(BaseModel):
     max_trends_per_source: int = 3
     result_retention_days: int = 15
     schedule: ScheduleConfig = Field(default_factory=ScheduleConfig)
+    reddit_fetch_method: Literal["rapidapi", "direct"] = "rapidapi"
 
 
 # --- User Profile & Tiers ---
+
 
 class TierLimits(BaseModel):
     keywords: int
@@ -116,8 +125,10 @@ class UserProfileResponse(BaseModel):
 
 # --- Extraction ---
 
+
 class ExtractionRequest(BaseModel):
     """Optional overrides for a single extraction run."""
+
     time_window_hours: Optional[int] = Field(None, ge=1, le=168)
     max_trends_per_source: Optional[int] = Field(None, ge=1, le=50)
     use_keywords: Optional[bool] = None
@@ -150,6 +161,7 @@ class ExtractionListResponse(BaseModel):
 
 # --- Trend Results ---
 
+
 class TrendResultResponse(BaseModel):
     id: str
     source: str
@@ -173,13 +185,16 @@ class ResultsListResponse(BaseModel):
 
 # --- Admin ---
 
+
 class AdminConfig(BaseModel):
-    source_weights: Dict[str, float] = Field(default_factory=lambda: {
-        "reddit": 1.0,
-        "hackernews": 1.0,
-        "bluesky": 1.0,
-        "indiehackers": 1.0,
-    })
+    source_weights: Dict[str, float] = Field(
+        default_factory=lambda: {
+            "reddit": 1.0,
+            "hackernews": 1.0,
+            "bluesky": 1.0,
+            "indiehackers": 1.0,
+        }
+    )
     default_retention_days: int = 15
 
 

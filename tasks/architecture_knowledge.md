@@ -22,7 +22,8 @@ The application runs as a containerized dual-service architecture orchestrated b
 ## 4. Backend Architecture (FastAPI)
 - **Directory**: `backend/` (logic in `backend/app/`).
 - **REST API (`routers/`)**: Distinct router modules separate concerns (e.g., users, sources, integrations).
-- **Data Fetching (`parsers/`)**: The monolithic legacy `researcher.py` and `parsers.py` are refactored into distinct class-based parsers per source (e.g., Reddit, Bluesky, IndieHackers).
+- **Data Fetching (`parsers/`)**: The monolithic legacy `researcher.py` and `parsers.py` are refactored into distinct class-based parsers per source (e.g., Reddit, Bluesky, IndieHackers). 
+    - **Reddit Fetching**: Uses a dual-method approach. It defaults to **RapidAPI** (`reddit3.p.rapidapi.com`) to circumvent Cloud Run IP blocks, with an internal fallback to direct JSON fetching for flexibility.
 - **Database Client (`firebase_client.py`)**: Abstracted interface to Firestore. Includes in-memory fallbacks when composite indexing limitations prevent complex queries natively.
 - **Data Validation (`models.py`)**: Strict Pydantic models. We ensure defaults are handled correctly (e.g., avoiding Python `None` when dealing with serialized data updates).
 
