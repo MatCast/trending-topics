@@ -54,10 +54,12 @@ The application runs as a containerized dual-service architecture orchestrated b
 
 ## 9. Extractions and Results Architecture
 - **Extractions Collection**: Metadata for each extraction run is stored in `users/{uid}/extractions/{extraction_id}`. This includes Date, Sources Used, Number of Results, and TTL (`expires_at`).
+    - **Validation**: Extraction triggers (both manual and scheduled) implement robust filtering to only include sources that are both `enabled` and properly configured (e.g., multi-instance sources like Reddit must have a non-empty configuration). This ensures the "Sources Used" metadata accurately reflects the processed data.
 - **Results Collection (Flat)**: Individual extracted topics are stored in a flat sub-collection `users/{uid}/results/` rather than nested under extractions. They are linked back to the parent via an `extraction_id` field.
 - **Why Flat?**: Firestore queries on indexed fields incur read costs purely based on the number of returned documents. Querying a flat collection with `.where('extraction_id', '==', X)` costs exactly the same as querying a sub-collection. However, a flat collection simplifies Cleanup (TTL).
 - **TTL & Cleanup**: Both Extractions and Results share standard `expires_at` fields. A single scheduled Cloud Function deletes expired documents from both collections simultaneously without needing complex cascading delete logic.
 - **Frontend Dashboard**: The main dashboard `GET /api/extractions` lists extraction history to minimize reads instead of fetching all historical results at once. Clicking an extraction navigates to `/extractions/[id]` to query only that specific `extraction_id`.
+- **Real-time Updates**: The `index.vue` page uses a direct Firestore `onSnapshot` listener (Client SDK) to monitor "pending" extractions. This requires specific **Firestore Security Rules** allowing read access to the user's sub-collections while blocking all direct client writes.
 
 ## 10. Source Tier Limits (Firestore Driven)
 - **Logic**: Enforced primarily on the **enablement** of multi-instance sources (e.g., Reddit) to allow users to catalog as many sources as they wish while capping active processing.

@@ -51,8 +51,19 @@ def run_extraction(
         # Group results by source
         source_trends: Dict[str, List[Dict[str, Any]]] = {}
 
-        # Only process enabled sources
-        enabled_sources = [s for s in sources if s.get("enabled", True)]
+        # Only process enabled and valid sources
+        enabled_sources = []
+        for s in sources:
+            if not s.get("enabled", True):
+                continue
+            
+            sid = s.get("source_id", s.get("type", "unknown"))
+            # Safety: if it's reddit, it MUST have a subreddit param
+            if sid == "reddit" and not s.get("params", {}).get("subreddit"):
+                logger.warning(f"Skipping malformed reddit source for user {uid}: {s.get('id')}")
+                continue
+
+            enabled_sources.append(s)
 
         for source_config in enabled_sources:
             source_type = source_config.get("source_id", source_config.get("type", ""))

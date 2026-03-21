@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Any
+from typing import Dict, Any
 
 from .. import firebase_client as fb
 from .researcher import run_extraction
@@ -59,10 +59,24 @@ def run_scheduled_extractions() -> Dict[str, Any]:
             time_window = settings.get("time_window_hours", 3)
             max_trends = settings.get("max_trends_per_source", 3)
 
+            # 1. Calculate sources_used for the metadata (only enabled ones)
+            sources_used = list(
+                set(
+                    s.get("source_id", s.get("type", "unknown"))
+                    for s in sources
+                    if s.get("enabled", True)
+                )
+            )
+
+            # 2. Create the pending extraction document so it shows in history
+            extraction_id = fb.create_pending_extraction(uid, sources_used)
+
+            # 3. Trigger the extraction
             run_extraction(
                 uid=uid,
                 sources=sources,
                 global_keywords=global_keywords,
+                extraction_id=extraction_id,
                 time_window_hours=time_window,
                 max_trends_per_source=max_trends,
             )
