@@ -1,7 +1,5 @@
 # Backlog — Future Enhancements
 
-## Improve Extraction Readiness Check
-Currently when you create an extraction, the extraction hangs in pending as long as the user doesn't refresh the page. We should make this different. As soon as the data changes in Firebase from pending to completed, we should move the extraction to completed and fetch also all the data related to the extraction, so the number of results, the sources, and so on.
 
 ## Improve Onboarding Limits Showing
 Currently when you do the onboarding, you are not aware of how many keywords you can add and so on. Also you can add as many as you want even if you are on a non-paying tier so we should change that.
@@ -42,3 +40,7 @@ We moved to a Rapid API way of fetching data from Reddit to bypass Cloud Run blo
 - All sources use standard RSS feeds → same architecture as `IndieHackersParser` (feedparser-based).
 - Medium supports tag-based feeds; other useful tags: `startup`, `business`, `leadership`, `lessons-learned`.
 - Consider making `time_window_hours` configurable per source, since some feeds post less frequently than others.
+
+## DONE: Improve Extraction Readiness Check
+Fixed the issue where extractions would "hang" in pending. Implemented a real-time Firestore `onSnapshot` listener in the frontend that detects completion and automatically redirects the user to the results page. Requires Firestore Security Rules to be configured for read access.
+

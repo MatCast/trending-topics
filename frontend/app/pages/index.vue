@@ -220,12 +220,20 @@ function setupExtractionListener(extractionId: string) {
         if (data.status === 'completed' || data.status === 'failed') {
           cleanupListener(extractionId)
           if (data.status === 'completed') {
-            lastRunMessage.value = `Extraction completed! Found ${data.results_count || 0} topics.`
+            lastRunMessage.value = `Extraction completed! Found ${data.results_count || 0} topics. Redirecting...`
+            setTimeout(() => {
+              navigateTo(`/extractions/${extractionId}`)
+            }, 1000)
           } else {
             lastRunMessage.value = `Extraction failed: ${data.error || 'Unknown error'}`
           }
         }
       }
+    },
+    (error) => {
+      console.error("Firestore snapshot error:", error)
+      lastRunMessage.value = `Listener Error: ${error.message} (Check Firestore Security Rules)`
+      cleanupListener(extractionId)
     }
   )
 
