@@ -122,14 +122,33 @@ def mock_firebase():
 
     user_sources = _make_user_sources()
     user_keywords = [
-        {"id": "kw_001", "text": "AI", "enabled": True, "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc)},
-        {"id": "kw_002", "text": "startup", "enabled": True, "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc)},
-        {"id": "kw_003", "text": "blockchain", "enabled": False, "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+        {
+            "id": "kw_001",
+            "text": "AI",
+            "enabled": True,
+            "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc),
+        },
+        {
+            "id": "kw_002",
+            "text": "startup",
+            "enabled": True,
+            "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc),
+        },
+        {
+            "id": "kw_003",
+            "text": "blockchain",
+            "enabled": False,
+            "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc),
+        },
     ]
 
     # Catalog functions
     def mock_list_catalog(user_tier="free"):
-        tier_access = {"free": {"public"}, "beta": {"public", "beta"}, "pro": {"public", "beta", "pro"}}
+        tier_access = {
+            "free": {"public"},
+            "beta": {"public", "beta"},
+            "pro": {"public", "beta", "pro"},
+        }
         allowed = tier_access.get(user_tier, {"public"})
         return [
             {"id": sid, **sdata}
@@ -156,22 +175,29 @@ def mock_firebase():
         if source_id == "reddit":
             limit = 3 if user_tier == "free" else 10
             subreddit = source_data.get("params", {}).get("subreddit", "").lower()
-            
+
             # Fetch active count
-            active_reddit = [s for s in user_sources if s.get("source_id") == "reddit" and s.get("enabled", True)]
+            active_reddit = [
+                s
+                for s in user_sources
+                if s.get("source_id") == "reddit" and s.get("enabled", True)
+            ]
             active_count = len(active_reddit)
 
             # Check duplicate
             for src in user_sources:
-                if src.get("source_id") == "reddit" and src.get("params", {}).get("subreddit", "").lower() == subreddit:
+                existing_sub = src.get("params", {}).get("subreddit", "").lower()
+                if src.get("source_id") == "reddit" and existing_sub == subreddit:
                     # If trying to re-enable
-                    if source_data.get("enabled", True) and not src.get("enabled", True):
+                    if source_data.get("enabled", True) and not src.get(
+                        "enabled", True
+                    ):
                         if active_count >= limit:
-                             return {**src, "existed": True}
+                            return {**src, "existed": True}
                         src["enabled"] = True
                         return {**src, "existed": True}
                     return {**src, "existed": True}
-            
+
             # It's new. If at limit, force disabled.
             if active_count >= limit:
                 source_data["enabled"] = False
@@ -188,7 +214,7 @@ def mock_firebase():
             "id": new_id,
             **source_data,
             "created_at": datetime.now(timezone.utc),
-            "enabled": source_data.get("enabled", True)
+            "enabled": source_data.get("enabled", True),
         }
         if not new_source.get("name"):
             new_source["name"] = catalog_entry.get("name", source_id)
@@ -199,14 +225,21 @@ def mock_firebase():
         # Enforce Reddit Limit on Toggle in mock
         if update_data.get("enabled") is True:
             limit = 3 if user_tier == "free" else 10
-            active_reddit = [s for s in user_sources if s.get("source_id") == "reddit" and s.get("enabled", True)]
-            
+            active_reddit = [
+                s
+                for s in user_sources
+                if s.get("source_id") == "reddit" and s.get("enabled", True)
+            ]
+
             # Find the source being updated
             for src in user_sources:
                 if src["id"] == source_id:
-                    if src.get("source_id") == "reddit" and not src.get("enabled", True):
+                    if src.get("source_id") == "reddit" and not src.get(
+                        "enabled", True
+                    ):
                         if len(active_reddit) >= limit:
-                            raise ValueError(f"Limit reached. Your tier allows a maximum of {limit} active subreddits.")
+                            msg = f"Limit reached. Your tier allows a maximum of {limit} active subreddits."
+                            raise ValueError(msg)
                     src.update(update_data)
                     return src
         else:
@@ -238,7 +271,12 @@ def mock_firebase():
             if kw_lower in existing_texts or kw_lower in seen:
                 continue
             new_id = f"kw_{len(user_keywords) + len(created) + 1:03d}"
-            keyword_data = {"id": new_id, "text": kw, "enabled": True, "created_at": datetime.now(timezone.utc)}
+            keyword_data = {
+                "id": new_id,
+                "text": kw,
+                "enabled": True,
+                "created_at": datetime.now(timezone.utc),
+            }
             user_keywords.append(keyword_data)
             created.append(keyword_data)
             seen.add(kw_lower)
@@ -277,36 +315,124 @@ def mock_firebase():
 
     # Patch the module-level functions
     with ExitStack() as stack:
-        stack.enter_context(patch.object(fb_module, "list_catalog_sources", side_effect=mock_list_catalog))
-        stack.enter_context(patch.object(fb_module, "get_catalog_source", side_effect=mock_get_catalog))
-        stack.enter_context(patch.object(fb_module, "list_sources", side_effect=mock_list_sources))
-        stack.enter_context(patch.object(fb_module, "create_source", side_effect=mock_create_source))
-        stack.enter_context(patch.object(fb_module, "update_source", side_effect=mock_update_source))
-        stack.enter_context(patch.object(fb_module, "delete_source", side_effect=mock_delete_source))
-        stack.enter_context(patch.object(fb_module, "list_keywords", side_effect=mock_list_keywords))
-        stack.enter_context(patch.object(fb_module, "list_enabled_keywords", side_effect=mock_list_enabled_keywords))
-        stack.enter_context(patch.object(fb_module, "create_keywords", side_effect=mock_create_keywords))
-        stack.enter_context(patch.object(fb_module, "update_keyword", side_effect=mock_update_keyword))
-        stack.enter_context(patch.object(fb_module, "bulk_update_keywords", side_effect=mock_bulk_update_keywords))
-        stack.enter_context(patch.object(fb_module, "delete_keywords", side_effect=mock_delete_keywords))
-        stack.enter_context(patch.object(fb_module, "delete_keyword", side_effect=mock_delete_keyword))
-        stack.enter_context(patch.object(fb_module, "get_or_create_user", return_value={"uid": "test_user_123", "active_tier": "free"}))
-        stack.enter_context(patch.object(fb_module, "get_user_settings", return_value={
-            "time_window_hours": 3,
-            "max_trends_per_source": 3,
-        }))
-        stack.enter_context(patch.object(fb_module, "get_admin_config", return_value={
-            "source_weights": {"reddit": 1.0, "hackernews": 1.0},
-            "default_retention_days": 15,
-            "tier_limits": {
-                "keywords": {"free": 20, "pro": 100, "unlimited": -1},
-                "reddit_sources": {"free": 3, "beta": 10, "pro": -1},
-            }
-        }))
+        stack.enter_context(
+            patch.object(
+                fb_module, "list_catalog_sources", side_effect=mock_list_catalog
+            )
+        )
+        stack.enter_context(
+            patch.object(fb_module, "get_catalog_source", side_effect=mock_get_catalog)
+        )
+        stack.enter_context(
+            patch.object(fb_module, "list_sources", side_effect=mock_list_sources)
+        )
+        stack.enter_context(
+            patch.object(fb_module, "create_source", side_effect=mock_create_source)
+        )
+        stack.enter_context(
+            patch.object(fb_module, "update_source", side_effect=mock_update_source)
+        )
+        stack.enter_context(
+            patch.object(fb_module, "delete_source", side_effect=mock_delete_source)
+        )
+        stack.enter_context(
+            patch.object(fb_module, "list_keywords", side_effect=mock_list_keywords)
+        )
+        stack.enter_context(
+            patch.object(
+                fb_module,
+                "list_enabled_keywords",
+                side_effect=mock_list_enabled_keywords,
+            )
+        )
+        stack.enter_context(
+            patch.object(fb_module, "create_keywords", side_effect=mock_create_keywords)
+        )
+        stack.enter_context(
+            patch.object(fb_module, "update_keyword", side_effect=mock_update_keyword)
+        )
+        stack.enter_context(
+            patch.object(
+                fb_module, "bulk_update_keywords", side_effect=mock_bulk_update_keywords
+            )
+        )
+        stack.enter_context(
+            patch.object(fb_module, "delete_keywords", side_effect=mock_delete_keywords)
+        )
+        stack.enter_context(
+            patch.object(fb_module, "delete_keyword", side_effect=mock_delete_keyword)
+        )
+        stack.enter_context(
+            patch.object(
+                fb_module,
+                "get_or_create_user",
+                return_value={"uid": "test_user_123", "active_tier": "free"},
+            )
+        )
+        stack.enter_context(
+            patch.object(
+                fb_module,
+                "get_user_settings",
+                return_value={
+                    "time_window_hours": 3,
+                    "max_trends_per_source": 3,
+                },
+            )
+        )
+        stack.enter_context(
+            patch.object(
+                fb_module,
+                "get_admin_config",
+                return_value={
+                    "source_weights": {"reddit": 1.0, "hackernews": 1.0},
+                    "default_retention_days": 15,
+                    "tier_limits": {
+                        "keywords": {"free": 20, "pro": 100, "unlimited": -1},
+                        "reddit_sources": {"free": 3, "beta": 10, "pro": -1},
+                        "extractions": {
+                            "free": {"daily": 1, "weekly": 2, "monthly": 3},
+                            "pro": {"daily": 10, "weekly": 50, "monthly": 200},
+                        },
+                    },
+                },
+            )
+        )
+        stack.enter_context(
+            patch.object(fb_module, "has_active_extraction", return_value=False)
+        )
+        stack.enter_context(
+            patch.object(
+                fb_module,
+                "check_and_increment_extraction_quota",
+                return_value=(True, None),
+            )
+        )
+        stack.enter_context(
+            patch.object(
+                fb_module,
+                "get_extraction_limits",
+                return_value={"daily": 1, "weekly": 2, "monthly": 3},
+            )
+        )
+        stack.enter_context(
+            patch.object(
+                fb_module,
+                "get_user_extraction_usage",
+                return_value={"daily": 0, "weekly": 0, "monthly": 0},
+            )
+        )
         stack.enter_context(patch.object(fb_module, "store_results", return_value=None))
-        stack.enter_context(patch.object(fb_module, "create_pending_extraction", return_value="test-run-001"))
-        stack.enter_context(patch.object(fb_module, "update_extraction_status", return_value=None))
-        stack.enter_context(patch.object(fb_module, "seed_source_catalog", return_value=None))
+        stack.enter_context(
+            patch.object(
+                fb_module, "create_pending_extraction", return_value="test-run-001"
+            )
+        )
+        stack.enter_context(
+            patch.object(fb_module, "update_extraction_status", return_value=None)
+        )
+        stack.enter_context(
+            patch.object(fb_module, "seed_source_catalog", return_value=None)
+        )
         stack.enter_context(patch.object(fb_module, "init_firebase", return_value=None))
 
         yield fb_module

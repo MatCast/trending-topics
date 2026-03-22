@@ -113,6 +113,7 @@ class UserSettingsResponse(BaseModel):
 class TierLimits(BaseModel):
     keywords: int
     reddit_sources: int
+    extractions: Dict[str, int]
 
 
 class UserProfileResponse(BaseModel):
@@ -120,6 +121,7 @@ class UserProfileResponse(BaseModel):
     email: str
     active_tier: str
     tier_limits: TierLimits
+    usage: Dict[str, Any]
     settings: UserSettingsResponse
 
 

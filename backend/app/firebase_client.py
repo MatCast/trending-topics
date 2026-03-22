@@ -434,6 +434,134 @@ def get_reddit_source_limit(user_tier: str = "free") -> int:
     return tier_limits.get(user_tier, DEFAULT_REDDIT_SOURCE_LIMITS.get(user_tier, 3))
 
 
+DEFAULT_EXTRACTION_LIMITS = {
+    "free": {"daily": 3, "weekly": 3, "monthly": 3},
+    "pro": {"daily": 30, "weekly": 30, "monthly": 30},
+    "beta": {"daily": 3, "weekly": 3, "monthly": 3},
+    "unlimited": {"daily": -1, "weekly": -1, "monthly": -1},
+}
+
+
+def get_extraction_limits(user_tier: str = "free") -> Dict[str, int]:
+    """Get extraction limits for a user tier."""
+    config = get_admin_config()
+    tier_limits = config.get("tier_limits", {}).get("extractions", {})
+    return tier_limits.get(
+        user_tier,
+        DEFAULT_EXTRACTION_LIMITS.get(user_tier, DEFAULT_EXTRACTION_LIMITS["free"]),
+    )
+
+
+def has_active_extraction(uid: str) -> bool:
+    """Check if a user has any pending or processing extractions."""
+    db = get_db()
+    # Query for pending extractions
+    pending = (
+        db.collection("users")
+        .document(uid)
+        .collection("extractions")
+        .where("status", "==", "pending")
+        .limit(1)
+        .stream()
+    )
+    if any(pending):
+        return True
+
+    # Also check 'processing' just in case
+    processing = (
+        db.collection("users")
+        .document(uid)
+        .collection("extractions")
+        .where("status", "==", "processing")
+        .limit(1)
+        .stream()
+    )
+    return any(processing)
+
+
+def check_and_increment_extraction_quota(
+    uid: str, user_tier: str
+) -> tuple[bool, Optional[str]]:
+    """Check if user is within extraction limits and increment if they are.
+    Returns (success, limit_period).
+    """
+    db = get_db()
+    limits = get_extraction_limits(user_tier)
+
+    # Check if unlimited
+    if all(v == -1 for v in limits.values()):
+        return True, None
+
+    quota_ref = (
+        db.collection("users")
+        .document(uid)
+        .collection("quotas")
+        .document("extractions")
+    )
+
+    # Use a transaction to ensure atomic check-and-increment
+    @firestore.transactional
+    def update_quota_tx(transaction, quota_ref, limits):
+        snapshot = quota_ref.get(transaction=transaction)
+        now = datetime.now(timezone.utc)
+
+        # Helper to get start of day/week/month
+        def get_reset_dates(dt):
+            day_start = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            week_start = day_start - timedelta(days=dt.weekday())
+            month_start = dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            return day_start, week_start, month_start
+
+        day_start, week_start, month_start = get_reset_dates(now)
+
+        if snapshot.exists:
+            data = snapshot.to_dict()
+            counts = data.get("counts", {"daily": 0, "weekly": 0, "monthly": 0})
+            resets = data.get("resets", {})
+
+            # Reset counts if periods changed
+            last_daily = resets.get("daily")
+            last_weekly = resets.get("weekly")
+            last_monthly = resets.get("monthly")
+
+            if not last_daily or last_daily.astimezone(timezone.utc) < day_start:
+                counts["daily"] = 0
+                resets["daily"] = day_start
+            if not last_weekly or last_weekly.astimezone(timezone.utc) < week_start:
+                counts["weekly"] = 0
+                resets["weekly"] = week_start
+            if not last_monthly or last_monthly.astimezone(timezone.utc) < month_start:
+                counts["monthly"] = 0
+                resets["monthly"] = month_start
+        else:
+            counts = {"daily": 0, "weekly": 0, "monthly": 0}
+            resets = {
+                "daily": day_start,
+                "weekly": week_start,
+                "monthly": month_start,
+            }
+
+        # Validate limits
+        if limits.get("daily", -1) != -1 and counts["daily"] >= limits["daily"]:
+            return False, "daily"
+        if limits.get("weekly", -1) != -1 and counts["weekly"] >= limits["weekly"]:
+            return False, "weekly"
+        if limits.get("monthly", -1) != -1 and counts["monthly"] >= limits["monthly"]:
+            return False, "monthly"
+
+        # Increment
+        counts["daily"] += 1
+        counts["weekly"] += 1
+        counts["monthly"] += 1
+
+        transaction.set(quota_ref, {"counts": counts, "resets": resets})
+        return True, None
+
+    transaction = db.transaction()
+    success, period = update_quota_tx(transaction, quota_ref, limits)
+    return success, period
+
+
 def list_keywords(uid: str) -> List[Dict[str, Any]]:
     """List all keywords for a user."""
     db = get_db()
@@ -621,6 +749,23 @@ def delete_keyword(uid: str, keyword_id: str):
     db.collection("users").document(uid).collection("keywords").document(
         keyword_id
     ).delete()
+
+
+def get_user_extraction_usage(uid: str) -> Dict[str, int]:
+    """Get current extraction usage counts for a user."""
+    db = get_db()
+    ref = (
+        db.collection("users")
+        .document(uid)
+        .collection("quotas")
+        .document("extractions")
+    )
+    doc = ref.get()
+    if doc.exists:
+        data = doc.to_dict()
+        # Verify if resets are still valid (simplistic check for UI)
+        return data.get("counts", {"daily": 0, "weekly": 0, "monthly": 0})
+    return {"daily": 0, "weekly": 0, "monthly": 0}
 
 
 # --- Results Operations ---
@@ -924,6 +1069,7 @@ def get_admin_config() -> Dict[str, Any]:
         "tier_limits": {
             "keywords": DEFAULT_KEYWORD_LIMITS,
             "reddit_sources": DEFAULT_REDDIT_SOURCE_LIMITS,
+            "extractions": DEFAULT_EXTRACTION_LIMITS,
         },
     }
     db.collection("admin").document("config").set(defaults)

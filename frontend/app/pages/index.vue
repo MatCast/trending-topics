@@ -7,13 +7,18 @@
         <p class="text-base-content/60 text-sm">Review your past extractions and trending topics.</p>
       </div>
 
-      <div class="flex gap-2">
-        <button class="btn btn-primary gap-2" :class="{ 'btn-disabled': isExtracting }" @click="runExtraction">
+      <div class="flex items-center gap-4">
+        <div v-if="profile" class="hidden sm:block">
+          <UsageLimitBadge :current="extractionUsage.monthly" :limit="extractionLimits.monthly" type="Monthly Extractions" size="sm" />
+        </div>
+        <button class="btn btn-primary gap-2" :class="{ 'btn-disabled': isExtracting || isAnyLimitReached }" :disabled="isExtracting || isAnyLimitReached"
+          @click="runExtraction">
           <span v-if="isExtracting" class="loading loading-spinner loading-sm"></span>
           <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          {{ isExtracting ? 'Searching...' : 'New Extraction' }}
+          <span v-if="isAnyLimitReached && !isExtracting">Limit Reached</span>
+          <span v-else>{{ isExtracting ? 'Searching...' : 'New Extraction' }}</span>
         </button>
       </div>
     </div>
@@ -47,7 +52,7 @@
 
     <!-- Extractions Table / Mobile Cards -->
     <div v-else class="pb-8">
-      
+
       <!-- Desktop Table -->
       <div class="hidden md:block overflow-x-auto">
         <table class="table w-full border-separate border-spacing-y-4">
@@ -108,11 +113,10 @@
 
       <!-- Mobile Cards -->
       <div class="md:hidden flex flex-col gap-4 mt-2">
-        <div v-for="extraction in extractions" :key="`mobile-${extraction.id}`"
-          class="bg-base-100 rounded-xl shadow-md border border-base-300 p-4 relative"
+        <div v-for="extraction in extractions" :key="`mobile-${extraction.id}`" class="bg-base-100 rounded-xl shadow-md border border-base-300 p-4 relative"
           :class="extraction.status === 'pending' ? 'opacity-80' : 'active:scale-[0.98] cursor-pointer'"
           @click="extraction.status !== 'pending' && navigateTo(`/extractions/${extraction.id}`)">
-          
+
           <div class="flex justify-between items-start mb-3">
             <div>
               <div class="flex items-center gap-2">
@@ -121,7 +125,7 @@
               </div>
               <p class="text-[10px] font-semibold text-base-content/50 uppercase tracking-widest">{{ formatDate(extraction.created_at).split(',')[1] }}</p>
             </div>
-            
+
             <div class="text-right">
               <span class="text-[11px] font-semibold text-base-content/60">{{ formatDate(extraction.expires_at).split(',')[0] }}</span>
               <p class="text-[9px] uppercase font-bold text-error/60">{{ formatDate(extraction.expires_at).split(',')[1] }}</p>
@@ -140,7 +144,7 @@
               </div>
               <span v-if="!getUniqueSources(extraction.sources).length" class="text-base-content/20 italic text-xs">No sources</span>
             </div>
-            
+
             <div class="flex items-baseline gap-1.5">
               <span class="text-[10px] uppercase font-bold text-base-content/50">Topics</span>
               <span class="text-xl font-black text-primary font-mono leading-none">{{ extraction.results_count }}</span>
@@ -170,6 +174,7 @@ definePageMeta({ layout: 'default' })
 const { apiFetch } = useApi()
 const { $firebaseFirestore } = useNuxtApp()
 const { user } = useAuth()
+const { profile, fetchProfile, extractionUsage, extractionLimits, isAnyLimitReached } = useUser()
 const { getIconConfig, isSvgIcon } = useSourceIcons()
 
 const extractions = ref<any[]>([])
@@ -281,6 +286,9 @@ async function runExtraction() {
   try {
     const data = await apiFetch<any>('/api/extract', { method: 'POST', body: {} })
 
+    // Refresh profile to update usage counters
+    fetchProfile()
+
     if (data.status === 'pending' || data.id) {
       const extractionId = data.id || data.extraction_id
       // Add to list immediately
@@ -322,6 +330,7 @@ watch([page], () => fetchExtractions())
 
 // Initial load
 onMounted(async () => {
+  fetchProfile()
   await fetchExtractions()
 })
 

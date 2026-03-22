@@ -47,6 +47,13 @@ def run_scheduled_extractions() -> Dict[str, Any]:
 
     for user_data in users:
         uid = user_data.get("uid")
+        user_tier = user_data.get("active_tier", "free")
+
+        # 0. Skip free tier entirely for scheduled tasks (as requested)
+        if user_tier == "free":
+            logger.debug(f"Skipping scheduled extraction for user {uid} (free tier).")
+            continue
+
         settings = user_data.get("settings", {})
         schedule = settings.get("schedule", {})
 
@@ -54,6 +61,21 @@ def run_scheduled_extractions() -> Dict[str, Any]:
             continue
 
         try:
+            # 1. Enforce Concurrency (Max 1 at a time)
+            if fb.has_active_extraction(uid):
+                logger.info(
+                    f"Skipping scheduled extraction for user {uid} (already running)."
+                )
+                continue
+
+            # 2. Enforce Volume Quota (Daily/Weekly/Monthly)
+            success, _ = fb.check_and_increment_extraction_quota(uid, user_tier)
+            if not success:
+                logger.info(
+                    f"Skipping scheduled extraction for user {uid} (quota reached)."
+                )
+                continue
+
             sources = fb.list_sources(uid)
             global_keywords = fb.list_enabled_keywords(uid)
             time_window = settings.get("time_window_hours", 3)

@@ -31,6 +31,14 @@ cp .env.example .env
 uvicorn app.main:app --reload
 ```
 
+#### Seeding Configurations
+If you change default extraction limits or need to initialize your Firebase Firestore database with the correct configurations:
+```bash
+# Wait for your docker containers to start, then run:
+docker compose exec backend python scripts/seed_limits.py
+```
+
+
 ### 3. Frontend Setup
 ```bash
 cd frontend
