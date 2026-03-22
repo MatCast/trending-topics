@@ -72,6 +72,16 @@ To run the entire application (frontend + backend) locally using Docker Compose:
 - **Backend**: FastAPI, Firestore, Firebase Admin SDK.
 - **Infrastucture**: Docker, Google Cloud Run, Cloud Scheduler.
 
+## Local Development Linters
+We use `pre-commit` hook to automatically enforce basic formatting standards (like `black` and `flake8`) prior to a commit.
+**Do not** install these dependencies inside the production container. Use a local environment:
+
+```bash
+workon linkedin_posts
+pip install pre-commit black flake8
+pre-commit install
+```
+
 ## 🚀 Deployment to Google Cloud Run
 
 This project is configured for seamless deployment to **Google Cloud Run** in the `europe-west1` region.

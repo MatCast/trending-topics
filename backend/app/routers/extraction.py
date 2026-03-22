@@ -32,7 +32,10 @@ async def extract(
         logger.warning(f"User {uid} attempted concurrent extraction.")
         raise HTTPException(
             status_code=400,
-            detail="You already have an extraction in progress. Please wait for it to finish.",
+            detail=(
+                "You already have an extraction in progress. "
+                "Please wait for it to finish."
+            ),
         )
 
     # 2. Enforce Volume Quota (Daily/Weekly/Monthly)
@@ -43,7 +46,10 @@ async def extract(
         )
         raise HTTPException(
             status_code=429,
-            detail=f"You have reached your {limit_period} extraction limit. Upgrade your tier for more!",
+            detail=(
+                f"You have reached your {limit_period} extraction limit. "
+                "Upgrade your tier for more!"
+            ),
         )
 
     # Get user settings
@@ -72,7 +78,8 @@ async def extract(
 
     # Generate sources_used for the pending doc
     # Generate sources_used for the pending doc
-    # Robust filtering: only include enabled sources, and for multi-instance (like reddit), require params
+    # Robust filtering: only include enabled sources, and for multi-instance
+    # (like reddit), require params
     enabled_sources = []
     for s in sources:
         if not s.get("enabled", True):
@@ -118,7 +125,8 @@ async def extract(
 async def run_scheduled(
     authorized: bool = Depends(verify_internal_api_key),
 ):
-    """Internal endpoint called by Cloud Scheduler. Runs extractions for all scheduled users.
+    """Internal endpoint called by Cloud Scheduler.
+    Runs extractions for all scheduled users.
 
     Also triggers cleanup of expired results.
     """

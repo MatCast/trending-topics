@@ -52,7 +52,9 @@ def test_extraction_with_catalog_sources(client, mock_firebase):
 
 
 def test_extraction_skips_disabled_sources(client, mock_firebase):
-    """Disabled sources are passed to run_extraction (it handles filtering internally)."""
+    """Disabled sources are passed to run_extraction (it handles filtering
+    internally).
+    """
     with patch("app.routers.extraction.run_extraction") as mock_run:
         mock_run.return_value = None  # It's a background task now
 

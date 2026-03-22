@@ -50,3 +50,6 @@ Fixed the issue where extractions would "hang" in pending. Implemented a real-ti
 
 ## DONE: Improve Onboarding Limits Showing
 Abstracted limit visibility into a reusable `UsageLimitBadge.vue` component to correctly enforce and display limits (for both keywords and multi-instance sources like Reddit) during the onboarding phase, achieving parity with the main application limits logic.
+
+## DONE: Pre-commit Hook Setup
+Configured `.pre-commit-config.yaml` to run `black` and `flake8` dynamically. Tools are installed correctly into the local environment (`linkedin_posts`) instead of polluting the `requirements.txt` for the production container.

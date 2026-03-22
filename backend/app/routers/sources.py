@@ -4,7 +4,12 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..auth import verify_firebase_token
-from ..models import SourceConfigCreate, SourceConfigUpdate, SourceConfigResponse, SourceCatalogEntry
+from ..models import (
+    SourceConfigCreate,
+    SourceConfigUpdate,
+    SourceConfigResponse,
+    SourceCatalogEntry,
+)
 from .. import firebase_client as fb
 
 logger = logging.getLogger(__name__)
@@ -35,7 +40,9 @@ async def create_source(
 ):
     """Create a new source subscription."""
     uid = token_data["uid"]
-    user = fb.get_or_create_user(uid, token_data.get("email", ""), token_data.get("name", ""))
+    user = fb.get_or_create_user(
+        uid, token_data.get("email", ""), token_data.get("name", "")
+    )
     source_data = body.model_dump()
     user_tier = user.get("active_tier", "free")
 
@@ -55,7 +62,9 @@ async def update_source(
 ):
     """Update an existing source configuration."""
     uid = token_data["uid"]
-    user = fb.get_or_create_user(uid, token_data.get("email", ""), token_data.get("name", ""))
+    user = fb.get_or_create_user(
+        uid, token_data.get("email", ""), token_data.get("name", "")
+    )
     update_data = body.model_dump(exclude_none=True)
     user_tier = user.get("active_tier", "free")
 

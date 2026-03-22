@@ -7,7 +7,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .firebase_client import init_firebase, seed_source_catalog
-from .routers import sources, extraction, results, schedule, admin, keywords, extractions, users
+from .routers import (
+    sources,
+    extraction,
+    results,
+    schedule,
+    admin,
+    keywords,
+    extractions,
+    users,
+)
 
 # Setup logging
 logging.basicConfig(
@@ -21,7 +30,9 @@ is_production = os.environ.get("ENV") == "production"
 
 app = FastAPI(
     title="Trend Finder API",
-    description="API for finding trending topics across Reddit, Hacker News, and Bluesky.",
+    description=(
+        "API for finding trending topics across Reddit, Hacker News, and Bluesky."
+    ),
     version="1.0.0",
     docs_url=None if is_production else "/api/docs",
     redoc_url=None if is_production else "/api/redoc",

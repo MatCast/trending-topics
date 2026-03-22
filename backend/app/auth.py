@@ -55,10 +55,16 @@ async def verify_internal_api_key(
     x_internal_key: str = Header(None, alias="X-Internal-Key"),
     x_cloudscheduler: str = Header(None, alias="X-CloudScheduler"),
 ) -> bool:
-    """Verifies that the request comes from a trusted internal source (Scheduler or API Key)."""
+    """Verifies that the request comes from a trusted internal source
+    (Scheduler or API Key).
+    """
     # 1. Check for X-Internal-Key (Shared Secret)
     expected_key = os.environ.get("INTERNAL_API_KEY")
-    if expected_key and x_internal_key and secrets.compare_digest(x_internal_key, expected_key):
+    if (
+        expected_key
+        and x_internal_key
+        and secrets.compare_digest(x_internal_key, expected_key)
+    ):
         return True
 
     # 2. Check for X-CloudScheduler (Trusting Cloud Run's header stripping for now)

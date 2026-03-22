@@ -17,7 +17,9 @@ except ImportError as e:
 
 
 def seed_extraction_limits():
-    """Update the Firestore admin/config document with the current DEFAULT_EXTRACTION_LIMITS."""
+    """Update the Firestore admin/config document with the current
+    DEFAULT_EXTRACTION_LIMITS.
+    """
     print("Initializing Firebase...")
     init_firebase()
     db = get_db()

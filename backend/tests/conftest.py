@@ -238,7 +238,10 @@ def mock_firebase():
                         "enabled", True
                     ):
                         if len(active_reddit) >= limit:
-                            msg = f"Limit reached. Your tier allows a maximum of {limit} active subreddits."
+                            msg = (
+                                f"Limit reached. Your tier allows a maximum of "
+                                f"{limit} active subreddits."
+                            )
                             raise ValueError(msg)
                     src.update(update_data)
                     return src

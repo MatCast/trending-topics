@@ -56,11 +56,13 @@ def run_extraction(
         for s in sources:
             if not s.get("enabled", True):
                 continue
-            
+
             sid = s.get("source_id", s.get("type", "unknown"))
             # Safety: if it's reddit, it MUST have a subreddit param
             if sid == "reddit" and not s.get("params", {}).get("subreddit"):
-                logger.warning(f"Skipping malformed reddit source for user {uid}: {s.get('id')}")
+                logger.warning(
+                    f"Skipping malformed reddit source for user {uid}: {s.get('id')}"
+                )
                 continue
 
             enabled_sources.append(s)
@@ -124,7 +126,8 @@ def run_extraction(
         fb.store_results(uid, extraction_id, final_trends, sources_used, retention_days)
 
         logger.info(
-            f"Extraction {extraction_id} completed: {len(final_trends)} results for user {uid}"
+            f"Extraction {extraction_id} completed: {len(final_trends)} "
+            f"results for user {uid}"
         )
 
         return {

@@ -3,11 +3,14 @@
 
 def test_create_source_with_valid_source_id(client):
     """POST /api/sources with a valid source_id succeeds."""
-    response = client.post("/api/sources", json={
-        "source_id": "bluesky",
-        "enabled": True,
-        "use_global_keywords": True,
-    })
+    response = client.post(
+        "/api/sources",
+        json={
+            "source_id": "bluesky",
+            "enabled": True,
+            "use_global_keywords": True,
+        },
+    )
     assert response.status_code == 201
 
     data = response.json()
@@ -17,10 +20,13 @@ def test_create_source_with_valid_source_id(client):
 
 def test_create_source_with_invalid_source_id(client):
     """POST /api/sources with unknown source_id returns 400."""
-    response = client.post("/api/sources", json={
-        "source_id": "twitter",
-        "enabled": True,
-    })
+    response = client.post(
+        "/api/sources",
+        json={
+            "source_id": "twitter",
+            "enabled": True,
+        },
+    )
     assert response.status_code == 400
     assert "Unknown source_id" in response.json()["detail"]
 
@@ -28,10 +34,13 @@ def test_create_source_with_invalid_source_id(client):
 def test_create_duplicate_singleton(client):
     """Singleton sources re-enable existing instead of creating a duplicate."""
     # hackernews already exists in MOCK_USER_SOURCES
-    response = client.post("/api/sources", json={
-        "source_id": "hackernews",
-        "enabled": True,
-    })
+    response = client.post(
+        "/api/sources",
+        json={
+            "source_id": "hackernews",
+            "enabled": True,
+        },
+    )
     assert response.status_code == 201
 
     data = response.json()
@@ -43,11 +52,14 @@ def test_create_duplicate_singleton(client):
 
 def test_create_multi_instance_allows_duplicates(client):
     """Multi-instance sources allow multiple with different params."""
-    response = client.post("/api/sources", json={
-        "source_id": "reddit",
-        "enabled": True,
-        "params": {"subreddit": "machinelearning"},
-    })
+    response = client.post(
+        "/api/sources",
+        json={
+            "source_id": "reddit",
+            "enabled": True,
+            "params": {"subreddit": "machinelearning"},
+        },
+    )
     assert response.status_code == 201
 
     data = response.json()
@@ -73,9 +85,12 @@ def test_list_user_sources(client):
 
 def test_toggle_source_enabled(client):
     """PUT /api/sources/{id} updates the enabled flag."""
-    response = client.put("/api/sources/src_001", json={
-        "enabled": False,
-    })
+    response = client.put(
+        "/api/sources/src_001",
+        json={
+            "enabled": False,
+        },
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -96,34 +111,29 @@ def test_delete_source(client):
 def test_create_reddit_source_limit(client):
     """POST /api/sources returns 400 when Reddit limit is reached."""
     # User already has 1 reddit source (r/startups) from conftest
-    
+
     # Add 2nd
-    response = client.post("/api/sources", json={
-        "source_id": "reddit",
-        "params": {"subreddit": "python"}
-    })
+    response = client.post(
+        "/api/sources", json={"source_id": "reddit", "params": {"subreddit": "python"}}
+    )
     assert response.status_code == 201
-    
+
     # Add 3rd
-    response = client.post("/api/sources", json={
-        "source_id": "reddit",
-        "params": {"subreddit": "fastapi"}
-    })
+    response = client.post(
+        "/api/sources", json={"source_id": "reddit", "params": {"subreddit": "fastapi"}}
+    )
     assert response.status_code == 201
-    
+
     # Add 4th (Should succeed but be DISABLED by default for free tier)
-    response = client.post("/api/sources", json={
-        "source_id": "reddit",
-        "params": {"subreddit": "javascript"}
-    })
+    response = client.post(
+        "/api/sources",
+        json={"source_id": "reddit", "params": {"subreddit": "javascript"}},
+    )
     assert response.status_code == 201
     assert response.json()["enabled"] is False
-    
+
     # Try to ENABLE 4th (Should fail with 400)
     source_id = response.json()["id"]
-    response = client.put(
-        f"/api/sources/{source_id}",
-        json={"enabled": True}
-    )
+    response = client.put(f"/api/sources/{source_id}", json={"enabled": True})
     assert response.status_code == 400
     assert "Limit reached" in response.json()["detail"]

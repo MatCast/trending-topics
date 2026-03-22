@@ -39,7 +39,9 @@ def should_run_now(schedule: Dict[str, Any]) -> bool:
 
 
 def run_scheduled_extractions() -> Dict[str, Any]:
-    """Called by the cron job. Iterates all users with active schedules and runs extraction."""
+    """Called by the cron job. Iterates all users with active schedules
+    and runs extraction.
+    """
     users = fb.get_users_with_active_schedules()
     logger.info(f"Checking schedules for {len(users)} users with active schedules.")
 

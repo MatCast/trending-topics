@@ -60,14 +60,18 @@ class IndieHackersParser(TrendParser):
                 if not self._passes_keywords(title + " " + description):
                     continue
 
-                # The unofficial feed doesn't consistently provide ups/comments in standard fields.
-                # We will give it a modest default score to ensure it appears if it matches keywords,
-                # or attempt to parse if the community feed adds it later.
+                # The unofficial feed doesn't consistently provide ups/comments in
+                # standard fields. We will give it a modest default score to ensure
+                # it appears if it matches keywords, or attempt to parse if the
+                # community feed adds it later.
                 ups, comments = 10, 0
 
-                # Attempt to extract some stats if they exist in summary (unlikely but good to have)
+                # Attempt to extract some stats if they exist in summary
+                # (unlikely but good to have)
                 points_match = re.search(r"(\d+)\s+points?", raw_summary, re.IGNORECASE)
-                comments_match = re.search(r"(\d+)\s+comments?", raw_summary, re.IGNORECASE)
+                comments_match = re.search(
+                    r"(\d+)\s+comments?", raw_summary, re.IGNORECASE
+                )
                 if points_match:
                     ups = int(points_match.group(1))
                 if comments_match:
@@ -77,17 +81,19 @@ class IndieHackersParser(TrendParser):
 
                 entry_url = entry.get("link", "")
 
-                trends.append({
-                    "timestamp": now.isoformat(),
-                    "source": self.source_name,
-                    "source_type": "indiehackers",
-                    "title": title,
-                    "url": entry_url,
-                    "description": description,
-                    "trend_score": score,
-                    "ups": ups,
-                    "comments": comments,
-                })
+                trends.append(
+                    {
+                        "timestamp": now.isoformat(),
+                        "source": self.source_name,
+                        "source_type": "indiehackers",
+                        "title": title,
+                        "url": entry_url,
+                        "description": description,
+                        "trend_score": score,
+                        "ups": ups,
+                        "comments": comments,
+                    }
+                )
         except Exception as e:
             logger.error(f"Failed to fetch Indie Hackers {self.source_name}: {e}")
 

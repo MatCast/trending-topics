@@ -228,7 +228,8 @@ def create_source(
 
     Args:
         uid: Firebase user ID.
-        source_data: Dict with source_id, optional name, enabled, use_global_keywords, params.
+        source_data: Dict with source_id, optional name, enabled,
+            use_global_keywords, params.
     """
     db = get_db()
     source_id = source_data.get("source_id", "")
@@ -285,7 +286,8 @@ def create_source(
                             logger.warning(
                                 f"Reddit source limit reached ({limit}) for user {uid}"
                             )
-                            # If they added it explicitly as enabled but are over limit, we keep it disabled
+                            # If they added it explicitly as enabled but are over limit,
+                            # we keep it disabled
                             return {"id": doc.id, **doc_data, "existed": True}
 
                         doc.reference.update({"enabled": True})
@@ -301,10 +303,10 @@ def create_source(
 
                     return {"id": doc.id, **doc_data, "existed": True}
 
-            # 2. Truly new subreddit. If at limit, force disabled.
             if limit != -1 and active_count >= limit:
                 logger.info(
-                    f"Limit reached ({limit}). Adding subreddit r/{subreddit} as disabled for {uid}"
+                    f"Limit reached ({limit}). Adding subreddit r/{subreddit} "
+                    f"as disabled for {uid}"
                 )
                 source_data["enabled"] = False
 
@@ -365,7 +367,8 @@ def update_source(
                         .stream()
                     )
                     # Use sum to count stream to avoid composite index if possible,
-                    # but here where/where might need one. Let's stick to memory count for simplicity/safety.
+                    # but here where/where might need one. Let's stick to memory
+                    # count for simplicity/safety.
                     # Or just reuse the check from create_source
                     existing_reddit_sources = list(
                         db.collection("users")
@@ -382,7 +385,8 @@ def update_source(
 
                     if active_count >= limit:
                         logger.warning(
-                            f"Cannot enable Reddit source. Limit ({limit}) reached for user {uid}"
+                            f"Cannot enable Reddit source. Limit ({limit}) reached "
+                            f"for user {uid}"
                         )
                         raise ValueError(
                             (
@@ -663,7 +667,8 @@ def update_keyword(
                 )
                 if active_count >= limit:
                     raise ValueError(
-                        f"Limit reached. Your tier allows a maximum of {limit} active keywords."
+                        f"Limit reached. Your tier allows a maximum of {limit} "
+                        "active keywords."
                     )
     kw_ref = (
         db.collection("users").document(uid).collection("keywords").document(keyword_id)
@@ -703,7 +708,8 @@ def bulk_update_keywords(
             if active_count + toBeEnabledCount > limit:
                 # Instead of completely failing, limit to what's available or just fail
                 raise ValueError(
-                    f"Limit reached. Bulk enabling would exceed your maximum of {limit} active keywords."
+                    f"Limit reached. Bulk enabling would exceed your maximum of "
+                    f"{limit} active keywords."
                 )
     batch = db.batch()
     count = 0
@@ -846,7 +852,8 @@ def store_results(
     for result in results:
         doc_ref = results_ref.document()
 
-        # Update the result dict in-place so it's returned to the caller with its new fields
+        # Update the result dict in-place so it's returned to the caller
+        # with its new fields
         result["id"] = doc_ref.id
         result["extraction_id"] = extraction_id
         result["created_at"] = now
@@ -937,7 +944,8 @@ def list_results(
             continue
         filtered_docs.append(data)
 
-    # Sort in memory if extraction_id is used since we skipped order_by to avoid composite index requirement
+    # Sort in memory if extraction_id is used since we skipped order_by to
+    # avoid composite index requirement
     if extraction_id:
         reverse = sort_order == "desc"
         # Safely sort using get
@@ -960,7 +968,9 @@ def list_results(
 def get_all_results_for_export(
     uid: str, extraction_id: Optional[str] = None
 ) -> List[Dict[str, Any]]:
-    """Get all non-expired results for CSV export, optionally filtered by extraction_id."""
+    """Get all non-expired results for CSV export, optionally filtered by
+    extraction_id.
+    """
     db = get_db()
 
     query = db.collection("users").document(uid).collection("results")
@@ -994,7 +1004,9 @@ def delete_result(uid: str, result_id: str):
 
 
 def cleanup_expired_results():
-    """Delete all expired results and extractions across all users. Called by scheduled job."""
+    """Delete all expired results and extractions across all users.
+    Called by scheduled job.
+    """
     db = get_db()
     now = datetime.now(timezone.utc)
     deleted_count = 0
