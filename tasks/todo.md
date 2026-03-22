@@ -15,5 +15,5 @@ Improve the onboarding page (`frontend/app/pages/onboarding.vue`) to respect use
   - [x] Add computed properties for Reddit limits in onboarding.
   - [x] Use `UsageLimitBadge` in `onboarding.vue` and `sources.vue`.
   - [x] Update `addDraftInstance` in onboarding to add new subreddits as disabled if limit is reached.
-- [ ] Verify Changes
-- [ ] Finalize Documentation (Backlog, Lessons, Architecture)
+- [x] Verify Changes
+- [x] Finalize Documentation (Backlog, Lessons, Architecture)

@@ -48,8 +48,8 @@ The application runs as a containerized dual-service architecture orchestrated b
 ## 8. Keywords Sub-Collection Architecture
 - **Keywords Collection**: Per-user keywords stored in `users/{uid}/keywords/` sub-collection with fields: `text`, `enabled`, `created_at`.
 - **Extraction**: `extraction.py` and `scheduler.py` call `list_enabled_keywords(uid)` which queries only `enabled=True` keywords from the sub-collection.
-- **Keyword Limits**: `DEFAULT_KEYWORD_LIMITS` maps user tiers to max keywords (`free: 20`, `pro: 100`, `unlimited: -1`). Enforced in `create_keywords()`.
-- **API Endpoints**: `GET/POST /api/keywords`, `PUT /api/keywords/{id}`, `POST /api/keywords/bulk` (bulk enable/disable/delete), `DELETE /api/keywords/{id}`.
+- **Keyword Limits**: Managed under an "Enablement-based Capping" model. Users can create any number of keywords, but the tier limit (`free: 20`, `pro: 100`) applies to those with `enabled: true`. This is enforced in both `create_keywords()` (new keywords are disabled if over limit) and `update_keyword()`/`bulk_update_keywords()` (preventing enabling beyond limit).
+- **API Endpoints**: `GET/POST /api/keywords`, `PUT /api/keywords/{id}`, `POST /api/keywords/bulk` (bulk enable/disable/delete with tier validation), `DELETE /api/keywords/{id}`.
 - **Frontend**: Dedicated `/keywords` management page with table, bulk selection, toggle enabled, comma-separated add input. Keywords removed from `/settings` page.
 
 ## 9. Extractions and Results Architecture
@@ -62,11 +62,11 @@ The application runs as a containerized dual-service architecture orchestrated b
 - **Real-time Updates**: The `index.vue` page uses a direct Firestore `onSnapshot` listener (Client SDK) to monitor "pending" extractions. This requires specific **Firestore Security Rules** allowing read access to the user's sub-collections while blocking all direct client writes.
 
 ## 10. Source Tier Limits (Firestore Driven)
-- **Logic**: Enforced primarily on the **enablement** of multi-instance sources (e.g., Reddit) to allow users to catalog as many sources as they wish while capping active processing.
+- **Logic**: Enforced primarily on the **enablement** of multi-instance sources (e.g., Reddit) and Keywords to allow users to catalog as many items as they wish while capping active processing.
 - **Limits**: Stored in `admin/config` in Firestore under `tier_limits`. `DEFAULT_KEYWORD_LIMITS` and `DEFAULT_REDDIT_SOURCE_LIMITS` constants serve as local fallbacks.
 - **Enforcement**:
-    - **Backend**: Service methods (e.g., `create_source`, `create_keywords`) fetch user's `active_tier` and query Firestore for current limits.
-    - **Frontend**: The `sources.vue` page uses the `useUser` composable to fetch dynamic limits. It handles the "unlimited" case (`-1`) by displaying `∞` and bypassing local UI warnings.
+    - **Backend**: Service methods (e.g., `update_source`, `update_keyword`) validate `enabled=true` requests against the user's `active_tier` limits.
+    - **Frontend**: Pages like `sources.vue` and `keywords.vue` use the `useUser` composable and `UsageLimitBadge.vue` to display and enforce these limits proactively.
 
 ## 11. User Profile API
 - **Endpoint**: `GET /api/users/me` provides a unified view of the authenticated user's profile.
