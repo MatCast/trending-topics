@@ -22,7 +22,8 @@ class RedditParser(TrendParser):
 
         fetch_method = self.params.get("reddit_fetch_method", "rapidapi")
         logger.info(
-            f"Fetching trends from Reddit ({fetch_method}): {self.source_name} (r/{subreddit})..."
+            f"Fetching trends from Reddit ({fetch_method}): "
+            f"{self.source_name} (r/{subreddit})..."
         )
 
         if fetch_method == "rapidapi":
@@ -35,7 +36,8 @@ class RedditParser(TrendParser):
         rapidapi_key = os.environ.get("RAPIDAPI_KEY")
         if not rapidapi_key:
             logger.error(
-                "RAPIDAPI_KEY environment variable is not set. Falling back to direct fetch."
+                "RAPIDAPI_KEY environment variable is not set. "
+                "Falling back to direct fetch."
             )
             return self._fetch_direct(subreddit)
 
@@ -60,7 +62,12 @@ class RedditParser(TrendParser):
                 logger.info(f"RapidAPI Credits Remaining: {remaining}")
                 try:
                     from .. import firebase_client as fb
-                    fb.update_api_usage("rapidapi_reddit", int(remaining), resp.headers.get("X-RateLimit-Requests-Reset"))
+
+                    fb.update_api_usage(
+                        "rapidapi_reddit",
+                        int(remaining),
+                        resp.headers.get("X-RateLimit-Requests-Reset"),
+                    )
                 except Exception as e:
                     logger.error(f"Failed to update API usage in Firebase: {e}")
 
@@ -115,7 +122,8 @@ class RedditParser(TrendParser):
             headers = {
                 "User-Agent": (
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/122.0.0.0 Safari/537.36"
                 ),
                 "Accept-Language": "en-US,en;q=0.9",
                 "Accept": "application/json",

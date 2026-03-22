@@ -24,7 +24,9 @@ class TrendParser:
         self.params = params or {}
 
     def fetch(self) -> List[Dict[str, Any]]:
-        """Must be implemented by subclasses. Returns a list of standardized trend dicts."""
+        """Must be implemented by subclasses.
+        Returns a list of standardized trend dicts.
+        """
         raise NotImplementedError
 
     def _score_trend(self, ups: int, comments: int) -> float:
@@ -55,10 +57,14 @@ def get_parser(
     if source_type == "reddit":
         return RedditParser(source_name, time_window_hours, keywords, weight, params)
     elif source_type == "hackernews":
-        return HackerNewsParser(source_name, time_window_hours, keywords, weight, params)
+        return HackerNewsParser(
+            source_name, time_window_hours, keywords, weight, params
+        )
     elif source_type == "bluesky":
         return BlueskyParser(source_name, time_window_hours, keywords, weight, params)
     elif source_type == "indiehackers":
-        return IndieHackersParser(source_name, time_window_hours, keywords, weight, params)
+        return IndieHackersParser(
+            source_name, time_window_hours, keywords, weight, params
+        )
     else:
         raise ValueError(f"Unknown source type: '{source_type}'")

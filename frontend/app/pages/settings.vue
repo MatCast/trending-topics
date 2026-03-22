@@ -34,9 +34,12 @@
       </div>
 
       <!-- Schedule -->
-      <div class="card bg-base-100 shadow-xl border border-base-300">
+      <div v-if="!isFreeTier" class="card bg-base-100 shadow-xl border border-base-300">
         <div class="card-body">
-          <h2 class="card-title">Schedule</h2>
+          <h2 class="card-title flex items-center gap-2">
+            Schedule
+            <div v-if="schedule.type !== 'manual'" class="badge badge-success badge-xs">Active</div>
+          </h2>
           <p class="text-base-content/60 text-sm mb-3">Automatically run extractions on a schedule.</p>
 
           <div class="form-control">
@@ -59,7 +62,7 @@
           <div v-if="schedule.type === 'daily' || schedule.type === 'weekly'" class="form-control mt-3">
             <label class="label"><span class="label-text">Hour of day (UTC)</span></label>
             <select class="select select-bordered" v-model="schedule.hour_of_day">
-              <option v-for="h in 24" :key="h-1" :value="h-1">{{ String(h-1).padStart(2, '0') }}:00</option>
+              <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00</option>
             </select>
           </div>
 
@@ -79,13 +82,29 @@
         </div>
       </div>
 
+      <!-- Free Tier Upgrade Notice -->
+      <div v-else class="card shadow-xl border border-warning/30 bg-warning/5 overflow-hidden">
+        <div class="card-body">
+          <div class="flex items-center gap-3 text-warning">
+            <div class="p-2 bg-warning/20 rounded-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h2 class="card-title">Scheduling is Locked</h2>
+          </div>
+          <p class="text-sm opacity-70 mt-2">Automated scheduling is only available for Pro users. Upgrade your tier to enable automatic trend tracking every
+            hour, day, or week.</p>
+          <div class="card-actions justify-end mt-4">
+            <button class="btn btn-warning btn-sm" disabled>Compare Plans</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Save Button -->
       <div class="flex justify-end">
-        <button
-          class="btn btn-primary"
-          :class="{ 'btn-disabled': isSaving }"
-          @click="saveSettings"
-        >
+        <button class="btn btn-primary" :class="{ 'btn-disabled': isSaving }" @click="saveSettings">
           <span v-if="isSaving" class="loading loading-spinner loading-sm"></span>
           {{ isSaving ? 'Saving...' : 'Save Settings' }}
         </button>
@@ -103,6 +122,7 @@
 definePageMeta({ layout: 'default' })
 
 const { apiFetch } = useApi()
+const { isFreeTier } = useUser()
 
 const isLoading = ref(true)
 const isSaving = ref(false)

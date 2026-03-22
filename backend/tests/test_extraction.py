@@ -52,7 +52,9 @@ def test_extraction_with_catalog_sources(client, mock_firebase):
 
 
 def test_extraction_skips_disabled_sources(client, mock_firebase):
-    """Disabled sources are passed to run_extraction (it handles filtering internally)."""
+    """Disabled sources are passed to run_extraction (it handles filtering
+    internally).
+    """
     with patch("app.routers.extraction.run_extraction") as mock_run:
         mock_run.return_value = None  # It's a background task now
 
@@ -69,3 +71,22 @@ def test_extraction_no_sources_returns_400(client, mock_firebase):
         response = client.post("/api/extract", json={})
         assert response.status_code == 400
         assert "No sources configured" in response.json()["detail"]
+
+
+def test_extraction_concurrency_limit(client, mock_firebase):
+    """POST /api/extract returns 400 if an extraction is already active."""
+    with patch("app.routers.extraction.fb.has_active_extraction", return_value=True):
+        response = client.post("/api/extract", json={})
+        assert response.status_code == 400
+        assert "extraction in progress" in response.json()["detail"].lower()
+
+
+def test_extraction_quota_limit(client, mock_firebase):
+    """POST /api/extract returns 429 if volume quota is exceeded."""
+    with patch(
+        "app.routers.extraction.fb.check_and_increment_extraction_quota",
+        return_value=(False, "daily"),
+    ):
+        response = client.post("/api/extract", json={})
+        assert response.status_code == 429
+        assert "daily extraction limit" in response.json()["detail"].lower()

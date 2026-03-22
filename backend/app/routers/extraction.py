@@ -22,7 +22,35 @@ async def extract(
 ):
     """Run trend extraction for the authenticated user."""
     uid = token_data["uid"]
-    fb.get_or_create_user(uid, token_data.get("email", ""), token_data.get("name", ""))
+    user_data = fb.get_or_create_user(
+        uid, token_data.get("email", ""), token_data.get("name", "")
+    )
+    user_tier = user_data.get("active_tier", "free")
+
+    # 1. Enforce Concurrency (Max 1 at a time)
+    if fb.has_active_extraction(uid):
+        logger.warning(f"User {uid} attempted concurrent extraction.")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "You already have an extraction in progress. "
+                "Please wait for it to finish."
+            ),
+        )
+
+    # 2. Enforce Volume Quota (Daily/Weekly/Monthly)
+    success, limit_period = fb.check_and_increment_extraction_quota(uid, user_tier)
+    if not success:
+        logger.warning(
+            f"User {uid} ({user_tier}) reached {limit_period} extraction limit."
+        )
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"You have reached your {limit_period} extraction limit. "
+                "Upgrade your tier for more!"
+            ),
+        )
 
     # Get user settings
     settings = fb.get_user_settings(uid)
@@ -50,21 +78,26 @@ async def extract(
 
     # Generate sources_used for the pending doc
     # Generate sources_used for the pending doc
-    # Robust filtering: only include enabled sources, and for multi-instance (like reddit), require params
+    # Robust filtering: only include enabled sources, and for multi-instance
+    # (like reddit), require params
     enabled_sources = []
     for s in sources:
         if not s.get("enabled", True):
             continue
-        
+
         sid = s.get("source_id", s.get("type", "unknown"))
         # Safety: if it's reddit, it MUST have a subreddit param
         if sid == "reddit" and not s.get("params", {}).get("subreddit"):
-            logger.warning(f"Skipping malformed reddit source for user {uid}: {s.get('id')}")
+            logger.warning(
+                f"Skipping malformed reddit source for user {uid}: {s.get('id')}"
+            )
             continue
-            
+
         enabled_sources.append(s)
 
-    sources_used = list(set(s.get("source_id", s.get("type", "unknown")) for s in enabled_sources))
+    sources_used = list(
+        set(s.get("source_id", s.get("type", "unknown")) for s in enabled_sources)
+    )
     # Create the pending extraction document
     extraction_id = fb.create_pending_extraction(uid, sources_used)
 
@@ -92,7 +125,8 @@ async def extract(
 async def run_scheduled(
     authorized: bool = Depends(verify_internal_api_key),
 ):
-    """Internal endpoint called by Cloud Scheduler. Runs extractions for all scheduled users.
+    """Internal endpoint called by Cloud Scheduler.
+    Runs extractions for all scheduled users.
 
     Also triggers cleanup of expired results.
     """

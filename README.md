@@ -31,6 +31,14 @@ cp .env.example .env
 uvicorn app.main:app --reload
 ```
 
+#### Seeding Configurations
+If you change default extraction limits or need to initialize your Firebase Firestore database with the correct configurations:
+```bash
+# Wait for your docker containers to start, then run:
+docker compose exec backend python scripts/seed_limits.py
+```
+
+
 ### 3. Frontend Setup
 ```bash
 cd frontend
@@ -63,6 +71,16 @@ To run the entire application (frontend + backend) locally using Docker Compose:
 - **Frontend**: Nuxt 4, Tailwind CSS v4, DaisyUI, Firebase Auth.
 - **Backend**: FastAPI, Firestore, Firebase Admin SDK.
 - **Infrastucture**: Docker, Google Cloud Run, Cloud Scheduler.
+
+## Local Development Linters
+We use `pre-commit` hook to automatically enforce basic formatting standards (like `black` and `flake8`) prior to a commit.
+**Do not** install these dependencies inside the production container. Use a local environment:
+
+```bash
+workon linkedin_posts
+pip install pre-commit black flake8
+pre-commit install
+```
 
 ## 🚀 Deployment to Google Cloud Run
 

@@ -16,9 +16,9 @@ def test_list_keywords(client):
 
 def test_create_keywords(client):
     """POST /api/keywords creates new keywords."""
-    response = client.post("/api/keywords", json={
-        "keywords": ["GPT", "machine learning"]
-    })
+    response = client.post(
+        "/api/keywords", json={"keywords": ["GPT", "machine learning"]}
+    )
     assert response.status_code == 201
 
     data = response.json()
@@ -30,9 +30,10 @@ def test_create_keywords(client):
 
 def test_create_keywords_with_commas_and_whitespace(client):
     """Keywords are trimmed and empty entries are filtered."""
-    response = client.post("/api/keywords", json={
-        "keywords": ["  deep learning  ", "", "   ", "neural nets"]
-    })
+    response = client.post(
+        "/api/keywords",
+        json={"keywords": ["  deep learning  ", "", "   ", "neural nets"]},
+    )
     assert response.status_code == 201
 
     data = response.json()
@@ -43,9 +44,10 @@ def test_create_keywords_with_commas_and_whitespace(client):
 
 def test_create_duplicate_keyword_skipped(client):
     """Duplicate keywords (case-insensitive) are silently skipped."""
-    response = client.post("/api/keywords", json={
-        "keywords": ["ai", "AI", "Startup"]  # 'AI' and 'startup' already exist
-    })
+    response = client.post(
+        "/api/keywords",
+        json={"keywords": ["ai", "AI", "Startup"]},  # 'AI' and 'startup' already exist
+    )
     assert response.status_code == 201
 
     data = response.json()
@@ -55,9 +57,7 @@ def test_create_duplicate_keyword_skipped(client):
 
 def test_toggle_keyword_enabled(client):
     """PUT /api/keywords/{id} toggles the enabled flag."""
-    response = client.put("/api/keywords/kw_001", json={
-        "enabled": False
-    })
+    response = client.put("/api/keywords/kw_001", json={"enabled": False})
     assert response.status_code == 200
 
     data = response.json()
@@ -67,10 +67,9 @@ def test_toggle_keyword_enabled(client):
 
 def test_bulk_enable_keywords(client):
     """POST /api/keywords/bulk enables selected keywords."""
-    response = client.post("/api/keywords/bulk", json={
-        "keyword_ids": ["kw_003"],
-        "action": "enable"
-    })
+    response = client.post(
+        "/api/keywords/bulk", json={"keyword_ids": ["kw_003"], "action": "enable"}
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -80,10 +79,9 @@ def test_bulk_enable_keywords(client):
 
 def test_bulk_delete_keywords(client):
     """POST /api/keywords/bulk deletes selected keywords."""
-    response = client.post("/api/keywords/bulk", json={
-        "keyword_ids": ["kw_003"],
-        "action": "delete"
-    })
+    response = client.post(
+        "/api/keywords/bulk", json={"keyword_ids": ["kw_003"], "action": "delete"}
+    )
     assert response.status_code == 200
 
     data = response.json()

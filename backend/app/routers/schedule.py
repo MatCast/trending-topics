@@ -4,7 +4,7 @@ import logging
 from fastapi import APIRouter, Depends
 
 from ..auth import verify_firebase_token
-from ..models import ScheduleConfig, UserSettingsUpdate, UserSettingsResponse
+from ..models import UserSettingsUpdate, UserSettingsResponse
 from .. import firebase_client as fb
 
 logger = logging.getLogger(__name__)

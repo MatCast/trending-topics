@@ -1,8 +1,4 @@
-"""Extractions router — list user extraction history."""
-
 import logging
-from typing import Optional
-
 from fastapi import APIRouter, Depends, Query
 
 from ..auth import verify_firebase_token

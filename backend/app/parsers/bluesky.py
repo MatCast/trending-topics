@@ -62,7 +62,7 @@ class BlueskyParser(TrendParser):
                 "q": query,
                 "sort": "top",
                 "limit": 30,
-                "since": cutoff.isoformat().replace("+00:00", "Z")
+                "since": cutoff.isoformat().replace("+00:00", "Z"),
             }
 
             try:
@@ -108,16 +108,18 @@ class BlueskyParser(TrendParser):
             if author_handle and post_id:
                 post_url = f"https://bsky.app/profile/{author_handle}/post/{post_id}"
 
-            trends.append({
-                "timestamp": now.isoformat(),
-                "source": self.source_name,
-                "source_type": "bluesky",
-                "title": f"Post by @{author_handle}",
-                "url": post_url,
-                "description": text,
-                "trend_score": score,
-                "ups": ups,
-                "comments": comments,
-            })
+            trends.append(
+                {
+                    "timestamp": now.isoformat(),
+                    "source": self.source_name,
+                    "source_type": "bluesky",
+                    "title": f"Post by @{author_handle}",
+                    "url": post_url,
+                    "description": text,
+                    "trend_score": score,
+                    "ups": ups,
+                    "comments": comments,
+                }
+            )
 
         return trends

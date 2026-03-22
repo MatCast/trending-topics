@@ -18,11 +18,15 @@ router = APIRouter(prefix="/api/results", tags=["results"])
 
 @router.get("", response_model=ResultsListResponse)
 async def list_results(
-    extraction_id: Optional[str] = Query(None, description="Filter by a specific extraction ID"),
-    source_type: Optional[str] = Query(None, description="Filter by source type: reddit, hackernews, bluesky"),
+    extraction_id: Optional[str] = Query(
+        None, description="Filter by a specific extraction ID"
+    ),
+    source_type: Optional[str] = Query(
+        None, description="Filter by source type: reddit, hackernews, bluesky"
+    ),
     sort_by: str = Query(
         "created_at",
-        description="Sort field: created_at, trend_score, ups, comments, title, source"
+        description="Sort field: created_at, trend_score, ups, comments, title, source",
     ),
     sort_order: str = Query("desc", description="Sort direction: asc or desc"),
     page: int = Query(1, ge=1),
@@ -52,7 +56,9 @@ async def list_results(
 
 @router.get("/export/csv")
 async def export_csv(
-    extraction_id: Optional[str] = Query(None, description="Filter exports by extraction ID"),
+    extraction_id: Optional[str] = Query(
+        None, description="Filter exports by extraction ID"
+    ),
     token_data: dict = Depends(verify_firebase_token),
 ):
     """Export all results as CSV download."""
@@ -64,10 +70,19 @@ async def export_csv(
     writer = csv.writer(output)
 
     # Header
-    writer.writerow([
-        "Timestamp", "Source", "Source Type", "Title", "URL",
-        "Description", "Trend Score", "Ups", "Comments",
-    ])
+    writer.writerow(
+        [
+            "Timestamp",
+            "Source",
+            "Source Type",
+            "Title",
+            "URL",
+            "Description",
+            "Trend Score",
+            "Ups",
+            "Comments",
+        ]
+    )
 
     # Data rows
     for r in results:
@@ -75,17 +90,19 @@ async def export_csv(
         if hasattr(created, "isoformat"):
             created = created.isoformat()
 
-        writer.writerow([
-            created,
-            r.get("source", ""),
-            r.get("source_type", ""),
-            r.get("title", ""),
-            r.get("url", ""),
-            r.get("description", ""),
-            r.get("trend_score", 0),
-            r.get("ups", 0),
-            r.get("comments", 0),
-        ])
+        writer.writerow(
+            [
+                created,
+                r.get("source", ""),
+                r.get("source_type", ""),
+                r.get("title", ""),
+                r.get("url", ""),
+                r.get("description", ""),
+                r.get("trend_score", 0),
+                r.get("ups", 0),
+                r.get("comments", 0),
+            ]
+        )
 
     output.seek(0)
 

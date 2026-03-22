@@ -71,17 +71,19 @@ class HackerNewsParser(TrendParser):
                 if entry.get("comments"):
                     entry_url = entry.get("comments")
 
-                trends.append({
-                    "timestamp": now.isoformat(),
-                    "source": self.source_name,
-                    "source_type": "hackernews",
-                    "title": title,
-                    "url": entry_url,
-                    "description": description,
-                    "trend_score": score,
-                    "ups": ups,
-                    "comments": comments,
-                })
+                trends.append(
+                    {
+                        "timestamp": now.isoformat(),
+                        "source": self.source_name,
+                        "source_type": "hackernews",
+                        "title": title,
+                        "url": entry_url,
+                        "description": description,
+                        "trend_score": score,
+                        "ups": ups,
+                        "comments": comments,
+                    }
+                )
         except Exception as e:
             logger.error(f"Failed to fetch HN {self.source_name}: {e}")
 

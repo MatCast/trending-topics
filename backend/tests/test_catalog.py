@@ -1,6 +1,5 @@
 """Tests for the source catalog API."""
 
-import pytest
 from tests.conftest import MOCK_CATALOG
 
 
@@ -24,11 +23,21 @@ def test_catalog_contains_required_fields(client):
     response = client.get("/api/sources/catalog")
     assert response.status_code == 200
 
-    required_fields = ["id", "name", "description", "icon", "visibility", "config_schema", "is_multi_instance"]
+    required_fields = [
+        "id",
+        "name",
+        "description",
+        "icon",
+        "visibility",
+        "config_schema",
+        "is_multi_instance",
+    ]
 
     for source in response.json():
         for field in required_fields:
-            assert field in source, f"Missing field '{field}' in source '{source.get('id')}'"
+            assert (
+                field in source
+            ), f"Missing field '{field}' in source '{source.get('id')}'"
 
 
 def test_catalog_filters_by_visibility(client, mock_firebase):
