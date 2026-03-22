@@ -1,9 +1,5 @@
 # Backlog — Future Enhancements
 
-## Add Limits to Extractions
-Add limits to extractions based on the user's tier. For example, users in the free tier can only have 1 extraction at a time, while users in the pro tier can have 5 extractions at a time. This should be based on configurations in the database that determine how many extractions each tier can have at a time.
-
-
 ## Extractions Debugging
 Add some debugging instructions on the extractions page so that if users end up having no results, they would have some way to know what to do. Here what we might need to do is, when we do the extraction, we should also create a list of things that can go wrong. For example:
 - Things like we got data from the sources but we filtered out because of keywords, time stamps, and so on.
@@ -53,3 +49,6 @@ Abstracted limit visibility into a reusable `UsageLimitBadge.vue` component to c
 
 ## DONE: Pre-commit Hook Setup
 Configured `.pre-commit-config.yaml` to run `black` and `flake8` dynamically. Tools are installed correctly into the local environment (`linkedin_posts`) instead of polluting the `requirements.txt` for the production container.
+
+## DONE: Add Limits to Extractions
+Implemented tier-based extraction quotas (daily, weekly, monthly) and concurrency limits. Users in the free tier are capped at 3 per month and cannot schedule extractions. Pro users are capped at 30 per month. All limits are configurable via Firestore admin config.
