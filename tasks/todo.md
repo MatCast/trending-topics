@@ -1,10 +1,11 @@
-# Linter setup
-- [x] Add `pre-commit`, `black`, `flake8` to `backend/requirements.txt` based on current state. (Omitted to avoid cloud run inclusion, installed locally instead).
-- [x] Create `.pre-commit-config.yaml` at the root of the repository.
-- [x] Configure `black` and `flake8` hooks in the config file.
-- [x] Provide instructions to the user to run `pre-commit install`. (Already ran it).
+# Task: Create Subagent Delegation Architecture
 
-## Review
-- [x] All pre-commit hooks (`black`, `flake8`) pass on the full codebase.
-- [x] Documentation ([README.md](file:///home/gozy4/programming/LinkedInPosts/README.md), [lessons.md](file:///home/gozy4/programming/LinkedInPosts/tasks/lessons.md), [architecture_knowledge.md](file:///home/gozy4/programming/LinkedInPosts/tasks/architecture_knowledge.md)) is up to date.
-- [x] Fixed all remaining `E501` long line errors manually.
+## Plan
+- [x] Brainstorm parallel subagent workflow using Agent Profiles and Git Worktrees.
+- [x] Create `.agent/profiles/frontend-expert.md` with boundaries and skills.
+- [x] Create `.agent/profiles/backend-expert.md` with boundaries and Docker test commands.
+- [x] Create `.agent/skills/architect-delegation/SKILL.md` detailing the Architect's role in creating API contracts, making worktrees, passing correct profiles, and running parallel UI/API agents without port conflicts using `docker compose run`. 
+
+## Docker Parallelization Strategy
+- Worktrees inherently have their own directory names, so `docker-compose` creates unique, isolated project networks (e.g. `backendfeature_backend_run_xxx`).
+- Subagents are instructed to use `docker compose run --rm <service> <command>` instead of `docker compose up`. This ensures they can run tests without binding to host ports (like 8000/3000), avoiding conflicts with the main development environment or each other.
