@@ -285,14 +285,14 @@ def mock_firebase():
             seen.add(kw_lower)
         return created
 
-    def mock_update_keyword(uid, keyword_id, update_data):
+    def mock_update_keyword(uid, keyword_id, update_data, user_tier="free"):
         for kw in user_keywords:
             if kw["id"] == keyword_id:
                 kw.update(update_data)
                 return kw
-        raise Exception(f"Keyword {keyword_id} not found")
+        return None
 
-    def mock_bulk_update_keywords(uid, keyword_ids, update_data):
+    def mock_bulk_update_keywords(uid, keyword_ids, update_data, user_tier="free"):
         count = 0
         for kw in user_keywords:
             if kw["id"] in keyword_ids:

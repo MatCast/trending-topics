@@ -799,7 +799,11 @@ def create_pending_extraction(uid: str, sources_used: List[str]) -> str:
 
 
 def update_extraction_status(
-    uid: str, extraction_id: str, status: str, error: str = None
+    uid: str,
+    extraction_id: str,
+    status: str,
+    error: str = None,
+    insights: List[Dict[str, Any]] = None,
 ):
     """Update the status of an existing extraction document."""
     db = get_db()
@@ -813,6 +817,8 @@ def update_extraction_status(
     update_data = {"status": status}
     if error:
         update_data["error"] = error
+    if insights:
+        update_data["insights"] = insights
 
     extraction_ref.update(update_data)
     logger.info(f"Updated extraction {extraction_id} status to {status} for user {uid}")
@@ -824,6 +830,7 @@ def store_results(
     results: List[Dict[str, Any]],
     sources_used: List[str],
     retention_days: int = 15,
+    insights: List[Dict[str, Any]] = None,
 ):
     """Update extraction run metadata and store its results in Firestore with TTL."""
     db = get_db()
@@ -844,6 +851,9 @@ def store_results(
         "results_count": len(results),
         "sources": sources_used,
     }
+    if insights:
+        extraction_data["insights"] = insights
+
     batch.update(extraction_ref, extraction_data)
 
     # 2. Store individual results

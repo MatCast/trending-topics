@@ -22,6 +22,13 @@ class TrendParser:
         self.keywords = [k.lower() for k in keywords]
         self.weight = weight
         self.params = params or {}
+        self.insights = []
+
+    def add_insight(self, type: str, message: str):
+        """Adds a debug/info message to the extraction run."""
+        self.insights.append(
+            {"source_id": self.source_name, "type": type, "message": message}
+        )
 
     def fetch(self) -> List[Dict[str, Any]]:
         """Must be implemented by subclasses.

@@ -136,11 +136,20 @@ class ExtractionRequest(BaseModel):
     use_keywords: Optional[bool] = None
 
 
+class ExtractionInsight(BaseModel):
+    """Debug or informational messages about an extraction run."""
+
+    source_id: str
+    type: Literal["info", "warning", "error"]
+    message: str
+
+
 class ExtractionRunResponse(BaseModel):
     extraction_id: str
     status: Literal["pending", "completed", "failed"] = "completed"
     results_count: int
     results: List["TrendResultResponse"]
+    insights: List[ExtractionInsight] = Field(default_factory=list)
     error: Optional[str] = None
 
 
@@ -151,6 +160,7 @@ class ExtractionResponse(BaseModel):
     results_count: int
     sources: List[str]
     status: Literal["pending", "completed", "failed"] = "completed"
+    insights: List[ExtractionInsight] = Field(default_factory=list)
     error: Optional[str] = None
 
 

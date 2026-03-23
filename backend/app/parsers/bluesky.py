@@ -21,7 +21,9 @@ class BlueskyParser(TrendParser):
     def _create_session(self):
         """Authenticates with Bluesky to get a JWT."""
         if not self.handle or not self.password:
-            logger.warning("Bluesky credentials missing. Search might be restricted.")
+            self.add_insight(
+                "warning", "Bluesky credentials missing. Search may be restricted."
+            )
             return None
 
         url = "https://bsky.social/xrpc/com.atproto.server.createSession"
@@ -35,7 +37,9 @@ class BlueskyParser(TrendParser):
             self.session = resp.json()
             return self.session
         except Exception as e:
-            logger.error(f"Bluesky auth failed: {e}")
+            msg = f"Bluesky auth failed: {e}"
+            logger.error(msg)
+            self.add_insight("error", msg)
             return None
 
     def fetch(self) -> List[Dict[str, Any]]:
@@ -75,8 +79,15 @@ class BlueskyParser(TrendParser):
                     if uri not in all_posts:
                         all_posts[uri] = post_item
             except Exception as e:
-                logger.error(f"Failed to fetch Bluesky for query '{query}': {e}")
+                msg = f"Failed to fetch Bluesky for query '{query}': {e}"
+                logger.error(msg)
+                self.add_insight("error", msg)
 
+        if not all_posts:
+            self.add_insight("info", "Source API returned 0 items across all queries.")
+            return []
+
+        filtered_count = 0
         for post_item in all_posts.values():
             record = post_item.get("record", {})
 
@@ -94,6 +105,7 @@ class BlueskyParser(TrendParser):
 
             text = record.get("text", "")
             if not self._passes_keywords(text):
+                filtered_count += 1
                 continue
 
             ups = post_item.get("likeCount", 0)
@@ -120,6 +132,11 @@ class BlueskyParser(TrendParser):
                     "ups": ups,
                     "comments": comments,
                 }
+            )
+
+        if filtered_count > 0:
+            self.add_insight(
+                "warning", f"{filtered_count} posts filtered out by keywords."
             )
 
         return trends

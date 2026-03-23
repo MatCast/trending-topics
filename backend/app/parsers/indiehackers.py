@@ -34,10 +34,14 @@ class IndieHackersParser(TrendParser):
 
         try:
             feed = feedparser.parse(url)
+            if not feed.entries:
+                self.add_insight("info", "Source API returned 0 items.")
+                return []
 
             now = datetime.now(timezone.utc)
             cutoff = now - timedelta(hours=self.time_window_hours)
 
+            filtered_count = 0
             for entry in feed.entries:
                 published_parsed = entry.get("published_parsed")
                 if not published_parsed:
@@ -58,6 +62,7 @@ class IndieHackersParser(TrendParser):
                 description = self._strip_html(raw_summary)
 
                 if not self._passes_keywords(title + " " + description):
+                    filtered_count += 1
                     continue
 
                 # The unofficial feed doesn't consistently provide ups/comments in
@@ -94,7 +99,14 @@ class IndieHackersParser(TrendParser):
                         "comments": comments,
                     }
                 )
+            if filtered_count > 0:
+                self.add_insight(
+                    "warning", f"{filtered_count} posts filtered out by keywords."
+                )
+
         except Exception as e:
-            logger.error(f"Failed to fetch Indie Hackers {self.source_name}: {e}")
+            msg = f"Failed to fetch Indie Hackers {self.source_name}: {e}"
+            logger.error(msg)
+            self.add_insight("error", msg)
 
         return trends
