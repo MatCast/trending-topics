@@ -80,6 +80,7 @@ We use `pre-commit` hook to automatically enforce basic formatting standards (li
 workon linkedin_posts
 pip install pre-commit black flake8
 pre-commit install
+workon linkedin_posts && pre-commit run --all-files
 ```
 
 ## 🚀 Deployment to Google Cloud Run
