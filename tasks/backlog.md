@@ -46,5 +46,8 @@ Configured `.pre-commit-config.yaml` to run `black` and `flake8` dynamically. To
 ## DONE: Add Limits to Extractions
 Implemented tier-based extraction quotas (daily, weekly, monthly) and concurrency limits. Users in the free tier are capped at 3 per month and cannot schedule extractions. Pro users are capped at 30 per month. All limits are configurable via Firestore admin config.
 
+
+---
+
 ## DONE: Extractions Debugging
-Added debugging instructions on the extractions page. If users end up having no results, they now have visual insights. The backend parsers capture warnings (e.g., filtered by keywords, source didn't return data, subreddit doesn't exist) and save them into an `insights` array in the extraction document. The frontend displays these insights as colorful alert boxes, even if the result list is empty.
+Added debugging instructions on the extractions page. If users end up having no results, they now have visual insights. The backend parsers capture warnings (e.g., filtered by keywords, source didn't return data, subreddit doesn't exist) and save them into an `insights` array in the extraction document. The frontend displays these insights via a dedicated `ExtractionInsights.vue` component, which maintains high-visibility orange alerts for zero-result scenarios and an analytical accordion for partial filtering logs.

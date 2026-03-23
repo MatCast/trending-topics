@@ -44,7 +44,7 @@ class TrendParser:
         """Adds summary insights based on final results and skipped counts."""
         if num_results == 0:
             if self.total_fetched == 0:
-                self.add_insight("info", "Source API returned no items.")
+                self.add_insight("warning", "Source API returned no items.")
             else:
                 reasons = []
                 if self.age_skipped > 0:
@@ -60,21 +60,26 @@ class TrendParser:
                     self.add_insight("warning", msg)
                 else:
                     self.add_insight(
-                        "info",
-                        f"Found {self.total_fetched} items but none were suitable.",
+                        "warning",
+                        (
+                            f"Found {self.total_fetched} items but none "
+                            f"were suitable for trends."
+                        ),
                     )
         else:
-            # Partial results found, but still report what was skipped
-            if self.keyword_skipped > 0:
-                self.add_insight(
-                    "warning",
-                    f"{self.keyword_skipped} posts filtered out by keywords.",
-                )
+            # Partial results found, use info level for filtering details
+            reasons = []
             if self.age_skipped > 0:
-                self.add_insight(
-                    "info",
-                    f"{self.age_skipped} posts were too old for the current window.",
+                reasons.append(f"{self.age_skipped} were too old")
+            if self.keyword_skipped > 0:
+                reasons.append(f"{self.keyword_skipped} didn't match keywords")
+
+            if reasons:
+                msg = (
+                    f"Out of {self.total_fetched} items from source: "
+                    f"{', '.join(reasons)}."
                 )
+                self.add_insight("info", msg)
 
     def fetch(self) -> List[Dict[str, Any]]:
         """Must be implemented by subclasses.

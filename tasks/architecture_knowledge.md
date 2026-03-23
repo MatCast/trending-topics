@@ -70,6 +70,9 @@ The application runs as a containerized dual-service architecture orchestrated b
 - **Why Flat?**: Firestore queries on indexed fields incur read costs purely based on the number of returned documents. Querying a flat collection with `.where('extraction_id', '==', X)` costs exactly the same as querying a sub-collection. However, a flat collection simplifies Cleanup (TTL).
 - **TTL & Cleanup**: Both Extractions and Results share standard `expires_at` fields. A single scheduled Cloud Function deletes expired documents from both collections simultaneously without needing complex cascading delete logic.
 - **Frontend Dashboard**: The main dashboard `GET /api/extractions` lists extraction history to minimize reads instead of fetching all historical results at once. Clicking an extraction navigates to `/extractions/[id]` to query only that specific `extraction_id`.
+- **Extraction Insights**: Each extraction captures detailed debugging information in an `insights` array.
+  - **Categorization**: The backend (`finalize_insights`) classifies zero-result scenarios as `warning` and partial successes as `info`.
+  - **Heuristics**: The frontend `ExtractionInsights.vue` component uses both the type and message heuristics to ensure that 0-result sources are always displayed as prominent warnings, even when dealing with legacy data.
 - **Real-time Updates**: The `index.vue` page uses a direct Firestore `onSnapshot` listener (Client SDK) to monitor "pending" extractions. This requires specific **Firestore Security Rules** allowing read access to the user's sub-collections while blocking all direct client writes.
 
 ## 10. Source Tier Limits (Firestore Driven)
