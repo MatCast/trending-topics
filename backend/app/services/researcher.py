@@ -33,6 +33,7 @@ def run_extraction(
         Dict with extraction_id, status, results_count, and results list.
     """
     logger.info(f"Starting extraction {extraction_id} for user {uid}")
+    all_insights = []
 
     try:
         # Get admin config for source weights
@@ -94,6 +95,7 @@ def run_extraction(
                 )
 
                 trends = parser.fetch()
+                all_insights.extend(parser.insights)
 
                 if source_name not in source_trends:
                     source_trends[source_name] = []
@@ -123,7 +125,9 @@ def run_extraction(
         sources_used = list(
             set(s.get("source_id", s.get("type", "unknown")) for s in enabled_sources)
         )
-        fb.store_results(uid, extraction_id, final_trends, sources_used, retention_days)
+        fb.store_results(
+            uid, extraction_id, final_trends, sources_used, retention_days, all_insights
+        )
 
         logger.info(
             f"Extraction {extraction_id} completed: {len(final_trends)} "
@@ -135,15 +139,19 @@ def run_extraction(
             "status": "completed",
             "results_count": len(final_trends),
             "results": final_trends,
+            "insights": all_insights,
         }
 
     except Exception as e:
         logger.error(f"Extraction {extraction_id} failed: {e}")
-        fb.update_extraction_status(uid, extraction_id, "failed", str(e))
+        fb.update_extraction_status(
+            uid, extraction_id, "failed", str(e), insights=all_insights
+        )
         return {
             "extraction_id": extraction_id,
             "status": "failed",
             "results_count": 0,
             "results": [],
             "error": str(e),
+            "insights": all_insights,
         }

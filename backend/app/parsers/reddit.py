@@ -15,9 +15,9 @@ class RedditParser(TrendParser):
     def fetch(self) -> List[Dict[str, Any]]:
         subreddit = self.params.get("subreddit")
         if not subreddit:
-            logger.error(
-                f"RedditParser missing 'subreddit' param for {self.source_name}"
-            )
+            msg = f"RedditParser missing 'subreddit' param for {self.source_name}"
+            logger.error(msg)
+            self.add_insight("error", msg)
             return []
 
         fetch_method = self.params.get("reddit_fetch_method", "rapidapi")
@@ -35,9 +35,8 @@ class RedditParser(TrendParser):
         trends = []
         rapidapi_key = os.environ.get("RAPIDAPI_KEY")
         if not rapidapi_key:
-            logger.error(
-                "RAPIDAPI_KEY environment variable is not set. "
-                "Falling back to direct fetch."
+            self.add_insight(
+                "info", "RAPIDAPI_KEY not set, falling back to direct fetch."
             )
             return self._fetch_direct(subreddit)
 
@@ -76,7 +75,13 @@ class RedditParser(TrendParser):
             now = datetime.now(timezone.utc)
             cutoff = now - timedelta(hours=self.time_window_hours)
 
-            for post in data.get("body", []):
+            posts = data.get("body", [])
+            if not posts:
+                self.add_insight("info", "Source API returned 0 items.")
+                return []
+
+            filtered_count = 0
+            for post in posts:
                 created_dt = datetime.fromtimestamp(
                     post.get("created_utc", 0), tz=timezone.utc
                 )
@@ -87,6 +92,7 @@ class RedditParser(TrendParser):
                 description = post.get("selftext", "")
 
                 if not self._passes_keywords(title + " " + description):
+                    filtered_count += 1
                     continue
 
                 ups = post.get("ups", 0)
@@ -106,10 +112,16 @@ class RedditParser(TrendParser):
                         "comments": comments,
                     }
                 )
+            if filtered_count > 0:
+                self.add_insight(
+                    "warning", f"{filtered_count} posts filtered out by keywords."
+                )
+
         except Exception as e:
-            logger.error(f"Failed to fetch Reddit RapidAPI {self.source_name}: {e}")
-            logger.info("Falling back to direct Reddit fetch method...")
-            return self._fetch_direct(subreddit)
+            msg = f"Failed to fetch Reddit RapidAPI {self.source_name}: {e}"
+            logger.error(msg)
+            self.add_insight("error", msg)
+            return []
 
         return trends
 
@@ -135,7 +147,13 @@ class RedditParser(TrendParser):
             now = datetime.now(timezone.utc)
             cutoff = now - timedelta(hours=self.time_window_hours)
 
-            for child in data.get("data", {}).get("children", []):
+            posts = data.get("data", {}).get("children", [])
+            if not posts:
+                self.add_insight("info", "Source API returned 0 items.")
+                return []
+
+            filtered_count = 0
+            for child in posts:
                 post = child.get("data", {})
 
                 created_dt = datetime.fromtimestamp(
@@ -148,6 +166,7 @@ class RedditParser(TrendParser):
                 description = post.get("selftext", "")
 
                 if not self._passes_keywords(title + " " + description):
+                    filtered_count += 1
                     continue
 
                 ups = post.get("ups", 0)
@@ -167,7 +186,14 @@ class RedditParser(TrendParser):
                         "comments": comments,
                     }
                 )
+            if filtered_count > 0:
+                self.add_insight(
+                    "warning", f"{filtered_count} posts filtered out by keywords."
+                )
+
         except Exception as e:
-            logger.error(f"Failed to fetch Reddit {self.source_name}: {e}")
+            msg = f"Failed to fetch Reddit {self.source_name}: {e}"
+            logger.error(msg)
+            self.add_insight("error", msg)
 
         return trends

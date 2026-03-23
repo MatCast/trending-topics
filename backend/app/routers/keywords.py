@@ -57,12 +57,12 @@ async def update_keyword(
     user_tier = user.get("active_tier", "free")
 
     try:
-        result = fb.update_keyword(uid, keyword_id, update_data, user_tier=user_tier)
-        return result
+        updated = fb.update_keyword(uid, keyword_id, update_data, user_tier=user_tier)
+        if not updated:
+            raise HTTPException(status_code=404, detail="Keyword not found")
+        return updated
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
-    except Exception as e:
-        raise HTTPException(status_code=404, detail=f"Keyword not found: {e}")
 
 
 @router.post("/bulk")
