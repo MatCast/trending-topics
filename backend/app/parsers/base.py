@@ -24,6 +24,10 @@ class TrendParser:
         self.weight = weight
         self.params = params or {}
         self.insights = []
+        # Tracking for zero-result debugging
+        self.total_fetched = 0
+        self.age_skipped = 0
+        self.keyword_skipped = 0
 
     def add_insight(self, type: str, message: str):
         """Adds a debug/info message to the extraction run."""
@@ -35,6 +39,42 @@ class TrendParser:
                 "timestamp": datetime.now(timezone.utc),
             }
         )
+
+    def finalize_insights(self, num_results: int):
+        """Adds summary insights based on final results and skipped counts."""
+        if num_results == 0:
+            if self.total_fetched == 0:
+                self.add_insight("info", "Source API returned no items.")
+            else:
+                reasons = []
+                if self.age_skipped > 0:
+                    reasons.append(f"{self.age_skipped} were too old")
+                if self.keyword_skipped > 0:
+                    reasons.append(f"{self.keyword_skipped} didn't match keywords")
+
+                if reasons:
+                    msg = (
+                        f"0 trends found out of {self.total_fetched}"
+                        f" items: {', '.join(reasons)}."
+                    )
+                    self.add_insight("warning", msg)
+                else:
+                    self.add_insight(
+                        "info",
+                        f"Found {self.total_fetched} items but none were suitable.",
+                    )
+        else:
+            # Partial results found, but still report what was skipped
+            if self.keyword_skipped > 0:
+                self.add_insight(
+                    "warning",
+                    f"{self.keyword_skipped} posts filtered out by keywords.",
+                )
+            if self.age_skipped > 0:
+                self.add_insight(
+                    "info",
+                    f"{self.age_skipped} posts were too old for the current window.",
+                )
 
     def fetch(self) -> List[Dict[str, Any]]:
         """Must be implemented by subclasses.

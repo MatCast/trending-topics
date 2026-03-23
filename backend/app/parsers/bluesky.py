@@ -83,11 +83,11 @@ class BlueskyParser(TrendParser):
                 logger.error(msg)
                 self.add_insight("error", msg)
 
+        self.total_fetched = len(all_posts)
         if not all_posts:
-            self.add_insight("info", "Source API returned 0 items across all queries.")
+            self.finalize_insights(0)
             return []
 
-        filtered_count = 0
         for post_item in all_posts.values():
             record = post_item.get("record", {})
 
@@ -99,13 +99,14 @@ class BlueskyParser(TrendParser):
             try:
                 created_dt = datetime.fromisoformat(created_at_str)
                 if created_dt < cutoff:
+                    self.age_skipped += 1
                     continue
             except ValueError:
                 continue
 
             text = record.get("text", "")
             if not self._passes_keywords(text):
-                filtered_count += 1
+                self.keyword_skipped += 1
                 continue
 
             ups = post_item.get("likeCount", 0)
@@ -134,9 +135,6 @@ class BlueskyParser(TrendParser):
                 }
             )
 
-        if filtered_count > 0:
-            self.add_insight(
-                "warning", f"{filtered_count} posts filtered out by keywords."
-            )
+        self.finalize_insights(len(trends))
 
         return trends

@@ -27,9 +27,12 @@ class RedditParser(TrendParser):
         )
 
         if fetch_method == "rapidapi":
-            return self._fetch_rapidapi(subreddit)
+            results = self._fetch_rapidapi(subreddit)
         else:
-            return self._fetch_direct(subreddit)
+            results = self._fetch_direct(subreddit)
+
+        self.finalize_insights(len(results))
+        return results
 
     def _fetch_rapidapi(self, subreddit: str) -> List[Dict[str, Any]]:
         trends = []
@@ -71,28 +74,28 @@ class RedditParser(TrendParser):
                     logger.error(f"Failed to update API usage in Firebase: {e}")
 
             data = resp.json()
+            posts = data.get("body", [])
+            self.total_fetched = len(posts)
 
             now = datetime.now(timezone.utc)
             cutoff = now - timedelta(hours=self.time_window_hours)
 
-            posts = data.get("body", [])
             if not posts:
-                self.add_insight("info", "Source API returned 0 items.")
                 return []
 
-            filtered_count = 0
             for post in posts:
                 created_dt = datetime.fromtimestamp(
                     post.get("created_utc", 0), tz=timezone.utc
                 )
                 if created_dt < cutoff:
+                    self.age_skipped += 1
                     continue
 
                 title = post.get("title", "")
                 description = post.get("selftext", "")
 
                 if not self._passes_keywords(title + " " + description):
-                    filtered_count += 1
+                    self.keyword_skipped += 1
                     continue
 
                 ups = post.get("ups", 0)
@@ -111,10 +114,6 @@ class RedditParser(TrendParser):
                         "ups": ups,
                         "comments": comments,
                     }
-                )
-            if filtered_count > 0:
-                self.add_insight(
-                    "warning", f"{filtered_count} posts filtered out by keywords."
                 )
 
         except Exception as e:
@@ -143,16 +142,15 @@ class RedditParser(TrendParser):
             resp = requests.get(url, headers=headers, timeout=10)
             resp.raise_for_status()
             data = resp.json()
+            posts = data.get("data", {}).get("children", [])
+            self.total_fetched = len(posts)
 
             now = datetime.now(timezone.utc)
             cutoff = now - timedelta(hours=self.time_window_hours)
 
-            posts = data.get("data", {}).get("children", [])
             if not posts:
-                self.add_insight("info", "Source API returned 0 items.")
                 return []
 
-            filtered_count = 0
             for child in posts:
                 post = child.get("data", {})
 
@@ -160,13 +158,14 @@ class RedditParser(TrendParser):
                     post.get("created_utc", 0), tz=timezone.utc
                 )
                 if created_dt < cutoff:
+                    self.age_skipped += 1
                     continue
 
                 title = post.get("title", "")
                 description = post.get("selftext", "")
 
                 if not self._passes_keywords(title + " " + description):
-                    filtered_count += 1
+                    self.keyword_skipped += 1
                     continue
 
                 ups = post.get("ups", 0)
@@ -185,10 +184,6 @@ class RedditParser(TrendParser):
                         "ups": ups,
                         "comments": comments,
                     }
-                )
-            if filtered_count > 0:
-                self.add_insight(
-                    "warning", f"{filtered_count} posts filtered out by keywords."
                 )
 
         except Exception as e:
