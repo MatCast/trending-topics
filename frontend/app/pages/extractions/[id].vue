@@ -30,6 +30,29 @@
       </div>
     </div>
 
+    <!-- Insights & Warnings Section -->
+    <div v-if="extraction && extraction.insights && extraction.insights.length" class="mb-6">
+      <h2 class="text-xl font-semibold mb-3">Insights & Warnings</h2>
+      <div class="space-y-3">
+        <div
+          v-for="(insight, index) in extraction.insights"
+          :key="index"
+          class="alert shadow-lg"
+          :class="{
+            'alert-error': insight.type === 'error',
+            'alert-warning': insight.type === 'warning',
+            'alert-info': insight.type === 'info',
+          }"
+        >
+          <svg v-if="insight.type === 'error'" xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <svg v-else-if="insight.type === 'warning'" xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <svg v-else-if="insight.type === 'info'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>{{ insight.message }}</span>
+          <span class="text-xs text-base-content/60 ml-auto">{{ formatDate(insight.timestamp) }}</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Dynamic Filters from catalog -->
     <div class="flex flex-wrap gap-2 mb-4">
       <button
@@ -171,7 +194,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'default' })
+import { Extraction, PaginatedResults, ExtractionResult } from '~/types/extraction'
 
 const route = useRoute()
 const { apiFetch } = useApi()
@@ -179,10 +202,11 @@ const { getIconConfig, isSvgIcon } = useSourceIcons()
 
 const extractionId = route.params.id as string
 
+const extraction = ref<Extraction | null>(null)
 // Catalog data for dynamic filter buttons
 const catalog = ref<any[]>([])
 
-const results = ref<any[]>([])
+const results = ref<ExtractionResult[]>([])
 const totalResults = ref(0)
 const page = ref(1)
 const pageSize = ref(50)
@@ -192,8 +216,8 @@ const activeFilter = ref<string | null>(null)
 const isLoadingResults = ref(true)
 
 const extractionDate = computed(() => {
-    if (results.value.length > 0) {
-        return results.value[0].created_at
+    if (extraction.value?.created_at) {
+        return extraction.value.created_at
     }
     return null
 })
@@ -208,12 +232,20 @@ const filteredResults = computed(() => {
   return results.value.filter(r => r.source_type === activeFilter.value)
 })
 
-// Fetch catalog and results
+// Fetch catalog, extraction details, and results
 async function fetchCatalog() {
   try {
     catalog.value = await apiFetch<any[]>('/api/sources/catalog')
   } catch (error) {
     console.error('Failed to fetch catalog:', error)
+  }
+}
+
+async function fetchExtraction() {
+  try {
+    extraction.value = await apiFetch<Extraction>(`/api/extractions/${extractionId}`)
+  } catch (error) {
+    console.error('Failed to fetch extraction details:', error)
   }
 }
 
@@ -232,7 +264,7 @@ async function fetchResults() {
       params.set('source_type', activeFilter.value)
     }
 
-    const data = await apiFetch<any>(`/api/results?${params}`)
+    const data = await apiFetch<PaginatedResults>(`/api/results?${params}`)
     results.value = data.results || []
     totalResults.value = data.total || 0
   } catch (error) {
@@ -289,6 +321,6 @@ watch([sortBy, sortOrder, activeFilter, page], () => fetchResults())
 
 // Initial load
 onMounted(async () => {
-  await Promise.all([fetchCatalog(), fetchResults()])
+  await Promise.all([fetchCatalog(), fetchResults(), fetchExtraction()])
 })
 </script>
