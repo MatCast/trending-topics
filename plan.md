@@ -12,11 +12,10 @@ This is the Single Source of Truth for the Architect and sub-agents. Both should
 
 ## Active Tasks
 * [ ] Execute manual deployments to Cloud Run and configure Firebase Auth domains
-
-
+* [x] Extractions Debugging - Provide insights on 0-result extractions
 
 ## Agent Tracking & Context
-* **Subagent 1**: *Pending* (Backend Extraction Background Job)
-* **Subagent 2**: *Pending* (Frontend Realtime UI Listener)
+* **Subagent 1**: *Done* (Frontend Extractions Debug UI)
+* **Subagent 2**: *Done* (Backend Extractions Debug Pipeline)
 
 *Note to Architect: Ensure each sub-agent is assigned strict files and an isolated goal to prevent context drift.*

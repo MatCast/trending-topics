@@ -2,7 +2,7 @@ import logging
 from fastapi import APIRouter, Depends, Query
 
 from ..auth import verify_firebase_token
-from ..models import ExtractionListResponse
+from ..models import ExtractionListResponse, ExtractionResponse
 from .. import firebase_client as fb
 
 logger = logging.getLogger(__name__)
@@ -30,3 +30,20 @@ async def list_extractions(
         page=page,
         page_size=page_size,
     )
+
+
+@router.get("/{extraction_id}", response_model=ExtractionResponse)
+async def get_extraction(
+    extraction_id: str,
+    token_data: dict = Depends(verify_firebase_token),
+):
+    """Get details for a specific extraction run."""
+    uid = token_data["uid"]
+    extraction = fb.get_extraction(uid, extraction_id)
+
+    if not extraction:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Extraction not found")
+
+    return ExtractionResponse(**extraction)

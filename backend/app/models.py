@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, Literal
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 
@@ -142,6 +142,7 @@ class ExtractionInsight(BaseModel):
     source_id: str
     type: Literal["info", "warning", "error"]
     message: str
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class ExtractionRunResponse(BaseModel):

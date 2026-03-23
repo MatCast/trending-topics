@@ -1,12 +1,5 @@
 # Backlog — Future Enhancements
 
-## Extractions Debugging
-Add some debugging instructions on the extractions page so that if users end up having no results, they would have some way to know what to do. Here what we might need to do is, when we do the extraction, we should also create a list of things that can go wrong. For example:
-- Things like we got data from the sources but we filtered out because of keywords, time stamps, and so on.
-- The data source didn't return any data for the sources.
-- The subreddit that you created doesn't exist.
-I guess what we can do is to basically log what's going on when the extraction is happening. If the extraction didn't return anything for the source, we can return this back to the front end somehow. Maybe we could store in the extraction; we could store a sub-collection which is called something like "extractions learning" or something like that. We can find out and then we can use this information to give it back to the user in the extraction dashboard.
-
 ## Add Trackings
 Add trackings to the app to track the usage of the app and the usage to understand how the app is used and how to improve it. We should be able to see how many times each API key is used and how many times each source is used. We should also be able to see how many times each user is using the app.
 
@@ -52,3 +45,6 @@ Configured `.pre-commit-config.yaml` to run `black` and `flake8` dynamically. To
 
 ## DONE: Add Limits to Extractions
 Implemented tier-based extraction quotas (daily, weekly, monthly) and concurrency limits. Users in the free tier are capped at 3 per month and cannot schedule extractions. Pro users are capped at 30 per month. All limits are configurable via Firestore admin config.
+
+## DONE: Extractions Debugging
+Added debugging instructions on the extractions page. If users end up having no results, they now have visual insights. The backend parsers capture warnings (e.g., filtered by keywords, source didn't return data, subreddit doesn't exist) and save them into an `insights` array in the extraction document. The frontend displays these insights as colorful alert boxes, even if the result list is empty.

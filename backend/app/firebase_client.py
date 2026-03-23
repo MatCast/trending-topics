@@ -910,6 +910,21 @@ def list_extractions(
     return results, total
 
 
+def get_extraction(uid: str, extraction_id: str) -> Optional[Dict[str, Any]]:
+    """Get a single extraction by ID."""
+    db = get_db()
+    doc = (
+        db.collection("users")
+        .document(uid)
+        .collection("extractions")
+        .document(extraction_id)
+        .get()
+    )
+    if doc.exists:
+        return {"id": doc.id, **doc.to_dict()}
+    return None
+
+
 def list_results(
     uid: str,
     extraction_id: Optional[str] = None,

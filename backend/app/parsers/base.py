@@ -1,6 +1,7 @@
 """Base parser class and factory function."""
 
 import logging
+from datetime import datetime, timezone
 from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,12 @@ class TrendParser:
     def add_insight(self, type: str, message: str):
         """Adds a debug/info message to the extraction run."""
         self.insights.append(
-            {"source_id": self.source_name, "type": type, "message": message}
+            {
+                "source_id": self.source_name,
+                "type": type,
+                "message": message,
+                "timestamp": datetime.now(timezone.utc),
+            }
         )
 
     def fetch(self) -> List[Dict[str, Any]]:

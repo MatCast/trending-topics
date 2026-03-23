@@ -1,6 +1,7 @@
 
 export interface Insight {
   type: 'error' | 'warning' | 'info';
+  source_id: string;
   message: string;
   timestamp: string; // Assuming a timestamp for insights
 }
