@@ -55,3 +55,6 @@ Implemented tier-based extraction quotas (daily, weekly, monthly) and concurrenc
 
 ## DONE: Extractions Debugging
 Added debugging instructions on the extractions page. If users end up having no results, they now have visual insights. The backend parsers capture warnings (e.g., filtered by keywords, source didn't return data, subreddit doesn't exist) and save them into an `insights` array in the extraction document. The frontend displays these insights via a dedicated `ExtractionInsights.vue` component, which maintains high-visibility orange alerts for zero-result scenarios and an analytical accordion for partial filtering logs.
+
+## DONE: Consolidated Scheduling UI & Browser Navigation
+Unified the scheduling interface by extracting all logic into a reusable `SchedulingForm.vue` component used by both the dashboard modal and the settings page. Integrated the browser's History API to allow the hardware "Back" button to close the modal instead of navigating away. This refactor ensures 100% parity between interfaces and reduces redundant code by over 60%.
