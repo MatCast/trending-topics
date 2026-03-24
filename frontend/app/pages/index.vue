@@ -202,6 +202,7 @@
 </template>
 
 <script setup lang="ts">
+import { useFormatDate } from '~/composables/useFormatDate'
 import { useSourceIcons } from '~/composables/useSourceIcons'
 import { doc, onSnapshot } from 'firebase/firestore'
 
@@ -244,7 +245,14 @@ async function fetchSettings() {
       time_window_hours: data.time_window_hours || 3,
       max_trends_per_source: data.max_trends_per_source || 3,
     }
-    userSchedule.value = data.schedule || { type: 'manual', interval_hours: 3, hour_of_day: 9, day_of_week: 0 }
+    userSchedule.value = {
+      active: true,
+      type: 'manual',
+      interval_hours: 3,
+      hour_of_day: 9,
+      day_of_week: 0,
+      ...data.schedule
+    }
   } catch (error) {
     console.error('Failed to fetch settings:', error)
   }
@@ -277,8 +285,8 @@ function openScheduleModal() {
 }
 
 async function handleScheduleSave(payload: any) {
-  userSettings.value = payload.settings
-  userSchedule.value = payload.schedule
+  if (payload.settings) userSettings.value = payload.settings
+  if (payload.schedule) userSchedule.value = payload.schedule
   await saveSettings()
 }
 
@@ -415,11 +423,7 @@ async function runExtraction() {
 }
 
 // Format date
-function formatDate(dateStr: string) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
+const { formatDate } = useFormatDate()
 
 // Watch for page changes
 watch([page], () => fetchExtractions())

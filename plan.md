@@ -4,7 +4,7 @@ This is the Single Source of Truth for the Architect and sub-agents. Both should
 
 ## Phases
 * Phase 1 (Scaffolding): [Completed]
-* Phase 2 (Backend/Core): [Phase 2.3 Completed - Firestore Tier Migration & User Profile API]
+* Phase 2 (Backend/Core): [Phase 2.4 Completed - Independent Scheduled Settings]
 * Phase 3 (Frontend/Formatting): [Phase 3.3 Completed - Dashboard Refinements]
 * Phase 4 (Containerization): [Completed]
 * Phase 5 (Deployment Configuration): [Completed]

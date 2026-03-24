@@ -86,10 +86,15 @@ class KeywordBulkAction(BaseModel):
 
 
 class ScheduleConfig(BaseModel):
+    active: bool = True
     type: ScheduleType = ScheduleType.MANUAL
     interval_hours: Optional[int] = Field(None, ge=1, le=168)  # For hourly
     day_of_week: Optional[int] = Field(None, ge=0, le=6)  # For weekly (0=Mon)
     hour_of_day: Optional[int] = Field(None, ge=0, le=23)  # For daily/weekly
+    # Independent settings for scheduled runs
+    time_window_hours: Optional[int] = Field(None, ge=1, le=168)
+    max_trends_per_source: Optional[int] = Field(None, ge=1, le=50)
+    last_run_at: Optional[datetime] = None
 
 
 class UserSettingsUpdate(BaseModel):

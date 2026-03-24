@@ -65,77 +65,32 @@
         </div>
 
         <div v-else class="bg-base-100 border border-base-300 rounded-2xl shadow-sm overflow-hidden transition-all duration-500 hover:shadow-md">
-          <div class="p-6 space-y-6">
-            <!-- Schedule Type Selection -->
-            <div class="form-control">
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <button 
-                  v-for="opt in scheduleOptions" 
-                   :key="opt.value"
-                   class="btn btn-sm grow rounded-lg border-base-300"
-                   :class="schedule.type === opt.value ? 'btn-primary shadow-lg shadow-primary/20' : 'btn-ghost bg-base-200/50'"
-                   @click="schedule.type = opt.value"
-                >
-                  {{ opt.label }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Contextual Settings Container -->
-            <div class="transition-all duration-300 ease-out" v-if="schedule.type !== 'manual'">
-              <div class="bg-base-200/50 rounded-xl p-5 border border-base-300/50 space-y-6">
-                
-                <!-- Hourly interval -->
-                <div v-if="schedule.type === 'hourly'" class="form-control">
-                  <label class="label pt-0 pb-2"><span class="label-text-alt font-black uppercase tracking-widest opacity-40">Interval (Hours)</span></label>
-                  <div class="flex items-center gap-6">
-                    <input v-model.number="schedule.interval_hours" type="range" min="1" max="24" class="range range-primary range-xs grow" />
-                    <span class="badge badge-primary font-mono font-bold py-3 px-3">Every {{ schedule.interval_hours }}h</span>
-                  </div>
-                </div>
-
-                <!-- Daily/Weekly hour -->
-                <div v-if="schedule.type === 'daily' || schedule.type === 'weekly'" class="form-control">
-                  <label class="label pt-0 pb-2"><span class="label-text-alt font-black uppercase tracking-widest opacity-40">Execution Time (UTC)</span></label>
-                  <select class="select select-bordered select-sm w-full font-mono text-xs rounded-lg" v-model="schedule.hour_of_day">
-                    <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00 Universal Time</option>
-                  </select>
-                </div>
-
-                <!-- Weekly day -->
-                <div v-if="schedule.type === 'weekly'" class="form-control">
-                  <label class="label pt-0 pb-2"><span class="label-text-alt font-black uppercase tracking-widest opacity-40">Frequency Day</span></label>
-                  <div class="grid grid-cols-7 gap-1.5">
-                    <button 
-                      v-for="(day, idx) in days" 
-                       :key="idx" 
-                       class="btn btn-sm rounded-lg"
-                       :class="schedule.day_of_week === idx ? 'btn-primary shadow-md' : 'btn-ghost bg-base-100'"
-                       @click="schedule.day_of_week = idx"
-                    >
-                      {{ day }}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="bg-base-200/50 p-4 border-t border-base-300 flex items-center justify-between">
-            <div v-if="showSuccess" class="flex items-center gap-2 text-success px-2 animate-in fade-in zoom-in">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span class="text-[10px] font-black uppercase tracking-tighter">Schedule Synced</span>
-            </div>
-            <div v-else></div>
-            <button class="btn btn-primary btn-sm px-8 rounded-lg text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary/10" 
-              :class="{ 'btn-disabled': isSaving }" 
-              @click="saveSettings"
+          <div class="p-6">
+            <SchedulingForm 
+              v-model="schedule"
+              :is-free-tier="false"
+              :is-saving="isSaving"
+              @save="saveSettings"
             >
-              <span v-if="isSaving" class="loading loading-spinner loading-xs"></span>
-              {{ isSaving ? 'Saving' : 'Apply Schedule' }}
-            </button>
+              <template #actions>
+                <div v-if="schedule.active" class="pt-6 mt-6 border-t border-base-300 flex items-center justify-between">
+                  <div v-if="showSuccess" class="flex items-center gap-2 text-success px-2 animate-in fade-in zoom-in">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span class="text-[10px] font-black uppercase tracking-tighter">Schedule Synced</span>
+                  </div>
+                  <div v-else></div>
+                  <button class="btn btn-primary btn-sm px-8 rounded-lg text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary/10" 
+                    :class="{ 'btn-disabled': isSaving }" 
+                    @click="saveSettings"
+                  >
+                    <span v-if="isSaving" class="loading loading-spinner loading-xs"></span>
+                    {{ isSaving ? 'Saving' : 'Apply Schedule' }}
+                  </button>
+                </div>
+              </template>
+            </SchedulingForm>
           </div>
         </div>
       </section>
@@ -170,6 +125,7 @@
 </template>
 
 <script setup lang="ts">
+
 definePageMeta({ layout: 'default' })
 
 const { apiFetch } = useApi()
@@ -178,15 +134,6 @@ const { isFreeTier, fetchProfile } = useUser()
 const isLoading = ref(true)
 const isSaving = ref(false)
 const showSuccess = ref(false)
-
-const scheduleOptions = [
-  { label: 'Manual', value: 'manual' },
-  { label: 'Hourly', value: 'hourly' },
-  { label: 'Daily', value: 'daily' },
-  { label: 'Weekly', value: 'weekly' }
-]
-
-const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 const settings = ref<any>({
   time_window_hours: 3,
@@ -210,13 +157,21 @@ async function fetchSettings() {
       max_trends_per_source: data.max_trends_per_source || 3,
       reddit_fetch_method: data.reddit_fetch_method || 'rapidapi'
     }
-    schedule.value = data.schedule || { type: 'manual', interval_hours: 3, hour_of_day: 9, day_of_week: 0 }
+    schedule.value = {
+      active: true,
+      type: 'manual',
+      interval_hours: 3,
+      hour_of_day: 9,
+      day_of_week: 0,
+      ...data.schedule
+    }
   } catch (error) {
     console.error('Failed to fetch settings:', error)
   } finally {
     isLoading.value = false
   }
 }
+
 
 async function saveSettings() {
   if (isSaving.value) return
