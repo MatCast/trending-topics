@@ -1,11 +1,13 @@
-# Task: Create Subagent Delegation Architecture
+# Task: Unified Extraction Settings & Scheduling
 
 ## Plan
-- [x] Brainstorm parallel subagent workflow using Agent Profiles and Git Worktrees.
-- [x] Create `.agent/profiles/frontend-expert.md` with boundaries and skills.
-- [x] Create `.agent/profiles/backend-expert.md` with boundaries and Docker test commands.
-- [x] Create `.agent/skills/architect-delegation/SKILL.md` detailing the Architect's role in creating API contracts, making worktrees, passing correct profiles, and running parallel UI/API agents without port conflicts using `docker compose run`. 
-
-## Docker Parallelization Strategy
-- Worktrees inherently have their own directory names, so `docker-compose` creates unique, isolated project networks (e.g. `backendfeature_backend_run_xxx`).
-- Subagents are instructed to use `docker compose run --rm <service> <command>` instead of `docker compose up`. This ensures they can run tests without binding to host ports (like 8000/3000), avoiding conflicts with the main development environment or each other.
+- [x] Initial Research & Backlog Update
+- [x] Create reusable `ExtractionSettings.vue` component
+- [x] Implement settings toolbar on Dashboard (`index.vue`)
+- [x] Implement "Scheduled Extraction" modal
+- [x] Update user profile dropdown in `default.vue`
+- [x] Remove "Settings" from main navigation
+- [x] Refactor `settings.vue` using the new component
+- [x] Verify responsiveness and auto-saving logic
+- [x] Refinement: Make settings labels clickable to focus inputs
+- [x] Refinement: Separate 'New Extraction' and 'Schedule' buttons on Dashboard

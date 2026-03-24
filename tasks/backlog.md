@@ -1,5 +1,9 @@
 # Backlog — Future Enhancements
 
+## DONE: Unified Extraction Settings & Scheduling
+Move `time_window_hours` and `max_trends_per_source` from settings to the main extraction dashboard. Implemented a reusable `ExtractionSettings.vue` component to ensure UI consistency between the dashboard, settings page, and the new "Scheduled Extraction" modal. Added "Settings" to the user profile dropdown and removed it from the main navigation menu.
+
+
 ## Add Trackings
 Add trackings to the app to track the usage of the app and the usage to understand how the app is used and how to improve it. We should be able to see how many times each API key is used and how many times each source is used. We should also be able to see how many times each user is using the app.
 
