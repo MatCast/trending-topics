@@ -123,7 +123,7 @@ gcloud run deploy backend-service \
   --source . \
   --region europe-west1 \
   --allow-unauthenticated \
-  --env-vars-file .env.yaml
+  --env-vars-file .env.yaml \
   --memory 512Mi
 ```
 
