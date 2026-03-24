@@ -1,5 +1,8 @@
 # Backlog — Future Enhancements
 
+## DONE: Dynamic Theming System
+Implemented a dynamic theme switching system powered by DaisyUI 5 and Nuxt Runtime Config. Replaced hardcoded "dark" themes with a configuration-driven `data-theme` binding. All components now use semantic CSS variables, allowing for instant, application-wide visual changes by updating a single environment variable or config value.
+
 ## DONE: Unified Extraction Settings & Scheduling
 Move `time_window_hours` and `max_trends_per_source` from settings to the main extraction dashboard. Implemented a reusable `ExtractionSettings.vue` component to ensure UI consistency between the dashboard, settings page, and the new "Scheduled Extraction" modal. Added "Settings" to the user profile dropdown and removed it from the main navigation menu.
 

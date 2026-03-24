@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-base-200 pb-20 md:pb-0" data-theme="dark">
+  <div class="min-h-screen bg-base-200 pb-20 md:pb-0" :data-theme="runtimeConfig.public.daisyuiTheme">
     <!-- Navbar -->
     <div class="navbar bg-base-100 shadow-lg border-b border-base-300 sticky top-0 z-50">
       <div class="flex-1">
@@ -64,6 +64,7 @@
 </template>
 
 <script setup lang="ts">
+const runtimeConfig = useRuntimeConfig()
 const { user, isAuthenticated, signOut } = useAuth()
 
 async function handleSignOut() {
