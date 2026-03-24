@@ -3,55 +3,55 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <!-- Time Window -->
       <div 
-        class="bg-base-200/50 rounded-xl p-4 border border-base-300/50 hover:border-primary/30 transition-all cursor-pointer group"
+        class="bg-base-100 hover:bg-base-100/80 rounded-2xl p-5 border border-base-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.2)] hover:-translate-y-1 transition-all cursor-pointer group"
         @click="focusTime"
       >
-        <label class="label pt-0 pb-1 flex justify-between">
-          <span class="label-text-alt font-black uppercase tracking-widest opacity-50">Window</span>
-          <span class="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
+        <label class="label pt-0 pb-2 flex justify-between">
+          <span class="label-text-alt font-black uppercase tracking-[0.15em] text-base-content/80">Search Window</span>
+          <span class="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">Adjust</span>
         </label>
-        <div class="flex items-end gap-2 px-1">
+        <div class="flex items-end gap-3 px-1">
           <input
             ref="timeInput"
             v-model.number="localSettings.time_window_hours"
             type="number"
             min="1"
             max="168"
-            class="bg-transparent border-none p-0 focus:ring-0 font-mono text-2xl font-bold w-20 text-primary"
+            class="bg-transparent border-none p-0 focus:ring-0 font-mono text-3xl font-black w-20 text-primary"
             @change="onSettingsChange"
           />
-          <span class="text-xs font-bold opacity-30 pb-1.5 uppercase">Hours Back</span>
+          <span class="text-xs font-bold text-base-content/60 pb-2 uppercase tracking-wider">Hours back</span>
         </div>
       </div>
 
       <!-- Max Results -->
       <div 
-        class="bg-base-200/50 rounded-xl p-4 border border-base-300/50 hover:border-primary/30 transition-all cursor-pointer group"
+        class="bg-base-100 hover:bg-base-100/80 rounded-2xl p-5 border border-base-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.2)] hover:-translate-y-1 transition-all cursor-pointer group"
         @click="focusMax"
       >
-        <label class="label pt-0 pb-1 flex justify-between">
-          <span class="label-text-alt font-black uppercase tracking-widest opacity-50">Limit</span>
-          <span class="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
+        <label class="label pt-0 pb-2 flex justify-between">
+          <span class="label-text-alt font-black uppercase tracking-[0.15em] text-base-content/80">Results Limit</span>
+          <span class="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">Adjust</span>
         </label>
-        <div class="flex items-end gap-2 px-1">
+        <div class="flex items-end gap-3 px-1">
           <input
             ref="maxInput"
             v-model.number="localSettings.max_trends_per_source"
             type="number"
             min="1"
             max="50"
-            class="bg-transparent border-none p-0 focus:ring-0 font-mono text-2xl font-bold w-20 text-primary"
+            class="bg-transparent border-none p-0 focus:ring-0 font-mono text-3xl font-black w-20 text-primary"
             @change="onSettingsChange"
           />
-          <span class="text-xs font-bold opacity-30 pb-1.5 uppercase">Results / Source</span>
+          <span class="text-xs font-bold text-base-content/60 pb-2 uppercase tracking-wider">Per source</span>
         </div>
       </div>
     </div>
 
     <!-- Saving Indicator -->
     <div v-if="saving" class="flex items-center gap-2 justify-end px-2">
-      <span class="loading loading-spinner loading-xs text-primary/50"></span>
-      <span class="text-[10px] font-bold uppercase tracking-widest text-base-content/30 italic">Saving...</span>
+      <span class="loading loading-spinner loading-xs text-primary"></span>
+      <span class="text-[10px] font-bold uppercase tracking-widest text-primary/60 italic">Saving profile...</span>
     </div>
   </div>
 </template>

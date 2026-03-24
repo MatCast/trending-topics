@@ -20,42 +20,42 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
            <!-- Clickable input containers -->
            <div 
-             class="bg-base-200/50 rounded-xl p-4 border border-base-300/50 hover:border-primary/30 transition-all cursor-pointer group"
+             class="bg-base-100 rounded-xl p-4 border border-base-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.2)] hover:-translate-y-1 transition-all cursor-pointer group"
              @click="windowInput?.focus()"
            >
              <label class="label pt-0 pb-1 flex justify-between">
-               <span class="label-text-alt font-black uppercase tracking-widest opacity-40">Window</span>
-               <span class="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
+               <span class="label-text-alt font-black uppercase tracking-widest text-base-content/80">Window</span>
+               <span class="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">Adjust</span>
              </label>
              <div class="flex items-end gap-2 px-1">
                <input 
                  ref="windowInput"
                  type="number" 
                  v-model.number="schedule.time_window_hours" 
-                 class="bg-transparent border-none p-0 focus:ring-0 font-mono text-2xl font-bold w-20 text-primary" 
+                 class="bg-transparent border-none p-0 focus:ring-0 font-mono text-3xl font-black w-20 text-primary" 
                  min="1" max="168" 
                />
-               <span class="text-xs font-bold opacity-30 pb-1.5">HOURS BACK</span>
+               <span class="text-xs font-bold text-base-content/60 pb-1.5 uppercase">Hours back</span>
              </div>
            </div>
 
            <div 
-             class="bg-base-200/50 rounded-xl p-4 border border-base-300/50 hover:border-primary/30 transition-all cursor-pointer group"
+             class="bg-base-100 rounded-xl p-4 border border-base-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.2)] hover:-translate-y-1 transition-all cursor-pointer group"
              @click="maxInput?.focus()"
            >
              <label class="label pt-0 pb-1 flex justify-between">
-               <span class="label-text-alt font-black uppercase tracking-widest opacity-40">Limit</span>
-               <span class="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
+               <span class="label-text-alt font-black uppercase tracking-widest text-base-content/80">Limit</span>
+               <span class="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">Adjust</span>
              </label>
              <div class="flex items-end gap-2 px-1">
                <input 
                  ref="maxInput"
                  type="number" 
                  v-model.number="schedule.max_trends_per_source" 
-                 class="bg-transparent border-none p-0 focus:ring-0 font-mono text-2xl font-bold w-20 text-primary" 
+                 class="bg-transparent border-none p-0 focus:ring-0 font-mono text-3xl font-black w-20 text-primary" 
                  min="1" max="50" 
                />
-               <span class="text-xs font-bold opacity-30 pb-1.5">RESULTS / SOURCE</span>
+               <span class="text-xs font-bold text-base-content/60 pb-1.5 uppercase">Results / Source</span>
              </div>
            </div>
         </div>
