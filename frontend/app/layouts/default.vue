@@ -18,7 +18,6 @@
           <NuxtLink to="/" class="text-sm font-medium text-base-content/70 hover:text-base-content transition-colors py-1 border-b-2 border-transparent" active-class="!text-primary !border-primary">Dashboard</NuxtLink>
           <NuxtLink to="/sources" class="text-sm font-medium text-base-content/70 hover:text-base-content transition-colors py-1 border-b-2 border-transparent" active-class="!text-primary !border-primary">Sources</NuxtLink>
           <NuxtLink to="/keywords" class="text-sm font-medium text-base-content/70 hover:text-base-content transition-colors py-1 border-b-2 border-transparent" active-class="!text-primary !border-primary">Keywords</NuxtLink>
-          <NuxtLink to="/keywords" class="text-sm font-medium text-base-content/70 hover:text-base-content transition-colors py-1 border-b-2 border-transparent" active-class="!text-primary !border-primary">Keywords</NuxtLink>
         </div>
 
         <div class="dropdown dropdown-end">
