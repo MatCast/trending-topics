@@ -1133,7 +1133,7 @@ def get_users_with_active_schedules() -> List[Dict[str, Any]]:
         data = user_doc.to_dict()
         settings = data.get("settings", {})
         schedule = settings.get("schedule", {})
-        if schedule.get("type", "manual") != "manual":
+        if schedule.get("type", "manual") != "manual" and schedule.get("active", True):
             active.append({"uid": user_doc.id, **data})
     return active
 

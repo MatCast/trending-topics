@@ -1,26 +1,51 @@
 <template>
   <div>
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-      <div>
-        <h1 class="text-2xl font-bold">Extraction History</h1>
-        <p class="text-base-content/60 text-sm">Review your past extractions and trending topics.</p>
+    <div class="flex flex-col gap-6 mb-8">
+      <!-- Top Header -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight">Extraction History</h1>
+          <p class="text-base-content/60 text-sm">Review your past extractions and trending topics.</p>
+        </div>
+
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <div v-if="profile" class="hidden lg:block mr-2">
+            <UsageLimitBadge :current="extractionUsage.monthly" :limit="extractionLimits.monthly" type="Monthly Extractions" size="sm" />
+          </div>
+          
+          <div class="flex items-center gap-2 shadow-sm">
+            <button 
+              class="btn btn-primary gap-2 px-6 rounded-xl" 
+              :class="{ 'btn-disabled': isExtracting || isAnyLimitReached }" 
+              :disabled="isExtracting || isAnyLimitReached"
+              @click="runExtraction"
+            >
+              <span v-if="isExtracting" class="loading loading-spinner loading-xs"></span>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <span v-if="isAnyLimitReached && !isExtracting">Limit Reached</span>
+              <span v-else>{{ isExtracting ? 'Searching...' : 'New Extraction' }}</span>
+            </button>
+            <button 
+              class="btn btn-primary px-3 rounded-xl tooltip tooltip-bottom" 
+              data-tip="Schedule Automation"
+              @click="openScheduleModal"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div class="flex items-center gap-4">
-        <div v-if="profile" class="hidden sm:block">
-          <UsageLimitBadge :current="extractionUsage.monthly" :limit="extractionLimits.monthly" type="Monthly Extractions" size="sm" />
-        </div>
-        <button class="btn btn-primary gap-2" :class="{ 'btn-disabled': isExtracting || isAnyLimitReached }" :disabled="isExtracting || isAnyLimitReached"
-          @click="runExtraction">
-          <span v-if="isExtracting" class="loading loading-spinner loading-sm"></span>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <span v-if="isAnyLimitReached && !isExtracting">Limit Reached</span>
-          <span v-else>{{ isExtracting ? 'Searching...' : 'New Extraction' }}</span>
-        </button>
-      </div>
+      <!-- Settings Toolbar -->
+      <ExtractionSettings 
+        v-model="userSettings" 
+        :saving="isSavingSettings" 
+        @change="saveSettings"
+      />
     </div>
 
     <!-- Extraction result toast -->
@@ -162,10 +187,22 @@
         <button class="join-item btn btn-sm" :disabled="page * pageSize >= totalResults" @click="page++">»</button>
       </div>
     </div>
+
+    <!-- Scheduled Extraction Modal -->
+    <ScheduledExtractionModal 
+      ref="scheduleModalRef"
+      :settings="userSettings"
+      :schedule="userSchedule"
+      :is-free-tier="isFreeTier"
+      :is-saving="isSavingSettings"
+      @save="handleScheduleSave"
+      @update-settings="(val: any) => userSettings = val"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { useFormatDate } from '~/composables/useFormatDate'
 import { useSourceIcons } from '~/composables/useSourceIcons'
 import { doc, onSnapshot } from 'firebase/firestore'
 
@@ -174,7 +211,7 @@ definePageMeta({ layout: 'default' })
 const { apiFetch } = useApi()
 const { $firebaseFirestore } = useNuxtApp()
 const { user } = useAuth()
-const { profile, fetchProfile, extractionUsage, extractionLimits, isAnyLimitReached } = useUser()
+const { profile, fetchProfile, extractionUsage, extractionLimits, isAnyLimitReached, isFreeTier } = useUser()
 const { getIconConfig, isSvgIcon } = useSourceIcons()
 
 const extractions = ref<any[]>([])
@@ -185,6 +222,74 @@ const isLoadingResults = ref(true)
 const isExtracting = ref(false)
 const lastRunMessage = ref('')
 const pendingListeners = new Map<string, () => void>()
+
+// Settings & Schedule
+const isSavingSettings = ref(false)
+const userSettings = ref({
+  time_window_hours: 3,
+  max_trends_per_source: 3
+})
+const userSchedule = ref({
+  type: 'manual',
+  interval_hours: 3,
+  hour_of_day: 9,
+  day_of_week: 0
+})
+
+const scheduleModalRef = ref<any>(null)
+
+async function fetchSettings() {
+  try {
+    const data = await apiFetch<any>('/api/settings')
+    userSettings.value = {
+      time_window_hours: data.time_window_hours || 3,
+      max_trends_per_source: data.max_trends_per_source || 3,
+    }
+    userSchedule.value = {
+      active: true,
+      type: 'manual',
+      interval_hours: 3,
+      hour_of_day: 9,
+      day_of_week: 0,
+      ...data.schedule
+    }
+  } catch (error) {
+    console.error('Failed to fetch settings:', error)
+  }
+}
+
+async function saveSettings() {
+  if (isSavingSettings.value) return
+  isSavingSettings.value = true
+  try {
+    await apiFetch('/api/settings', {
+      method: 'PUT',
+      body: {
+        ...userSettings.value,
+        schedule: userSchedule.value,
+      },
+    })
+    // Also update profile to keep it in sync
+    fetchProfile()
+    if (scheduleModalRef.value) scheduleModalRef.value.showSuccess()
+  } catch (error) {
+    console.error('Failed to save settings:', error)
+  } finally {
+    isSavingSettings.value = false
+  }
+}
+
+function openScheduleModal() {
+  if (scheduleModalRef.value) {
+    scheduleModalRef.value.show()
+  }
+}
+
+async function handleScheduleSave(payload: any) {
+  if (payload.settings) userSettings.value = payload.settings
+  if (payload.schedule) userSchedule.value = payload.schedule
+  await saveSettings()
+}
 
 function getUniqueSources(sources: string[]) {
   if (!sources || !Array.isArray(sources)) return []
@@ -319,11 +424,7 @@ async function runExtraction() {
 }
 
 // Format date
-function formatDate(dateStr: string) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
+const { formatDate } = useFormatDate()
 
 // Watch for page changes
 watch([page], () => fetchExtractions())
@@ -331,6 +432,7 @@ watch([page], () => fetchExtractions())
 // Initial load
 onMounted(async () => {
   fetchProfile()
+  await fetchSettings()
   await fetchExtractions()
 })
 

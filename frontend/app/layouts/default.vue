@@ -18,7 +18,7 @@
           <NuxtLink to="/" class="text-sm font-medium text-base-content/70 hover:text-base-content transition-colors py-1 border-b-2 border-transparent" active-class="!text-primary !border-primary">Dashboard</NuxtLink>
           <NuxtLink to="/sources" class="text-sm font-medium text-base-content/70 hover:text-base-content transition-colors py-1 border-b-2 border-transparent" active-class="!text-primary !border-primary">Sources</NuxtLink>
           <NuxtLink to="/keywords" class="text-sm font-medium text-base-content/70 hover:text-base-content transition-colors py-1 border-b-2 border-transparent" active-class="!text-primary !border-primary">Keywords</NuxtLink>
-          <NuxtLink to="/settings" class="text-sm font-medium text-base-content/70 hover:text-base-content transition-colors py-1 border-b-2 border-transparent" active-class="!text-primary !border-primary">Settings</NuxtLink>
+          <NuxtLink to="/keywords" class="text-sm font-medium text-base-content/70 hover:text-base-content transition-colors py-1 border-b-2 border-transparent" active-class="!text-primary !border-primary">Keywords</NuxtLink>
         </div>
 
         <div class="dropdown dropdown-end">
@@ -30,10 +30,11 @@
               </div>
             </div>
           </div>
-          <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow-lg border border-base-300">
+          <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow-lg border border-base-300">
             <li class="menu-title">
               <span class="text-xs opacity-60">{{ user?.email }}</span>
             </li>
+            <li><NuxtLink to="/settings">Settings</NuxtLink></li>
             <li><a @click="handleSignOut">Sign out</a></li>
           </ul>
         </div>
@@ -58,10 +59,6 @@
       <NuxtLink to="/keywords" class="text-base-content/60" active-class="dock-active bg-primary/10 text-primary">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" /></svg>
         <span class="dock-label text-[10px]">Keywords</span>
-      </NuxtLink>
-      <NuxtLink to="/settings" class="text-base-content/60" active-class="dock-active bg-primary/10 text-primary">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-        <span class="dock-label text-[10px]">Settings</span>
       </NuxtLink>
     </div>
   </div>

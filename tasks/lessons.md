@@ -48,3 +48,15 @@ The Architect must read this file at the start of every session to avoid repeati
 35. **Heuristic-based Categorization for Legacy Data**: When refactoring backend logic that categorizes data into types (e.g., `info` vs `warning`), existing database records might use the old, now "incorrect" labels. Frontend components should use content-based heuristics (message strings) alongside type labels to ensure consistent grouping and accurate categorization for both new and historical extraction data.
 36. **Maintaining Solid Alert Aesthetics**: For critical or prioritized feedback (like zero-result warnings), users generally prefer standard, high-contrast "solid" alert styles. Avoid faint/pastel background overrides (e.g., `bg-opacity-10`) which can degrade readability and diminish the perceived importance of the notification.
 37. **Responsive Badge Scaling**: When using badges in compact areas (like navbars or accordion headers), verbose labels (e.g., "12 entries") easily overflow on mobile. Use `hidden sm:inline` to hide descriptive text on small screens, leaving only the essential number or icon to preserve a clean UI layout.
+
+38. **Reusable Settings Components**: Abstracting global preferences (like time windows or limits) into specialized, reusable components (e.g., `ExtractionSettings.vue`) ensures UI consistency across dashboards, settings pages, and modals. This is especially important when the same settings can be modified from multiple entry points.
+39. **Navigation Decluttering**: As features evolve, moving less-frequently used links (like Settings) from primary navigation (Sidebars/Docks) to a user profile dropdown improves focus on core tasks while maintaining accessibility.
+40. **DaisyUI 5 / Tailwind v4 Utility Updates**: In newer versions of the stack, several utility classes have preferred modern equivalents:
+    - Use `grow` instead of `flex-grow`.
+    - Use `bg-linear-to-*` instead of `bg-gradient-to-*`.
+    - Use `dock` instead of `btm-nav` (and `dock-label` instead of `btm-nav-label`).
+    Always audit new components for these modern conventions.
+
+41. **Full-Form Consolidation**: When a complex set of inputs (e.g., scheduling logic) is required in both a modal and a settings page, extract the *entire content area* into a single component using `defineModel`. This prevents subtle logic desyncs (like forgetting to update a frequency list in one place) and ensures 100% visual parity.
+42. **Modal Browser Navigation Support**: For a premium UX, modals should be integrated with the browser's history stack. Use `window.history.pushState` when a modal opens and listen for `popstate` to close it. This allows the browser's hardware/UI back button to close the modal instead of unexpectedly navigating the user away from the current page.
+43. **Encapsulated Modal API**: Instead of parents directly manipulating a modal's DOM (e.g., `modal.showModal()`), the modal component should `defineExpose` a `show()` method. This allows the modal to encapsulate its own side-effects (history API, event listeners) within a single clean call from the parent.

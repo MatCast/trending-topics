@@ -59,6 +59,11 @@ def run_scheduled_extractions() -> Dict[str, Any]:
         settings = user_data.get("settings", {})
         schedule = settings.get("schedule", {})
 
+        # Check if the schedule is explicitly disabled
+        if not schedule.get("active", True):
+            logger.debug(f"Skipping scheduled extraction for user {uid} (inactive).")
+            continue
+
         if not should_run_now(schedule):
             continue
 
@@ -78,10 +83,33 @@ def run_scheduled_extractions() -> Dict[str, Any]:
                 )
                 continue
 
+            # 3. Determine Parameters (with Fallback & Persistence)
+            time_window = schedule.get("time_window_hours")
+            max_trends = schedule.get("max_trends_per_source")
+            needs_migration = False
+
+            if time_window is None:
+                time_window = settings.get("time_window_hours", 3)
+                needs_migration = True
+            if max_trends is None:
+                max_trends = settings.get("max_trends_per_source", 3)
+                needs_migration = True
+
+            if needs_migration:
+                logger.info(f"Migrating schedule parameters for user {uid}")
+                fb.update_user_settings(
+                    uid,
+                    {
+                        "schedule": {
+                            **schedule,
+                            "time_window_hours": time_window,
+                            "max_trends_per_source": max_trends,
+                        }
+                    },
+                )
+
             sources = fb.list_sources(uid)
             global_keywords = fb.list_enabled_keywords(uid)
-            time_window = settings.get("time_window_hours", 3)
-            max_trends = settings.get("max_trends_per_source", 3)
 
             # 1. Calculate sources_used for the metadata (only enabled ones)
             sources_used = list(
@@ -104,6 +132,20 @@ def run_scheduled_extractions() -> Dict[str, Any]:
                 time_window_hours=time_window,
                 max_trends_per_source=max_trends,
             )
+
+            # 4. Update last_run_at
+            fb.update_user_settings(
+                uid,
+                {
+                    "schedule": {
+                        **schedule,
+                        "time_window_hours": time_window,
+                        "max_trends_per_source": max_trends,
+                        "last_run_at": datetime.now(timezone.utc),
+                    }
+                },
+            )
+
             results_summary["users_run"] += 1
             logger.info(f"Scheduled extraction completed for user {uid}")
 
