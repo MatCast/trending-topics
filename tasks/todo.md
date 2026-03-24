@@ -25,3 +25,4 @@
 - [x] UI: Implement auto-save on toggle click
 - [x] UI: Create unified `SchedulerToggle.vue` component and centralized date formatting
 - [x] UI: Consolidate scheduling UI into a single `SchedulingForm.vue` component for Modal and Settings
+- [x] UI: Handle browser back button to close scheduler modal without navigating away

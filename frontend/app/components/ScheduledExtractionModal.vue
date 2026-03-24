@@ -1,5 +1,5 @@
 <template>
-  <dialog id="scheduled_extraction_modal" class="modal modal-bottom sm:modal-middle" @close="onClose">
+  <dialog id="scheduled_extraction_modal" ref="modalRef" class="modal modal-bottom sm:modal-middle" @close="onClose">
     <div class="modal-box p-0 overflow-hidden border border-base-300 shadow-2xl bg-base-100 rounded-2xl max-w-lg">
       <!-- Modal Header -->
       <div class="bg-linear-to-r from-primary/10 to-base-200 px-6 py-5 border-b border-base-300/50 flex items-center justify-between">
@@ -25,7 +25,7 @@
           v-model="fullSchedule"
           :is-free-tier="isFreeTier"
           :is-saving="isSaving"
-          @save="onToggleActive"
+          @save="onSave"
         >
           <template #actions>
             <!-- Modal Footer -->
@@ -100,9 +100,15 @@ watch(() => props.schedule, (newVal) => {
   }
 }, { deep: true })
 
-function onToggleActive() {
-  // Auto-save the schedule status immediately when toggled
-  onSave()
+const modalRef = ref<HTMLDialogElement | null>(null)
+let isHandlingPop = false
+
+function handlePopState() {
+  if (modalRef.value?.open) {
+    isHandlingPop = true
+    modalRef.value.close()
+    isHandlingPop = false
+  }
 }
 
 function onSave() {
@@ -112,10 +118,20 @@ function onSave() {
 }
 
 function onClose() {
-  // Handled by method=dialog mostly
+  window.removeEventListener('popstate', handlePopState)
+  if (!isHandlingPop && window.history.state?.modal === 'scheduler') {
+    window.history.back()
+  }
 }
 
 defineExpose({
+  show: () => {
+    if (modalRef.value) {
+      modalRef.value.showModal()
+      window.history.pushState({ modal: 'scheduler' }, '')
+      window.addEventListener('popstate', handlePopState)
+    }
+  },
   showSuccess: () => {
     showSaved.value = true
     setTimeout(() => { showSaved.value = false }, 2000)

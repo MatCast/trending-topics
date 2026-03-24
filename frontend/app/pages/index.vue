@@ -280,8 +280,9 @@ async function saveSettings() {
 }
 
 function openScheduleModal() {
-  const modal = document.getElementById('scheduled_extraction_modal') as HTMLDialogElement
-  if (modal) modal.showModal()
+  if (scheduleModalRef.value) {
+    scheduleModalRef.value.show()
+  }
 }
 
 async function handleScheduleSave(payload: any) {
