@@ -2,7 +2,24 @@
 
 ## Fixes after Migration to neo brutalism
 
--
+- [x] : The mouse doesn't transform into a pointer when hovering over the "Sign in with Google" button.
+- [ ] When you create a new extraction, in the table a new row appears with the new extraction that you just requested. The first date says "Invalid date". That should be changed to the date when the extraction was started. If that's not available yet, just put the current date. Also when you create a new extraction, the number of monthly extractions doesn't change in the top label with the number of extractions.
+- [ ] The sidebar is not visible on mobile. The whole app turns green, turns grey like an overlay but there is no way to navigate around.
+- [ ] The new extraction button is visible but the button is smaller than the text.
+- [ ] The icons of the sources are not consistent between the extractions table and the results table and some of them are missing or incorrect.
+- [ ] Make the extraction settings button much smaller and make them on desktop on the same line as the new extraction button.
+- [ ] Clicking on the button to schedule your donations doesn't work.
+- [ ] The switches to enable or disable something are a bit confusing because the border is the same colour as the deactivated switch, which makes it a bit hard to understand where to click. Ideally let's keep the border black but maybe make the background of the switch grey. Create a component for the switches if there is not already one. Apply this component to all the switches we have. If I remember correctly we have switches in the sources page, in the keywords page, in the settings. If I'm forgetting something, check everywhere we have switches and use the component that we created.
+- [ ] In the sources the X button, when you hover over it, the cursor doesn't transform into the pointer and the same happens on the button to add a new subreddit.
+- [ ] The disable button for the automation schedule should make every configuration below disappear and display something saying "enable to configure it". Also the button here, which is "Apply schedule", is of a secondary colour. I think it's black with a black border, which is not what I want and we need to make it the primary color.
+- [ ] In the keyword page the add button should be yellow and the mouse should become a pointer when hovering over it. Enabling or disabling the keywords, I don't know if it works because the number of active keywords doesn't change on the top. Make sure that the proper calls are made to Firestore to add, enable, disableor delete the keyword that we just added.  Clicking on the selection button next to the header of the keywords table should select all the keywords. Also add an arrow next to the keywords checkbox in the header, which has the features that you can do once the keywords are selected, enable , disable them, delete them similar to gmail. If the user clicks on delete, the pop-up should pop up to ask the user whether they really want to delete them and the delete button should be our red (the same used behind the x button to delete them). Finally if a user adds a keyword which already exists, a pop-up should come up in red like a sonar which says "Keyword already exists".
+- [ ] In the sources page: Mouse does not turn to pointer when hovering over the buttons to filter by source. Also the warning for no sources should be of a warning color.
+- [ ] When I hover on the sign out, at first the background changes to red quicker, then the font changes to white, which makes it harder to read.
+
+
+## Extraction Results Timestamps
+
+Make sure that they reflect the actual time stamp of the post or article and not the time stamp when they were extracted.
 
 ## DONE: Dynamic Theming System
 Implemented a dynamic theme switching system powered by DaisyUI 5 and Nuxt Runtime Config. Replaced hardcoded "dark" themes with a configuration-driven `data-theme` binding. All components now use semantic CSS variables, allowing for instant, application-wide visual changes by updating a single environment variable or config value.

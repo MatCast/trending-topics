@@ -15,12 +15,12 @@
         <div class="bg-black p-4">
           <h2 class="text-lg font-black uppercase text-white tracking-widest text-center">Authentication Required</h2>
         </div>
-        
+
         <div class="p-8 space-y-8">
           <!-- Features -->
           <div class="space-y-3">
-             <div 
-               v-for="(feature, idx) in features" 
+             <div
+               v-for="(feature, idx) in features"
                :key="idx"
                class="flex items-center gap-4 p-4 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
              >
@@ -45,12 +45,12 @@
                   <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                  </svg>
               </div>
-              {{ isSigningIn ? 'Processing...' : 'Deploy with Google' }}
+              {{ isSigningIn ? 'Processing...' : 'Sign in with Google' }}
             </Button>
 
             <!-- Error Message -->
-            <div 
-              v-if="errorMessage && !isSigningIn" 
+            <div
+              v-if="errorMessage && !isSigningIn"
               class="p-4 bg-red-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-in slide-in-from-top-2"
             >
               <div class="flex items-center gap-3">
@@ -60,14 +60,14 @@
             </div>
 
             <!-- Manual Reset -->
-            <div 
-              v-if="isSigningIn && showReset" 
+            <div
+              v-if="isSigningIn && showReset"
               class="p-4 border-2 border-black border-dashed bg-muted/20 animate-in fade-in"
             >
               <p class="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-3 text-center">Stall detected in authorization popup</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 class="w-full border-2 border-black rounded-none uppercase font-black text-[10px] h-8 bg-white"
                 @click="forceReset"
               >
