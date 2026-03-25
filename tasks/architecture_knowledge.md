@@ -16,13 +16,13 @@ The application runs as a containerized dual-service architecture orchestrated b
 - **Docker Compose**: Used as the primary local development environment (`docker-compose.yml`), unifying networking between the Nuxt client and FastAPI backend. **CRITICAL: NEVER run `npm run dev` or `fastapi run` directly on the host machine. Assume the servers are already running within their Docker containers on ports 3000 and 8000.**
 - **Local Tooling**: Code formatters and linters (`pre-commit`, `black`, `flake8`) are executed locally via a virtual environment (e.g. `workon linkedin_posts`) rather than within the Docker container to avoid bloating the production Cloud Run image.
 
-## 3. Frontend Architecture (Nuxt.js + DaisyUI)
+## 3. Frontend Architecture (Nuxt.js + Shadcn-vue Neobrutalism)
 
 - **Directory**: `frontend/` (primarily `frontend/app/`).
 - **Client-Side Auth & SPA Concept**: Because the application is strictly gated behind a login wall using Firebase Client SDK auth, Server-Side Rendering (SSR) is globally disabled (`ssr: false` in `nuxt.config.ts`).
 - **Route Protection**: Implemented via a global router middleware (`auth.global.ts`). Unauthenticated users are seamlessly redirected to `/login` without UI flashes or hydration mismatch errors.
 - **State Management**: Uses composables like `useAuth.ts` and `useApi.ts` to manage authentication initialization and backend communication sequentially.
-- **UI Components**: Employs DaisyUI strictly for rapid, cohesive, and accessible CSS/Tailwind component styling.
+- **UI Components**: Employs a strictly squared Neobrutalism aesthetic (hard shadows, thick borders) utilizing `shadcn-vue` and custom Tailwind v4 themes. Registry components are locally maintained in `frontend/app/components/ui/`.
 
 ## 4. Backend Architecture (FastAPI)
 

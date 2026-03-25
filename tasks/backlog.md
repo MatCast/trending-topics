@@ -1,5 +1,9 @@
 # Backlog — Future Enhancements
 
+## Fixes after Migration to neo brutalism
+
+-
+
 ## DONE: Dynamic Theming System
 Implemented a dynamic theme switching system powered by DaisyUI 5 and Nuxt Runtime Config. Replaced hardcoded "dark" themes with a configuration-driven `data-theme` binding. All components now use semantic CSS variables, allowing for instant, application-wide visual changes by updating a single environment variable or config value.
 
