@@ -22,7 +22,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
     v-if="collapsible === 'none'"
     :class="
       cn(
-        'bg-secondary-background text-foreground flex h-full w-[var(--sidebar-width)] flex-col',
+        'bg-sidebar text-sidebar-foreground flex h-full w-[var(--sidebar-width)] flex-col',
         props.class
       )
     "
@@ -41,7 +41,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
       data-sidebar="sidebar"
       data-mobile="true"
       :side="side"
-      class="bg-secondary-background text-foreground w-[var(--sidebar-width)] p-0 [&>button]:hidden"
+      class="bg-sidebar text-sidebar-foreground w-[var(--sidebar-width)] p-0 [&>button]:hidden border-r-4 border-black"
       :style="{
         '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
       }"

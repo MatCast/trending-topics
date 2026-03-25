@@ -21,6 +21,19 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  
+  /* Neobrutalism Custom Tokens */
+  --color-main: hsl(var(--primary));
+  --color-main-foreground: hsl(var(--primary-foreground));
+  --color-secondary-background: hsl(var(--secondary));
+  --color-sidebar: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-shadow: 0 0% 0%;
+  
+  --spacing-boxShadowX: 4px;
+  --spacing-boxShadowY: 4px;
+  --spacing-reverseBoxShadowX: -4px;
+  --spacing-reverseBoxShadowY: -4px;
 }
 
 @layer base {

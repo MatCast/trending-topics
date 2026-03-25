@@ -8,14 +8,13 @@ const props = defineProps<{
 </script>
 
 <template>
-  <tr
-    :class="
-      cn(
-        'border-b-2 border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted',
-        props.class
-      )
-    "
-  >
-    <slot />
-  </tr>
+  <div class="relative w-full overflow-auto">
+    <table
+      :class="
+        cn('w-full caption-bottom text-sm border-2 border-border', props.class)
+      "
+    >
+      <slot />
+    </table>
+  </div>
 </template>

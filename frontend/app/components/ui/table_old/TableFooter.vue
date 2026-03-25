@@ -8,14 +8,14 @@ const props = defineProps<{
 </script>
 
 <template>
-  <tr
+  <tfoot
     :class="
       cn(
-        'border-b-2 border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted',
+        'border-t-2 border-border bg-main font-base text-main-foreground last:[&>tr]:border-b-0',
         props.class
       )
     "
   >
     <slot />
-  </tr>
+  </tfoot>
 </template>
