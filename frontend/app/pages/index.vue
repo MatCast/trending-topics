@@ -185,7 +185,15 @@
         </button>
       </div>
     </div>
-
+    <!-- Modals -->
+    <ScheduledExtractionModal
+      ref="scheduleModalRef"
+      :settings="userSettings"
+      :schedule="userSchedule"
+      :is-free-tier="isFreeTier"
+      :is-saving="isSavingSettings"
+      @save="handleScheduleSave"
+    />
   </div>
 </template>
 
@@ -195,6 +203,7 @@ import { useSourceIcons } from '~/composables/useSourceIcons'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { Search, Clock, Loader2, FileSearch, Globe, Hash, TrendingUp, MessageSquare, Plus } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
+import ScheduledExtractionModal from '~/components/ScheduledExtractionModal.vue'
 
 definePageMeta({ layout: 'default' })
 
