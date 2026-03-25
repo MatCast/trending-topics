@@ -183,8 +183,8 @@
               >
                 <div class="flex items-center gap-4">
                   <Switch 
+                    size="sm"
                     :checked="src.enabled" 
-                    class="data-[state=checked]:bg-primary border-2 border-black shadow-none"
                     @update:checked="(val: boolean) => toggleDraftSourceManual(val, src, catalogSource.id)" 
                   />
                   <div class="space-y-0.5">
@@ -192,8 +192,8 @@
                     <div class="flex items-center gap-2">
                          <span class="text-[8px] font-black uppercase text-muted-foreground">Context Filtering</span>
                          <Switch 
+                            size="sm"
                             v-model:checked="src.use_global_keywords" 
-                            class="scale-75 data-[state=checked]:bg-black border-2 border-black shadow-none"
                           />
                     </div>
                   </div>

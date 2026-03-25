@@ -112,6 +112,7 @@
                     <TableCell class="font-black text-lg py-4">{{ kw.text }}</TableCell>
                     <TableCell class="text-center py-4">
                       <Switch
+                        size="sm"
                         :checked="kw.enabled"
                         @update:checked="(val: boolean) => updateEnabled(val, kw)"
                       />
