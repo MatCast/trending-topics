@@ -14,11 +14,12 @@
               {{ extractionUsage.monthly }} / {{ extractionLimits.monthly }} Monthly
             </Badge>
           </div>
-          
+
           <div class="flex items-center gap-2">
-            <Button 
+            <Button
+              variant="outline"
               size="lg"
-              class="group h-12 px-6 border-4 border-black bg-primary flex items-center justify-center gap-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
+              class="group h-12 px-6 border-2 border-black bg-primary flex items-center justify-center gap-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
               :disabled="isExtracting || isAnyLimitReached"
               @click="runExtraction"
             >
@@ -27,11 +28,11 @@
               <span v-if="isAnyLimitReached && !isExtracting">Limit Reached</span>
               <span v-else>{{ isExtracting ? 'Searching...' : 'New Extraction' }}</span>
             </Button>
-            
+
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger as-child>
-                  <Button 
+                  <Button
                     variant="outline"
                     class="size-11 p-0 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
                     @click="openScheduleModal"
@@ -49,9 +50,9 @@
       </div>
 
       <!-- Settings Toolbar -->
-      <ExtractionSettings 
-        v-model="userSettings" 
-        :saving="isSavingSettings" 
+      <ExtractionSettings
+        v-model="userSettings"
+        :saving="isSavingSettings"
         @change="saveSettings"
       />
     </div>
@@ -167,17 +168,17 @@
     <!-- Pagination -->
     <div v-if="totalResults > pageSize" class="flex justify-center mt-6">
       <div class="flex border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white overflow-hidden uppercase font-black text-xs">
-        <button 
-          class="px-4 py-2 border-r-2 border-black hover:bg-primary disabled:opacity-30 transition-colors" 
-          :disabled="page <= 1" 
+        <button
+          class="px-4 py-2 border-r-2 border-black hover:bg-primary disabled:opacity-30 transition-colors"
+          :disabled="page <= 1"
           @click="page--"
         >
           Prev
         </button>
         <div class="px-6 py-2 bg-muted/50">Page {{ page }}</div>
-        <button 
-          class="px-4 py-2 border-l-2 border-black hover:bg-primary disabled:opacity-30 transition-colors" 
-          :disabled="page * pageSize >= totalResults" 
+        <button
+          class="px-4 py-2 border-l-2 border-black hover:bg-primary disabled:opacity-30 transition-colors"
+          :disabled="page * pageSize >= totalResults"
           @click="page++"
         >
           Next
