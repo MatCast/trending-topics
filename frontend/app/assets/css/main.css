@@ -1,7 +1,6 @@
 @import "tailwindcss";
-@plugin "daisyui" {
-  themes: valentine, dark, light, night;
-}
+@import "tailwindcss/theme" layer(theme);
+@import "./neo-theme.css";
 
 /* Custom global styles */
 body {

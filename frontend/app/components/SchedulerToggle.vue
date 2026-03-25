@@ -1,40 +1,38 @@
 <template>
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-primary/5 p-5 rounded-xl border border-primary/10 shadow-xs transition-all duration-300 hover:shadow-md">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-white p-6 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
     <div class="flex items-center gap-4">
-      <div class="p-2.5 bg-primary/10 rounded-xl text-primary">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
+      <div class="size-12 flex items-center justify-center border-2 border-black bg-primary/20 shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
+        <Zap class="size-6 text-black" />
       </div>
       <div>
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-black uppercase tracking-widest text-base-content/80">Activate Automation</span>
-          <div v-if="modelValue" class="badge badge-success badge-xs animate-pulse"></div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-black uppercase tracking-widest text-black">Activate Automation</span>
+          <div v-if="modelValue" class="size-2 bg-primary border border-black animate-pulse"></div>
         </div>
-        <p v-if="lastRunAt" class="text-[10px] opacity-50 mt-1">
-          Last ran: <span class="font-mono">{{ formatDate(lastRunAt) }}</span>
+        <p v-if="lastRunAt" class="text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">
+          Last ran: <span class="font-black text-black">{{ formatDate(lastRunAt) }}</span>
         </p>
-        <p v-else class="text-[10px] opacity-50 mt-1 italic font-medium">Never ran yet</p>
+        <p v-else class="text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-tight italic">Never ran yet</p>
       </div>
     </div>
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-4 pt-4 sm:pt-0 border-t-2 border-black/5 sm:border-0">
       <span 
-        class="text-[10px] font-bold uppercase tracking-widest transition-colors duration-300" 
-        :class="modelValue ? 'text-success' : 'text-base-content/30'"
+        class="text-[10px] font-black uppercase tracking-widest transition-colors" 
+        :class="modelValue ? 'text-black' : 'text-muted-foreground'"
       >
         {{ modelValue ? 'Active' : 'Disabled' }}
       </span>
-      <input 
-        type="checkbox" 
+      <Switch 
         :checked="modelValue"
-        @change="$emit('update:modelValue', ($event.target as HTMLInputElement).checked); $emit('change')"
-        class="toggle toggle-primary"
+        @update:checked="(val: boolean) => { $emit('update:modelValue', val); $emit('change') }"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { Zap } from 'lucide-vue-next'
+import { Switch } from '@/components/ui/switch'
 import { useFormatDate } from '~/composables/useFormatDate'
 
 const props = defineProps<{

@@ -1,192 +1,188 @@
 <template>
-  <div class="max-w-4xl mx-auto">
-    <div class="flex items-center justify-between mb-6">
+  <div class="max-w-4xl mx-auto space-y-8">
+    <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Keywords</h1>
-        <p class="text-base-content/60 text-sm">Manage keywords used to filter trending content.</p>
+        <h1 class="text-3xl font-black tracking-tight uppercase">Keywords</h1>
+        <p class="text-muted-foreground font-bold">Manage keywords used to filter trending content.</p>
       </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="isLoading" class="flex justify-center py-16">
-      <span class="loading loading-spinner loading-lg text-primary"></span>
+    <div v-if="isLoading" class="space-y-4 py-8">
+      <Skeleton v-for="i in 3" :key="i" class="h-32 w-full border-2 border-black" />
     </div>
 
-    <div v-else class="space-y-6">
+    <div v-else class="space-y-8">
       <!-- Add Keywords -->
-      <div class="card bg-base-100 shadow-xl border border-base-300">
-        <div class="card-body">
-          <div class="flex items-start justify-between mb-2">
+      <Card class="border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none">
+        <CardHeader class="pb-4">
+          <div class="flex items-start justify-between">
             <div>
-              <h2 class="card-title text-base mb-1">Add Keywords</h2>
-              <p class="text-base-content/60 text-xs m-0">Separate multiple keywords with commas.</p>
+              <CardTitle class="text-xl font-black uppercase">Add Keywords</CardTitle>
+              <CardDescription class="text-black font-bold">Separate multiple keywords with commas.</CardDescription>
             </div>
             <UsageLimitBadge :current="activeKeywordCount" :limit="keywordLimit" type="active" />
           </div>
-          <div class="join w-full">
-            <input
+        </CardHeader>
+        <CardContent>
+          <div class="flex">
+            <Input
               v-model="newKeywordInput"
               type="text"
               placeholder="e.g., AI, startup, GPT, machine learning"
-              class="input input-bordered join-item flex-1"
+              class="flex-1 border-2 border-black rounded-none shadow-none focus-visible:ring-0 focus-visible:border-black"
+              :class="{ 'border-destructive': addError }"
               @keyup.enter="addKeywords"
             />
-            <button
-              class="btn btn-primary join-item"
-              :class="{ 'btn-disabled': isAdding }"
+            <Button
+              class="border-2 border-black border-l-0 rounded-none shadow-none hover:bg-primary transition-colors px-8"
+              :disabled="isAdding"
               @click="addKeywords"
             >
-              <span v-if="isAdding" class="loading loading-spinner loading-xs"></span>
-              {{ isAdding ? '' : 'Add' }}
-            </button>
+              <Loader2 v-if="isAdding" class="size-4 animate-spin mr-2" />
+              {{ isAdding ? 'Adding' : 'Add' }}
+            </Button>
           </div>
-          <div v-if="addError || isLimitReached" class="mt-1">
-            <p v-if="addError" class="text-error text-xs">{{ addError }}</p>
-            <div v-else-if="isLimitReached" class="text-warning text-xs flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
+          <div v-if="addError || isLimitReached" class="mt-3">
+            <p v-if="addError" class="text-xs font-black text-destructive uppercase">{{ addError }}</p>
+            <div v-else-if="isLimitReached" class="p-3 border-2 border-black bg-primary/20 flex items-center gap-2 text-xs font-bold uppercase">
+              <AlertTriangle class="size-4" />
               <span>At active limit. New keywords will be disabled.</span>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <!-- Bulk Actions Bar -->
-      <div v-if="selectedIds.size > 0" class="flex flex-wrap items-center gap-2 p-3 bg-base-300 rounded-xl sticky top-16 z-10 shadow-sm">
-        <span class="text-sm font-medium w-full md:w-auto text-center md:text-left">{{ selectedIds.size }} selected</span>
-        <div class="flex flex-1 justify-center md:justify-start gap-2">
-          <button class="btn btn-success btn-xs" @click="bulkAction('enable')">Enable</button>
-          <button class="btn btn-warning btn-xs" @click="bulkAction('disable')">Disable</button>
-          <button class="btn btn-error btn-xs" @click="bulkAction('delete')">Delete</button>
+      <transition 
+        enter-active-class="transition duration-200 ease-out" 
+        enter-from-class="translate-y-4 opacity-0" 
+        enter-to-class="translate-y-0 opacity-100" 
+        leave-active-class="transition duration-150 ease-in" 
+        leave-from-class="translate-y-0 opacity-100" 
+        leave-to-class="translate-y-4 opacity-0"
+      >
+        <div v-if="selectedIds.size > 0" class="flex flex-wrap items-center gap-4 p-4 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sticky top-4 z-20">
+          <span class="text-xs font-black uppercase tracking-widest bg-black text-white px-3 py-1">{{ selectedIds.size }} Selected</span>
+          <div class="flex flex-wrap gap-2 flex-1">
+            <Button size="sm" variant="outline" class="border-2 border-black hover:bg-primary h-8 uppercase font-black text-[10px]" @click="bulkAction('enable')">Enable</Button>
+            <Button size="sm" variant="outline" class="border-2 border-black hover:bg-muted h-8 uppercase font-black text-[10px]" @click="bulkAction('disable')">Disable</Button>
+            <Button size="sm" variant="destructive" class="border-2 border-black hover:bg-destructive h-8 uppercase font-black text-[10px]" @click="bulkAction('delete')">Delete</Button>
+          </div>
+          <Button variant="ghost" size="sm" class="h-8 uppercase font-black text-[10px] hover:bg-transparent hover:underline" @click="selectedIds.clear()">Clear</Button>
         </div>
-        <button class="btn btn-ghost btn-xs w-full md:w-auto md:ml-auto" @click="selectedIds.clear()">Clear selection</button>
-      </div>
+      </transition>
 
       <!-- Keywords List / Table -->
-      <div class="card bg-base-100 shadow-xl border border-base-300">
-        <div class="card-body p-0" v-if="keywords.length">
-          
-          <!-- Desktop Table -->
-          <div class="hidden md:block overflow-x-auto">
-            <table class="table w-full">
-              <thead>
-                <tr>
-                  <th class="w-10">
-                    <input
-                      type="checkbox"
-                      class="checkbox checkbox-sm"
-                      :checked="isAllSelected"
-                      :indeterminate="isPartiallySelected"
-                      @change="toggleSelectAll"
-                    />
-                  </th>
-                  <th>Keyword</th>
-                  <th class="w-24 text-center">Status</th>
-                  <th class="w-32">Added</th>
-                  <th class="w-16"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="kw in keywords"
-                  :key="`desktop-${kw.id}`"
-                  class="hover"
-                  :class="{ 'opacity-50': !kw.enabled }"
-                >
-                  <td>
-                    <input
-                      type="checkbox"
-                      class="checkbox checkbox-sm"
+      <Card class="border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none overflow-hidden">
+        <CardContent class="p-0">
+          <div v-if="keywords.length">
+            <!-- Desktop Table -->
+            <div class="hidden md:block">
+              <Table>
+                <TableHeader class="bg-black text-white">
+                  <TableRow class="hover:bg-black border-b-2 border-black">
+                    <TableHead class="w-12 py-4 pl-6">
+                      <Checkbox
+                        class="border-2 border-white data-[state=checked]:bg-white data-[state=checked]:text-black"
+                        :checked="isAllSelected"
+                        @update:checked="toggleSelectAll"
+                      />
+                    </TableHead>
+                    <TableHead class="text-white font-black uppercase py-4">Keyword</TableHead>
+                    <TableHead class="text-white font-black uppercase py-4 text-center">Status</TableHead>
+                    <TableHead class="text-white font-black uppercase py-4">Added</TableHead>
+                    <TableHead class="w-12 py-4 pr-6"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow
+                    v-for="kw in keywords"
+                    :key="`desktop-${kw.id}`"
+                    class="border-b-2 border-black hover:bg-muted/30 transition-colors"
+                    :class="{ 'opacity-60 grayscale': !kw.enabled }"
+                  >
+                    <TableCell class="py-4 pl-6">
+                      <Checkbox
+                        class="border-2 border-black"
+                        :checked="selectedIds.has(kw.id)"
+                        @update:checked="toggleSelect(kw.id)"
+                      />
+                    </TableCell>
+                    <TableCell class="font-black text-lg py-4">{{ kw.text }}</TableCell>
+                    <TableCell class="text-center py-4">
+                      <Switch
+                        :checked="kw.enabled"
+                        @update:checked="(val: boolean) => updateEnabled(val, kw)"
+                      />
+                    </TableCell>
+                    <TableCell class="text-xs font-bold uppercase py-4 text-muted-foreground">{{ formatDate(kw.created_at) }}</TableCell>
+                    <TableCell class="py-4 pr-6 text-right">
+                      <Button variant="ghost" size="icon" class="size-8 hover:bg-destructive hover:text-white" @click="deleteSingle(kw)">
+                        <X class="size-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+
+            <!-- Mobile List -->
+            <div class="md:hidden divide-y-2 divide-black">
+              <div
+                v-for="kw in keywords"
+                :key="`mobile-${kw.id}`"
+                class="p-4 space-y-4"
+                :class="{ 'opacity-60 grayscale bg-muted/20': !kw.enabled, 'bg-primary/10': selectedIds.has(kw.id) }"
+              >
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex items-start gap-4">
+                    <Checkbox
+                      class="border-2 border-black mt-1"
                       :checked="selectedIds.has(kw.id)"
-                      @change="toggleSelect(kw.id)"
+                      @update:checked="toggleSelect(kw.id)"
                     />
-                  </td>
-                  <td class="font-medium">{{ kw.text }}</td>
-                  <td class="text-center">
-                    <input
-                      type="checkbox"
-                      class="toggle toggle-sm toggle-success"
-                      :checked="kw.enabled"
-                      @change="toggleEnabled($event, kw)"
-                    />
-                  </td>
-                  <td class="text-xs text-base-content/60">{{ formatDate(kw.created_at) }}</td>
-                  <td>
-                    <button class="btn btn-ghost btn-xs btn-square text-error" @click="deleteSingle(kw)">✕</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Mobile Cards -->
-          <div class="md:hidden flex flex-col gap-0 divide-y divide-base-300">
-            <!-- Mobile Select All Bar -->
-            <div class="flex items-center justify-between p-4 bg-base-200/50">
-              <label class="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  class="checkbox checkbox-sm"
-                  :checked="isAllSelected"
-                  :indeterminate="isPartiallySelected"
-                  @change="toggleSelectAll"
-                />
-                <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Select All</span>
-              </label>
-            </div>
-            
-            <div
-              v-for="kw in keywords"
-              :key="`mobile-${kw.id}`"
-              class="flex flex-col p-4 gap-3 bg-base-100"
-              :class="{ 'opacity-60': !kw.enabled, 'bg-base-200/40': selectedIds.has(kw.id) }"
-            >
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    class="checkbox checkbox-sm mt-1 border-base-content/30"
-                    :checked="selectedIds.has(kw.id)"
-                    @change="toggleSelect(kw.id)"
-                  />
-                  <div>
-                    <span class="font-bold text-base-content block">{{ kw.text }}</span>
-                    <span class="text-[10px] text-base-content/50 uppercase tracking-wider font-semibold">{{ formatDate(kw.created_at) }}</span>
+                    <div>
+                      <span class="font-black text-xl block leading-tight">{{ kw.text }}</span>
+                      <span class="text-[10px] font-black uppercase text-muted-foreground">{{ formatDate(kw.created_at) }}</span>
+                    </div>
                   </div>
+                  <Button variant="ghost" size="icon" class="size-8 hover:bg-destructive hover:text-white" @click="deleteSingle(kw)">
+                    <X class="size-4" />
+                  </Button>
                 </div>
-                <button class="btn btn-ghost btn-xs btn-circle text-error" @click="deleteSingle(kw)">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-              <div class="flex items-center justify-between pl-8">
-                <span class="text-xs font-medium text-base-content/70">Status</span>
-                <input
-                  type="checkbox"
-                  class="toggle toggle-sm toggle-success"
-                  :checked="kw.enabled"
-                  @change="toggleEnabled($event, kw)"
-                />
+                <div class="flex items-center justify-between border-t border-black/10 pt-4">
+                  <span class="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Active Status</span>
+                  <Switch
+                    :checked="kw.enabled"
+                    @update:checked="(val: boolean) => updateEnabled(val, kw)"
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Empty state -->
-        <div v-else class="text-center py-12">
-          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-base-300 mb-3">
-            <span class="text-2xl">🏷️</span>
+          <!-- Empty state -->
+          <div v-else class="text-center py-20 border-4 border-dashed border-muted flex flex-col items-center">
+            <div class="flex aspect-square size-16 items-center justify-center border-4 border-black bg-muted mb-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+              <Tag class="size-8 text-muted-foreground" />
+            </div>
+            <h3 class="text-2xl font-black mb-1 uppercase">No keywords yet</h3>
+            <p class="text-muted-foreground font-bold mb-8">Add keywords above to start filtering trends.</p>
           </div>
-          <h3 class="text-lg font-semibold mb-1">No keywords yet</h3>
-          <p class="text-base-content/60 text-sm">Add keywords above to start filtering trends.</p>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
+
+import { Loader2, AlertTriangle, X, Tag } from 'lucide-vue-next'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
+import { toast } from 'vue-sonner'
 
 const { apiFetch } = useApi()
 const { keywordLimit, isKeywordUnlimited, fetchProfile } = useUser()
@@ -258,23 +254,22 @@ async function addKeywords() {
     })
     keywords.value.push(...created)
     newKeywordInput.value = ''
+    toast.success(`${kwList.length} keyword(s) added`)
   } catch (error: any) {
     addError.value = error.data?.detail || 'Failed to add keywords'
+    toast.error('Failed to add keywords', { description: addError.value })
   } finally {
     isAdding.value = false
   }
 }
 
-async function toggleEnabled(event: Event, kw: any) {
-  const target = event.target as HTMLInputElement
-  const newValue = target.checked;
-
+async function updateEnabled(newValue: boolean, kw: any) {
   if (newValue && isLimitReached.value) {
-    target.checked = false;
-    addError.value = 'Active limit reached. Disable another keyword first.';
+    toast.error('Limit reached', { description: 'Active limit reached. Disable another keyword first.' })
     return;
   }
 
+  const originalValue = kw.enabled
   kw.enabled = newValue;
   try {
     await apiFetch(`/api/keywords/${kw.id}`, {
@@ -282,11 +277,13 @@ async function toggleEnabled(event: Event, kw: any) {
       body: { enabled: kw.enabled },
     })
     addError.value = ''
+    toast.success(`Keyword ${kw.enabled ? 'enabled' : 'disabled'}`)
   } catch (error: any) {
     console.error('Failed to toggle keyword:', error)
-    kw.enabled = !kw.enabled // revert
-    target.checked = kw.enabled
-    addError.value = error.data?.detail || 'Failed to toggle keyword.'
+    kw.enabled = originalValue
+    const detail = error.data?.detail || 'Failed to toggle keyword.'
+    addError.value = detail
+    toast.error('Action failed', { description: detail })
   }
 }
 
@@ -296,8 +293,10 @@ async function deleteSingle(kw: any) {
     keywords.value = keywords.value.filter(k => k.id !== kw.id)
     selectedIds.value.delete(kw.id)
     selectedIds.value = new Set(selectedIds.value)
+    toast.success(`Keyword deleted`)
   } catch (error) {
     console.error('Failed to delete keyword:', error)
+    toast.error('Failed to delete keyword')
   }
 }
 
@@ -313,20 +312,24 @@ async function bulkAction(action: string) {
 
     if (action === 'delete') {
       keywords.value = keywords.value.filter(k => !selectedIds.value.has(k.id))
+      toast.success(`${ids.length} keywords deleted`)
     } else if (action === 'enable') {
       keywords.value.forEach(k => {
         if (selectedIds.value.has(k.id)) k.enabled = true
       })
+      toast.success(`${ids.length} keywords enabled`)
     } else if (action === 'disable') {
       keywords.value.forEach(k => {
         if (selectedIds.value.has(k.id)) k.enabled = false
       })
+      toast.success(`${ids.length} keywords disabled`)
     }
 
     selectedIds.value.clear()
     selectedIds.value = new Set()
   } catch (error) {
     console.error('Bulk action failed:', error)
+    toast.error('Bulk action failed')
   }
 }
 

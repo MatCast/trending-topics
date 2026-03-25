@@ -1,41 +1,49 @@
 <template>
-  <div>
-    <div class="flex flex-col gap-6 mb-8">
+  <div class="space-y-8">
+    <div class="flex flex-col gap-6">
       <!-- Top Header -->
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight">Extraction History</h1>
-          <p class="text-base-content/60 text-sm">Review your past extractions and trending topics.</p>
+          <h1 class="text-3xl font-black tracking-tight uppercase">Extraction History</h1>
+          <p class="text-muted-foreground font-bold">Review your past extractions and trending topics.</p>
         </div>
 
         <div class="flex items-center gap-3 w-full sm:w-auto">
           <div v-if="profile" class="hidden lg:block mr-2">
-            <UsageLimitBadge :current="extractionUsage.monthly" :limit="extractionLimits.monthly" type="Monthly Extractions" size="sm" />
+            <Badge variant="outline" class="border-2 border-black bg-white px-3 py-1 text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              {{ extractionUsage.monthly }} / {{ extractionLimits.monthly }} Monthly
+            </Badge>
           </div>
           
-          <div class="flex items-center gap-2 shadow-sm">
-            <button 
-              class="btn btn-primary gap-2 px-6 rounded-xl" 
-              :class="{ 'btn-disabled': isExtracting || isAnyLimitReached }" 
+          <div class="flex items-center gap-2">
+            <Button 
+              size="lg"
+              class="group size-12 border-4 border-black bg-primary flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
               :disabled="isExtracting || isAnyLimitReached"
               @click="runExtraction"
             >
-              <span v-if="isExtracting" class="loading loading-spinner loading-xs"></span>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <Loader2 v-if="isExtracting" class="size-4 animate-spin" />
+              <Search v-else class="size-4" />
               <span v-if="isAnyLimitReached && !isExtracting">Limit Reached</span>
               <span v-else>{{ isExtracting ? 'Searching...' : 'New Extraction' }}</span>
-            </button>
-            <button 
-              class="btn btn-primary px-3 rounded-xl tooltip tooltip-bottom" 
-              data-tip="Schedule Automation"
-              @click="openScheduleModal"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </button>
+            </Button>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Button 
+                    variant="outline"
+                    class="size-11 p-0 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                    @click="openScheduleModal"
+                  >
+                    <Clock class="size-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent class="border-2 border-black rounded-none font-bold bg-white text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  Schedule Automation
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </div>
@@ -48,156 +56,135 @@
       />
     </div>
 
-    <!-- Extraction result toast -->
-    <div v-if="lastRunMessage" class="alert alert-info mb-4 shadow-lg">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <span>{{ lastRunMessage }}</span>
-      <button class="btn btn-ghost btn-xs" @click="lastRunMessage = ''">✕</button>
-    </div>
-
     <!-- Loading state -->
-    <div v-if="isLoadingResults" class="flex justify-center py-16">
-      <span class="loading loading-spinner loading-lg text-primary"></span>
+    <div v-if="isLoadingResults" class="space-y-4 py-8">
+      <Skeleton v-for="i in 5" :key="i" class="h-24 w-full border-2 border-black" />
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="!extractions.length" class="text-center py-16">
-      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-base-300 mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 5H7a2 2 0 00-2 2v12A2 2 0 007 21h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-        </svg>
+    <div v-else-if="!extractions.length" class="text-center py-20 border-4 border-dashed border-muted flex flex-col items-center">
+      <div class="flex aspect-square size-20 items-center justify-center border-4 border-black bg-muted mb-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+        <FileSearch class="size-10 text-muted-foreground" />
       </div>
-      <h3 class="text-lg font-semibold mb-1">No extractions yet</h3>
-      <p class="text-base-content/60 text-sm mb-4">Run an extraction to find trending topics.</p>
-      <button class="btn btn-primary btn-sm" @click="runExtraction">Run Extraction</button>
+      <h3 class="text-2xl font-black mb-2 uppercase">No extractions yet</h3>
+      <p class="text-muted-foreground font-bold mb-8">Run an extraction to find trending topics.</p>
+      <Button size="lg" @click="runExtraction" class="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        Run First Extraction
+      </Button>
     </div>
 
     <!-- Extractions Table / Mobile Cards -->
     <div v-else class="pb-8">
-
       <!-- Desktop Table -->
-      <div class="hidden md:block overflow-x-auto">
-        <table class="table w-full border-separate border-spacing-y-4">
-          <thead>
-            <tr class="text-base-content/40 border-none uppercase text-xs tracking-widest">
-              <th class="bg-transparent pl-8">Run Date</th>
-              <th class="bg-transparent">Target Platforms</th>
-              <th class="bg-transparent text-right">Topics Found</th>
-              <th class="bg-transparent text-right pr-8">Expires</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="extraction in extractions" :key="`desktop-${extraction.id}`"
-              class="group bg-base-100 hover:bg-base-100/90 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.25)] hover:-translate-y-2 rounded-2xl border border-base-300 hover:border-primary/30 active:scale-[0.97]"
-              :class="extraction.status === 'pending' ? 'cursor-wait opacity-80' : 'cursor-pointer'"
+      <div class="hidden md:block">
+        <Table class="border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <TableHeader class="bg-black text-white">
+            <TableRow class="hover:bg-black border-b-2 border-black">
+              <TableHead class="text-white font-black uppercase py-4 pl-6">Run Date</TableHead>
+              <TableHead class="text-white font-black uppercase py-4">Target Platforms</TableHead>
+              <TableHead class="text-white font-black uppercase py-4 text-right">Topics</TableHead>
+              <TableHead class="text-white font-black uppercase py-4 text-right pr-6">Expires</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-for="extraction in extractions" :key="`desktop-${extraction.id}`"
+              class="group cursor-pointer border-b-2 border-black hover:bg-primary transition-colors"
               @click="extraction.status !== 'pending' && navigateTo(`/extractions/${extraction.id}`)">
-              <td class="whitespace-nowrap font-medium py-8 pl-10 rounded-l-2xl border-l border-t border-b border-transparent group-hover:border-base-300/50">
-                <div class="flex flex-col gap-1">
+              <TableCell class="py-6 pl-6">
+                <div class="flex flex-col">
                   <div class="flex items-center gap-2">
-                    <span class="text-lg font-bold text-base-content tracking-tight group-hover:text-primary transition-colors">{{
-                      formatDate(extraction.created_at).split(',')[0] }}</span>
-                    <span v-if="extraction.status === 'pending'" class="loading loading-spinner loading-xs text-primary"></span>
+                    <span class="text-lg font-black">{{ formatDate(extraction.created_at).split(',')[0] }}</span>
+                    <Loader2 v-if="extraction.status === 'pending'" class="size-4 animate-spin text-primary" />
                   </div>
-                  <span class="text-xs font-semibold text-base-content/40 tracking-wider uppercase">{{ formatDate(extraction.created_at).split(',')[1] }}</span>
+                  <span class="text-xs font-bold text-muted-foreground uppercase">{{ formatDate(extraction.created_at).split(',')[1] }}</span>
                 </div>
-              </td>
-              <td class="py-8 border-t border-b border-transparent group-hover:border-base-300/50">
+              </TableCell>
+              <TableCell class="py-6">
                 <div class="flex items-center gap-4">
-                  <div v-for="type in getUniqueSources(extraction.sources)" :key="type" class="tooltip tooltip-bottom font-bold" :data-tip="type.toUpperCase()">
-                    <svg v-if="isSvgIcon(type)" class="w-7 h-7 transition-all duration-500 group-hover:scale-125" :class="getIconConfig(type).svgClass"
-                      viewBox="0 0 24 24" fill="currentColor">
-                      <path :d="getIconConfig(type).svgPath" />
-                    </svg>
-                    <span v-else :class="getIconConfig(type).textClass" class="text-2xl transition-all duration-500 group-hover:scale-125">
-                      {{ getIconConfig(type).text }}
-                    </span>
+                  <div v-for="type in getUniqueSources(extraction.sources)" :key="type" class="flex items-center gap-1">
+                    <div class="size-8 flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <component :is="getLucideIcon(type)" class="size-5" />
+                    </div>
                   </div>
-                  <span v-if="!getUniqueSources(extraction.sources).length" class="text-base-content/20 italic text-sm">No sources tracked</span>
+                  <span v-if="!getUniqueSources(extraction.sources).length" class="text-muted-foreground italic text-sm font-bold">No sources</span>
                 </div>
-              </td>
-              <td class="text-right py-8 border-t border-b border-transparent group-hover:border-base-300/50">
-                <div class="inline-flex flex-col items-end gap-1">
-                  <span class="text-2xl font-black text-primary/80 group-hover:text-primary transition-colors font-mono">{{ extraction.results_count }}</span>
-                  <span class="text-[10px] uppercase tracking-tighter text-base-content/40 font-bold">Total Trends</span>
+              </TableCell>
+              <TableCell class="text-right py-6">
+                <div class="inline-flex flex-col items-end">
+                  <span class="text-2xl font-black font-mono">{{ extraction.results_count }}</span>
                 </div>
-              </td>
-              <td class="text-right py-8 pr-10 rounded-r-2xl border-r border-t border-b border-transparent group-hover:border-base-300/50">
-                <div class="flex flex-col items-end gap-0.5">
-                  <span class="text-sm font-semibold text-base-content/60">{{ formatDate(extraction.expires_at).split(',')[0] }}</span>
-                  <span class="text-[10px] uppercase font-bold text-error/40 group-hover:text-error/60 transition-colors">{{
-                    formatDate(extraction.expires_at).split(',')[1] }}</span>
+              </TableCell>
+              <TableCell class="text-right py-6 pr-6">
+                <div class="flex flex-col items-end">
+                  <span class="text-sm font-black">{{ formatDate(extraction.expires_at).split(',')[0] }}</span>
+                  <span class="text-[10px] font-black uppercase text-destructive">{{ formatDate(extraction.expires_at).split(',')[1] }}</span>
                 </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
 
       <!-- Mobile Cards -->
-      <div class="md:hidden flex flex-col gap-4 mt-2">
-        <div v-for="extraction in extractions" :key="`mobile-${extraction.id}`" class="bg-base-100 rounded-xl shadow-md border border-base-300 p-4 relative"
-          :class="extraction.status === 'pending' ? 'opacity-80' : 'active:scale-[0.98] cursor-pointer'"
+      <div class="md:hidden space-y-4">
+        <Card v-for="extraction in extractions" :key="`mobile-${extraction.id}`"
+          class="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-none relative overflow-hidden"
+          :class="extraction.status === 'pending' ? 'opacity-80 active:scale-100' : 'active:scale-[0.98] cursor-pointer'"
           @click="extraction.status !== 'pending' && navigateTo(`/extractions/${extraction.id}`)">
-
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="text-base font-bold text-base-content">{{ formatDate(extraction.created_at).split(',')[0] }}</span>
-                <span v-if="extraction.status === 'pending'" class="loading loading-spinner loading-xs text-primary"></span>
+          <CardHeader class="pb-2">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-lg font-black">{{ formatDate(extraction.created_at).split(',')[0] }}</span>
+                  <Loader2 v-if="extraction.status === 'pending'" class="size-4 animate-spin text-primary" />
+                </div>
+                <p class="text-[10px] font-black text-muted-foreground uppercase tracking-wider">{{ formatDate(extraction.created_at).split(',')[1] }}</p>
               </div>
-              <p class="text-[10px] font-semibold text-base-content/50 uppercase tracking-widest">{{ formatDate(extraction.created_at).split(',')[1] }}</p>
-            </div>
 
-            <div class="text-right">
-              <span class="text-[11px] font-semibold text-base-content/60">{{ formatDate(extraction.expires_at).split(',')[0] }}</span>
-              <p class="text-[9px] uppercase font-bold text-error/60">{{ formatDate(extraction.expires_at).split(',')[1] }}</p>
+              <div class="text-right">
+                <span class="text-[11px] font-black truncate block">{{ formatDate(extraction.expires_at).split(',')[0] }}</span>
+                <p class="text-[9px] font-black uppercase text-destructive">{{ formatDate(extraction.expires_at).split(',')[1] }}</p>
+              </div>
             </div>
-          </div>
-
-          <div class="flex justify-between items-end mt-4 pt-3 border-t border-base-200">
+          </CardHeader>
+          <CardFooter class="pt-2 border-t-2 border-black flex justify-between items-end bg-muted/30">
             <div class="flex items-center gap-2">
-              <div v-for="type in getUniqueSources(extraction.sources)" :key="type">
-                <svg v-if="isSvgIcon(type)" class="w-5 h-5 text-base-content/70" :class="getIconConfig(type).svgClass" viewBox="0 0 24 24" fill="currentColor">
-                  <path :d="getIconConfig(type).svgPath" />
-                </svg>
-                <span v-else :class="getIconConfig(type).textClass" class="text-lg">
-                  {{ getIconConfig(type).text }}
-                </span>
+              <div v-for="type in getUniqueSources(extraction.sources)" :key="type" class="size-6 flex items-center justify-center border-2 border-black bg-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                <component :is="getLucideIcon(type)" class="size-3.5" />
               </div>
-              <span v-if="!getUniqueSources(extraction.sources).length" class="text-base-content/20 italic text-xs">No sources</span>
+              <span v-if="!getUniqueSources(extraction.sources).length" class="text-muted-foreground italic text-xs font-bold">No sources</span>
             </div>
 
-            <div class="flex items-baseline gap-1.5">
-              <span class="text-[10px] uppercase font-bold text-base-content/50">Topics</span>
-              <span class="text-xl font-black text-primary font-mono leading-none">{{ extraction.results_count }}</span>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-black uppercase text-muted-foreground">Topics</span>
+              <span class="text-2xl font-black text-primary font-mono leading-none">{{ extraction.results_count }}</span>
             </div>
-          </div>
-        </div>
+          </CardFooter>
+        </Card>
       </div>
     </div>
 
     <!-- Pagination -->
     <div v-if="totalResults > pageSize" class="flex justify-center mt-6">
-      <div class="join">
-        <button class="join-item btn btn-sm" :disabled="page <= 1" @click="page--">«</button>
-        <button class="join-item btn btn-sm">Page {{ page }}</button>
-        <button class="join-item btn btn-sm" :disabled="page * pageSize >= totalResults" @click="page++">»</button>
+      <div class="flex border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white overflow-hidden uppercase font-black text-xs">
+        <button 
+          class="px-4 py-2 border-r-2 border-black hover:bg-primary disabled:opacity-30 transition-colors" 
+          :disabled="page <= 1" 
+          @click="page--"
+        >
+          Prev
+        </button>
+        <div class="px-6 py-2 bg-muted/50">Page {{ page }}</div>
+        <button 
+          class="px-4 py-2 border-l-2 border-black hover:bg-primary disabled:opacity-30 transition-colors" 
+          :disabled="page * pageSize >= totalResults" 
+          @click="page++"
+        >
+          Next
+        </button>
       </div>
     </div>
 
-    <!-- Scheduled Extraction Modal -->
-    <ScheduledExtractionModal 
-      ref="scheduleModalRef"
-      :settings="userSettings"
-      :schedule="userSchedule"
-      :is-free-tier="isFreeTier"
-      :is-saving="isSavingSettings"
-      @save="handleScheduleSave"
-      @update-settings="(val: any) => userSettings = val"
-    />
   </div>
 </template>
 
@@ -205,6 +192,8 @@
 import { useFormatDate } from '~/composables/useFormatDate'
 import { useSourceIcons } from '~/composables/useSourceIcons'
 import { doc, onSnapshot } from 'firebase/firestore'
+import { Search, Clock, Loader2, FileSearch, Globe, Hash, TrendingUp, MessageSquare } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 
 definePageMeta({ layout: 'default' })
 
@@ -220,8 +209,15 @@ const page = ref(1)
 const pageSize = ref(50)
 const isLoadingResults = ref(true)
 const isExtracting = ref(false)
-const lastRunMessage = ref('')
 const pendingListeners = new Map<string, () => void>()
+
+function getLucideIcon(type: string) {
+  const type_lower = type.toLowerCase()
+  if (type_lower.includes('reddit')) return MessageSquare
+  if (type_lower.includes('hacker news') || type_lower.includes('hackernews')) return Hash
+  if (type_lower.includes('bluesky')) return Globe
+  return TrendingUp
+}
 
 // Settings & Schedule
 const isSavingSettings = ref(false)
@@ -332,19 +328,23 @@ function setupExtractionListener(extractionId: string) {
         if (data.status === 'completed' || data.status === 'failed') {
           cleanupListener(extractionId)
           if (data.status === 'completed') {
-            lastRunMessage.value = `Extraction completed! Found ${data.results_count || 0} topics. Redirecting...`
+            toast.success('Extraction completed!', {
+              description: `Found ${data.results_count || 0} topics.`,
+            })
             setTimeout(() => {
               navigateTo(`/extractions/${extractionId}`)
             }, 1000)
           } else {
-            lastRunMessage.value = `Extraction failed: ${data.error || 'Unknown error'}`
+            toast.error('Extraction failed', {
+              description: data.error || 'Unknown error',
+            })
           }
         }
       }
     },
     (error) => {
       console.error("Firestore snapshot error:", error)
-      lastRunMessage.value = `Listener Error: ${error.message} (Check Firestore Security Rules)`
+      toast.error('Listener Error', { description: error.message })
       cleanupListener(extractionId)
     }
   )
@@ -389,7 +389,6 @@ async function fetchExtractions() {
 // Run extraction
 async function runExtraction() {
   isExtracting.value = true
-  lastRunMessage.value = ''
   try {
     const data = await apiFetch<any>('/api/extract', { method: 'POST', body: {} })
 
@@ -408,10 +407,10 @@ async function runExtraction() {
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       })
 
-      lastRunMessage.value = 'Extraction started in background...'
+      toast.info('Extraction started', { description: 'Running in background...' })
       setupExtractionListener(extractionId)
     } else {
-      lastRunMessage.value = `Found ${data.results_count} trending topics!`
+      toast.success('Extraction completed!', { description: `Found ${data.results_count} trending topics.` })
       if (data.extraction_id && data.results_count > 0) {
         navigateTo(`/extractions/${data.extraction_id}`)
       } else {
@@ -419,7 +418,7 @@ async function runExtraction() {
       }
     }
   } catch (error: any) {
-    lastRunMessage.value = `Extraction failed: ${error.data?.detail || error.message}`
+    toast.error('Extraction failed', { description: error.data?.detail || error.message })
   } finally {
     isExtracting.value = false
   }

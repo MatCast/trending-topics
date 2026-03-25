@@ -1,26 +1,26 @@
 <template>
-  <dialog id="scheduled_extraction_modal" ref="modalRef" class="modal modal-bottom sm:modal-middle" @close="onClose">
-    <div class="modal-box p-0 overflow-hidden border border-base-300 shadow-2xl bg-base-100 rounded-2xl max-w-lg">
+  <dialog id="scheduled_extraction_modal" ref="modalRef" class="modal bg-black/50 backdrop-blur-sm" @close="onClose">
+    <div class="modal-box p-0 rounded-none border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white max-w-lg overflow-hidden">
       <!-- Modal Header -->
-      <div class="bg-linear-to-r from-primary/10 to-base-200 px-6 py-5 border-b border-base-300/50 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-primary/20 rounded-xl text-primary shadow-sm border border-primary/20">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+      <div class="bg-black px-6 py-5 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="size-10 flex items-center justify-center border-2 border-white bg-white/10 text-white">
+            <Clock class="size-6" />
           </div>
           <div>
-            <h3 class="font-bold text-lg tracking-tight">Scheduled Extraction</h3>
-            <p class="text-[10px] uppercase font-bold text-base-content/40 tracking-widest">Automation Settings</p>
+            <h3 class="font-black text-lg uppercase tracking-tight text-white">Scheduled Extraction</h3>
+            <p class="text-[10px] uppercase font-black text-white/50 tracking-widest">Automation Settings</p>
           </div>
         </div>
         <form method="dialog">
-          <button class="btn btn-sm btn-circle btn-ghost">✕</button>
+          <Button variant="ghost" size="icon" class="size-8 text-white hover:bg-white/10">
+            <X class="size-4" />
+          </Button>
         </form>
       </div>
 
       <!-- Modal Body -->
-      <div class="p-6">
+      <div class="p-8 space-y-8">
         <SchedulingForm 
           v-model="fullSchedule"
           :is-free-tier="isFreeTier"
@@ -29,39 +29,42 @@
         >
           <template #actions>
             <!-- Modal Footer -->
-            <div class="pt-6 mt-6 border-t border-base-300 flex items-center justify-between">
-              <div v-if="showSaved" class="flex items-center gap-1.5 text-success animate-bounce">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span class="text-[10px] font-black uppercase tracking-widest">Settings Saved!</span>
+            <div class="pt-8 border-t-2 border-black flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div class="min-h-5">
+                <transition enter-active-class="transition duration-300" enter-from-class="opacity-0 -translate-x-2" enter-to-class="opacity-100 translate-x-0">
+                  <div v-if="showSaved" class="flex items-center gap-2 text-black">
+                      <Check class="size-4" />
+                      <span class="text-[10px] font-black uppercase tracking-widest">Settings Synchronized</span>
+                  </div>
+                </transition>
               </div>
-              <div v-else></div>
               
-              <div class="flex gap-3">
-                <form method="dialog">
-                  <button class="btn btn-ghost btn-sm text-xs font-bold uppercase tracking-widest px-6">Close</button>
+              <div class="flex gap-3 w-full sm:w-auto">
+                <form method="dialog" class="flex-1 sm:flex-none">
+                  <Button variant="outline" class="w-full border-2 border-black rounded-none uppercase font-black text-[10px] h-10 hover:bg-muted">Close</Button>
                 </form>
-                <button v-if="!isFreeTier" class="btn btn-primary btn-sm px-8 text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary/20" 
-                  :class="{ 'btn-disabled': isSaving }" 
+                <Button 
+                  v-if="!isFreeTier" 
+                  class="flex-1 sm:flex-none border-2 border-black rounded-none uppercase font-black text-[10px] h-10 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all" 
+                  :disabled="isSaving" 
                   @click="onSave"
                 >
-                  <span v-if="isSaving" class="loading loading-spinner loading-xs"></span>
+                  <Loader2 v-if="isSaving" class="size-4 animate-spin mr-2" />
                   {{ isSaving ? 'Saving' : 'Save Schedule' }}
-                </button>
+                </Button>
               </div>
             </div>
           </template>
         </SchedulingForm>
       </div>
     </div>
-    <form method="dialog" class="modal-backdrop">
-      <button>close</button>
-    </form>
   </dialog>
 </template>
 
 <script setup lang="ts">
+import { Clock, X, Check, Loader2 } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+
 const props = defineProps<{
   settings: {
     time_window_hours: number

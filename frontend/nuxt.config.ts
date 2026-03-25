@@ -5,15 +5,41 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
   ssr: false,
+  alias: {
+    "@/app/utils": "~/utils",
+  },
 
   vite: {
     plugins: [tailwindcss() as any],
+    resolve: {
+      alias: {
+        "@/app/utils": "/app/app/utils",
+      },
+    },
+  },
+
+  modules: [
+    "@nuxtjs/google-fonts",
+    "@nuxt/icon",
+    "@pinia/nuxt",
+    "shadcn-nuxt",
+    "@nuxtjs/color-mode"
+  ],
+
+  shadcn: {
+    prefix: '',
+    componentDir: './app/components/ui'
+  },
+
+  colorMode: {
+    classSuffix: ''
   },
 
   css: ["~/assets/css/main.css"],
 
   runtimeConfig: {
     public: {
+      projectId: process.env.NUXT_PUBLIC_PROJECT_ID,
       apiBaseUrl:
         process.env.NUXT_PUBLIC_API_BASE_URL || "http://localhost:8000",
       firebaseApiKey: process.env.NUXT_PUBLIC_FIREBASE_API_KEY || "",
@@ -24,7 +50,6 @@ export default defineNuxtConfig({
         process.env.NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
       firebaseStorageBucket:
         process.env.NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "",
-      daisyuiTheme: process.env.NUXT_PUBLIC_DAISYUI_THEME || "night",
     },
   },
 

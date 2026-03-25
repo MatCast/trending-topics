@@ -1,127 +1,144 @@
 <template>
-  <div class="max-w-4xl mx-auto">
-    <div class="flex items-center justify-between mb-6">
+  <div class="max-w-4xl mx-auto space-y-8">
+    <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Sources</h1>
-        <p class="text-base-content/60 text-sm">Manage your trending topic sources.</p>
+        <h1 class="text-3xl font-black tracking-tight uppercase">Sources</h1>
+        <p class="text-muted-foreground font-bold">Manage your trending topic sources.</p>
       </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="isLoading" class="flex justify-center py-16">
-      <span class="loading loading-spinner loading-lg text-primary"></span>
+    <div v-if="isLoading" class="space-y-4 py-8">
+      <Skeleton v-for="i in 3" :key="i" class="h-48 w-full border-2 border-black" />
     </div>
 
-    <div v-else class="space-y-6">
+    <div v-else class="space-y-8">
       <!-- Dynamic source cards from catalog -->
-      <div
+      <Card
         v-for="catalogSource in catalog"
         :key="catalogSource.id"
-        class="card bg-base-100 shadow-xl border border-base-300"
+        class="border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none overflow-hidden"
       >
-        <div class="card-body">
-          <!-- Source header -->
-          <div class="flex items-center justify-between">
-            <h2 class="card-title gap-2 flex-wrap min-w-0">
+        <CardHeader class="border-b-2 border-black bg-muted/20">
+          <div class="flex items-center justify-between gap-4">
+            <CardTitle class="flex items-center gap-3 text-2xl font-black uppercase truncate">
               <!-- Dynamic icon from composable -->
-              <svg v-if="isSvgIcon(catalogSource.icon)" class="w-6 h-6 shrink-0" :class="getIconConfig(catalogSource.icon).svgClass" viewBox="0 0 24 24" fill="currentColor">
-                <path :d="getIconConfig(catalogSource.icon).svgPath" />
-              </svg>
-              <span v-else class="shrink-0" :class="getIconConfig(catalogSource.icon).textClass">
-                {{ getIconConfig(catalogSource.icon).text }}
-              </span>
+              <div class="flex aspect-square size-10 items-center justify-center border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <component :is="getLucideIcon(catalogSource.id)" class="size-6" />
+              </div>
               <span class="truncate">{{ catalogSource.name }}</span>
-            </h2>
+            </CardTitle>
 
             <!-- Singleton: show toggle or enable button -->
             <template v-if="!catalogSource.is_multi_instance">
-              <div v-if="getSingletonSource(catalogSource.id)">
-                <input
-                  type="checkbox"
-                  class="toggle toggle-success"
-                  v-model="getSingletonSource(catalogSource.id)!.enabled"
-                  @change="toggleSource(getSingletonSource(catalogSource.id)!)"
+              <div v-if="getSingletonSource(catalogSource.id)" class="flex items-center gap-3">
+                <span class="text-[10px] font-black uppercase text-muted-foreground">{{ getSingletonSource(catalogSource.id)!.enabled ? 'Enabled' : 'Disabled' }}</span>
+                <Switch
+                  :checked="getSingletonSource(catalogSource.id)!.enabled"
+                  @update:checked="(val: boolean) => { getSingletonSource(catalogSource.id)!.enabled = val; toggleSource(getSingletonSource(catalogSource.id)!) }"
                 />
               </div>
-              <button v-else class="btn btn-primary btn-sm" @click="addSingletonSource(catalogSource)">Enable</button>
+              <Button v-else size="sm" class="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" @click="addSingletonSource(catalogSource)">
+                Enable
+              </Button>
             </template>
           </div>
+          <CardDescription class="text-black font-bold mt-2">
+            {{ catalogSource.description }}
+          </CardDescription>
+        </CardHeader>
 
-          <p class="text-base-content/60 text-sm mt-3">{{ catalogSource.description }}</p>
+        <CardContent class="pt-6">
           <a
             v-if="catalogSource.website_url"
             :href="catalogSource.website_url"
             target="_blank"
             rel="noopener"
-            class="link link-hover text-xs text-base-content/40 break-all"
-          >{{ catalogSource.website_url }}</a>
+            class="inline-flex items-center gap-1 font-bold text-xs hover:underline mb-4"
+          >
+            <ExternalLink class="size-3" />
+            {{ catalogSource.website_url }}
+          </a>
 
           <!-- Multi-instance sources: add form + list -->
           <template v-if="catalogSource.is_multi_instance">
             <!-- Dynamic config form from config_schema -->
-            <div class="form-control mt-4">
-              <div v-if="catalogSource.id === 'reddit'" class="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <span class="text-xs font-semibold uppercase tracking-wider text-base-content/40">Add Subreddit</span>
+            <div class="space-y-4">
+              <div v-if="catalogSource.id === 'reddit'" class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-xs font-black uppercase tracking-widest text-muted-foreground">Add Subreddit</span>
                 <UsageLimitBadge :current="redditSourceCount" :limit="redditLimit" type="active" />
               </div>
               
-              <div class="join w-full" v-for="(fieldSchema, fieldKey) in catalogSource.config_schema" :key="fieldKey">
-                <span v-if="catalogSource.id === 'reddit'" class="join-item btn btn-disabled">r/</span>
-                <input
+              <div class="flex" v-for="(fieldSchema, fieldKey) in catalogSource.config_schema" :key="fieldKey">
+                <div v-if="catalogSource.id === 'reddit'" class="flex items-center justify-center px-4 border-2 border-black border-r-0 bg-muted font-black">r/</div>
+                <Input
                   v-model="multiInstanceInput[catalogSource.id]"
                   type="text"
                   :placeholder="fieldSchema.placeholder || `Add ${fieldSchema.label}...`"
-                  class="input input-bordered join-item flex-1"
-                  :class="{ 'input-error': multiInstanceError[catalogSource.id] }"
+                  class="flex-1 border-2 border-black rounded-none shadow-none focus-visible:ring-0 focus-visible:border-black"
+                  :class="{ 'border-destructive': multiInstanceError[catalogSource.id] }"
                   @keyup.enter="addMultiInstanceSource(catalogSource)"
                   @input="multiInstanceError[catalogSource.id] = ''"
                 />
-                <button 
-                  class="btn btn-primary join-item" 
+                <Button 
+                  class="border-2 border-black border-l-0 rounded-none shadow-none hover:bg-primary transition-colors px-6" 
                   @click="addMultiInstanceSource(catalogSource)"
                 >
                   Add
-                </button>
+                </Button>
               </div>
 
-              <!-- Limit Warning (Now shown below toggles if toggle fails, but we keep a generic info here) -->
-              <div v-if="isRedditLimitReached && catalogSource.id === 'reddit'" class="text-xs text-warning mt-2 flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span>At active limit. New subreddits will be added as disabled.</span>
+              <!-- Limit Warning -->
+              <div v-if="isRedditLimitReached && catalogSource.id === 'reddit'" class="p-3 border-2 border-black bg-primary/20 flex items-center gap-2 text-xs font-bold uppercase">
+                <AlertTriangle class="size-4" />
+                <span>At active limit. New subreddits added as disabled.</span>
               </div>
 
-              <label v-if="multiInstanceError[catalogSource.id]" class="label">
-                <span class="label-text-alt text-error font-medium">{{ multiInstanceError[catalogSource.id] }}</span>
-              </label>
+              <p v-if="multiInstanceError[catalogSource.id]" class="text-xs font-black text-destructive uppercase tracking-tight">
+                {{ multiInstanceError[catalogSource.id] }}
+              </p>
             </div>
 
             <!-- List of user's instances -->
-            <div class="space-y-2 mt-4">
+            <div class="space-y-3 mt-6">
               <div
                 v-for="src in getMultiInstanceSources(catalogSource.id)"
                 :key="src.id"
-                class="flex items-center justify-between p-3 rounded-lg"
-                :class="src.enabled ? 'bg-base-200' : 'bg-base-200/50 opacity-60'"
+                class="flex items-center justify-between p-4 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] transition-all"
+                :class="src.enabled ? 'bg-white' : 'bg-muted/30 opacity-70'"
               >
-                <div class="flex flex-wrap items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                  <input type="checkbox" class="toggle toggle-sm toggle-success" v-model="src.enabled" @change="toggleSource(src)" />
-                  <span class="font-medium truncate max-w-full">{{ src.name }}</span>
-                  <label class="label cursor-pointer gap-2 ml-auto sm:ml-0">
-                    <span class="label-text text-xs opacity-60">Keywords</span>
-                    <input type="checkbox" class="toggle toggle-xs toggle-primary" v-model="src.use_global_keywords" @change="updateSource(src)" />
-                  </label>
+                <div class="flex flex-wrap items-center gap-4 flex-1 min-w-0">
+                  <Switch 
+                    :checked="src.enabled" 
+                    @update:checked="(val: boolean) => { src.enabled = val; toggleSource(src) }" 
+                  />
+                  <span class="font-black truncate max-w-full text-lg">{{ src.name }}</span>
+                  
+                  <div class="flex items-center gap-2 ml-auto sm:ml-4">
+                    <span class="text-[10px] font-black uppercase text-muted-foreground whitespace-nowrap">Global Keywords</span>
+                    <Switch 
+                      size="sm" 
+                      :checked="src.use_global_keywords" 
+                      @update:checked="(val: boolean) => { src.use_global_keywords = val; updateSource(src) }" 
+                    />
+                  </div>
                 </div>
-                <button class="btn btn-ghost btn-sm btn-square text-error ml-2" @click="deleteSource(src)">✕</button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  class="size-8 p-0 border-2 border-black hover:bg-destructive hover:text-destructive-foreground ml-4" 
+                  @click="deleteSource(src)"
+                >
+                  <X class="size-4" />
+                </Button>
               </div>
-              <p v-if="!getMultiInstanceSources(catalogSource.id).length" class="text-base-content/40 text-sm p-3">
+              <div v-if="!getMultiInstanceSources(catalogSource.id).length" class="text-center py-6 border-2 border-dashed border-muted text-muted-foreground font-bold uppercase text-sm">
                 No {{ catalogSource.name }} sources configured
-              </p>
+              </div>
             </div>
           </template>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   </div>
 </template>
@@ -129,9 +146,21 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+import { ExternalLink, AlertTriangle, MessageSquare, Hash, Globe, TrendingUp, X } from 'lucide-vue-next'
+import { Switch } from '@/components/ui/switch'
+import { toast } from 'vue-sonner'
+
 const { apiFetch } = useApi()
 const { getIconConfig, isSvgIcon } = useSourceIcons()
 const { redditLimit, isRedditUnlimited, fetchProfile } = useUser()
+
+function getLucideIcon(id: string) {
+  const sourceId = id.toLowerCase()
+  if (sourceId.includes('reddit')) return MessageSquare
+  if (sourceId.includes('hackernews') || sourceId.includes('hacker news')) return Hash
+  if (sourceId.includes('bluesky')) return Globe
+  return TrendingUp
+}
 
 const catalog = ref<any[]>([])
 const sources = ref<any[]>([])
@@ -187,8 +216,10 @@ async function addSingletonSource(catalogSource: any) {
       },
     })
     sources.value.push(newSource)
+    toast.success(`${catalogSource.name} enabled`)
   } catch (error) {
     console.error('Failed to add source:', error)
+    toast.error('Failed to enable source')
   }
 }
 
@@ -238,18 +269,20 @@ async function addMultiInstanceSource(catalogSource: any) {
         return
       } else {
         // It existed but was disabled. The backend might have enabled it if possible.
-        // Let's just refresh our local list.
         const idx = sources.value.findIndex(s => s.id === newSource.id)
         if (idx !== -1) sources.value[idx] = newSource
+        toast.info(`${inputVal} re-enabled from history`)
       }
     } else {
       sources.value.push(newSource)
+      toast.success(`${inputVal} added to sources`)
     }
     multiInstanceInput.value[inputKey] = ''
   } catch (error: any) {
     console.error('Failed to add source:', error)
     const detail = error.data?.detail || 'Failed to add. Please try again.'
     multiInstanceError.value[inputKey] = detail
+    toast.error('Failed to add source', { description: detail })
   }
 }
 
@@ -260,18 +293,18 @@ async function toggleSource(src: any) {
       method: 'PUT',
       body: { enabled: src.enabled },
     })
-    // If backend forced it to stay disabled (legacy check, though we handle it via 400 now)
     src.enabled = updated.enabled
+    toast.success(`${src.name} ${src.enabled ? 'enabled' : 'disabled'}`)
   } catch (error: any) {
     console.error('Failed to toggle source:', error)
-    // Revert local state on failure
     src.enabled = originalState
     
     // Show error if it was a reddit limit error
+    const detail = error.data?.detail || 'Limit reached. Disable another to enable this one.'
     if (src.source_id === 'reddit') {
-      const detail = error.data?.detail || 'Limit reached. Disable another to enable this one.'
       multiInstanceError.value['reddit'] = detail
     }
+    toast.error('Action failed', { description: detail })
   }
 }
 
@@ -281,8 +314,10 @@ async function updateSource(src: any) {
       method: 'PUT',
       body: { use_global_keywords: src.use_global_keywords },
     })
+    toast.success(`Updated ${src.name} settings`)
   } catch (error) {
     console.error('Failed to update source:', error)
+    toast.error('Failed to update source settings')
   }
 }
 
@@ -290,8 +325,10 @@ async function deleteSource(src: any) {
   try {
     await apiFetch(`/api/sources/${src.id}`, { method: 'DELETE' })
     sources.value = sources.value.filter(s => s.id !== src.id)
+    toast.success(`${src.name} removed`)
   } catch (error) {
     console.error('Failed to delete source:', error)
+    toast.error('Failed to remove source')
   }
 }
 

@@ -1,94 +1,139 @@
 <template>
-  <div class="max-w-3xl mx-auto">
-    <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold mb-2">Welcome! Let's set up your sources 🚀</h1>
-      <p class="text-base-content/60">Configure where you want to find trending topics.</p>
+  <div class="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-500">
+    <div class="text-center space-y-4">
+      <div class="inline-flex items-center justify-center size-20 border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -rotate-3 mb-4">
+        <Rocket class="size-10 text-black animate-pulse" />
+      </div>
+      <h1 class="text-5xl font-black uppercase tracking-tight">Welcome Aboard</h1>
+      <p class="text-xs font-black uppercase tracking-widest text-muted-foreground">Configure your trend intelligence engine in 4 steps</p>
     </div>
 
     <!-- Loading catalog -->
-    <div v-if="isLoadingCatalog" class="flex justify-center py-16">
-      <span class="loading loading-spinner loading-lg text-primary"></span>
+    <div v-if="isLoadingCatalog" class="flex flex-col items-center justify-center py-24 gap-4">
+        <div class="size-16 flex items-center justify-center border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-bounce">
+          <Loader2 class="size-8 text-black animate-spin" />
+        </div>
+        <p class="text-[10px] font-black uppercase tracking-widest">Initializing Catalog...</p>
     </div>
 
     <template v-else>
-      <!-- Progress Steps -->
-      <ul class="steps steps-horizontal w-full mb-8">
-        <li class="step" :class="{ 'step-primary': currentStep >= 1 }">Keywords</li>
-        <li class="step" :class="{ 'step-primary': currentStep >= 2 }" v-if="multiInstanceSources.length">
-          {{ multiInstanceSources.map(s => s.name).join(' & ') }}
-        </li>
-        <li class="step" :class="{ 'step-primary': currentStep >= 3 }" v-if="singletonSources.length">Other Sources</li>
-        <li class="step" :class="{ 'step-primary': currentStep >= 4 }">Preferences</li>
-      </ul>
-
-      <!-- Step 1: Global Keywords -->
-      <div v-if="currentStep === 1" class="card bg-base-100 shadow-xl border border-base-300">
-        <div class="card-body">
-          <h2 class="card-title">Global Keywords</h2>
-          <p class="text-base-content/60 text-sm mb-4">
-            These keywords will be used to filter content from sources that support keyword search.
-          </p>
-
-          <div class="form-control">
-            <div class="label flex flex-wrap items-center justify-between pb-1">
-              <span class="label-text">Add keywords</span>
-              <UsageLimitBadge :current="activeKeywordCountDraft" :limit="keywordLimit" type="active" />
-            </div>
-            <div class="join w-full">
-              <input
-                v-model="newKeyword"
-                type="text"
-                placeholder="e.g., AI, Startup, GPT"
-                class="input input-bordered join-item flex-1"
-                @keyup.enter="addKeyword"
-              />
-              <button class="btn btn-primary join-item" @click="addKeyword">Add</button>
-            </div>
-            <div v-if="isKeywordLimitReached" class="text-xs text-warning mt-2 flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <span>At active limit. Extra keywords will be added as disabled.</span>
-            </div>
+      <!-- Custom Neobrutalism Stepper -->
+      <div class="flex items-center justify-between relative px-4">
+        <div class="absolute inset-0 top-1/2 -translate-y-1/2 h-1 bg-black/10 z-0"></div>
+        <div 
+          v-for="step in [1, 2, 3, 4]" 
+          :key="step"
+          class="relative z-10 flex flex-col items-center gap-3"
+        >
+          <div 
+            class="size-12 flex items-center justify-center border-4 border-black font-black text-xl transition-all"
+            :class="currentStep >= step ? 'bg-primary translate-x-1 translate-y-1 shadow-none' : 'bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'"
+          >
+            {{ step }}
           </div>
-
-          <div class="flex flex-wrap gap-2 mt-4">
-            <div
-              v-for="(kw, idx) in globalKeywords"
-              :key="idx"
-              class="badge badge-lg badge-primary gap-2"
-            >
-              {{ kw }}
-              <button class="btn btn-ghost btn-xs" @click="globalKeywords.splice(idx, 1)">✕</button>
-            </div>
-            <span v-if="!globalKeywords.length" class="text-base-content/40 text-sm">No keywords added yet</span>
-          </div>
-
-          <div class="card-actions justify-end mt-6">
-            <button class="btn btn-primary" @click="currentStep = multiInstanceSources.length ? 2 : (singletonSources.length ? 3 : 4)">
-              Next →
-            </button>
-          </div>
+          <span class="text-[8px] font-black uppercase tracking-widest bg-white px-2 border-2 border-black" v-if="step === 1">Keywords</span>
+          <span class="text-[8px] font-black uppercase tracking-widest bg-white px-2 border-2 border-black" v-if="step === 2">Multi-Source</span>
+          <span class="text-[8px] font-black uppercase tracking-widest bg-white px-2 border-2 border-black" v-if="step === 3">Others</span>
+          <span class="text-[8px] font-black uppercase tracking-widest bg-white px-2 border-2 border-black" v-if="step === 4">Finish</span>
         </div>
       </div>
 
+      <!-- Step 1: Global Keywords -->
+      <Card v-if="currentStep === 1" class="border-4 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] rounded-none overflow-hidden">
+        <div class="bg-black p-4">
+          <h2 class="text-xl font-black uppercase text-white tracking-widest flex items-center gap-3">
+            <Search class="size-6" />
+            Global Context
+          </h2>
+        </div>
+        <div class="p-8 space-y-8">
+          <p class="text-xs font-bold text-muted-foreground uppercase leading-relaxed max-w-xl">
+            These keywords will be used to filter content from sources that support keyword search. Separate terms with commas.
+          </p>
+
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-black uppercase tracking-[0.2em] text-black">Target Keywords</span>
+              <UsageLimitBadge :current="activeKeywordCountDraft" :limit="keywordLimit" type="active" />
+            </div>
+            
+            <div class="flex gap-4">
+              <Input
+                v-model="newKeyword"
+                placeholder="e.g. AI, STARTUP, GPT-4"
+                class="flex-1 h-14 border-4 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black uppercase placeholder:text-black/20 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:translate-x-0.5 focus-visible:translate-y-0.5 focus-visible:shadow-none transition-all"
+                @keyup.enter="addKeyword"
+              />
+              <Button 
+                class="h-14 px-10 border-4 border-black bg-primary text-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+                @click="addKeyword"
+              >
+                Add Term
+              </Button>
+            </div>
+            
+            <div v-if="isKeywordLimitReached" class="bg-yellow-400 border-2 border-black p-3 flex items-center gap-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-in slide-in-from-top-2">
+              <AlertTriangle class="size-5 text-black shrink-0" />
+              <p class="text-[10px] font-black uppercase text-black leading-tight">
+                ACTIVE LIMIT REACHED. ADDITIONAL KEYWORDS WILL BE SAVED AS DISABLED.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-3 pt-4 border-t-2 border-black border-dashed">
+            <Badge
+              v-for="(kw, idx) in globalKeywords"
+              :key="idx"
+              class="border-2 border-black bg-white text-black font-black uppercase text-[10px] rounded-none px-4 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3 transition-all hover:bg-red-400 hover:text-white group cursor-pointer"
+              @click="globalKeywords.splice(idx, 1)"
+            >
+              {{ kw }}
+              <X class="size-3 transition-transform group-hover:scale-125" />
+            </Badge>
+            <div v-if="!globalKeywords.length" class="py-4 text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+              No keywords defined yet — using default trends
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-8">
+            <Button 
+              class="h-14 px-12 border-4 border-black bg-black text-white rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] uppercase font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all group"
+              @click="currentStep = multiInstanceSources.length ? 2 : (singletonSources.length ? 3 : 4)"
+            >
+              Continue Execution
+              <ChevronRight class="size-5 ml-2 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </div>
+        </div>
+      </Card>
+
       <!-- Step 2: Multi-instance sources (e.g., Reddit) -->
-      <div v-if="currentStep === 2" class="card bg-base-100 shadow-xl border border-base-300">
-        <div class="card-body">
-          <div v-for="catalogSource in multiInstanceSources" :key="catalogSource.id">
-            <h2 class="card-title flex items-center gap-2">
-              <svg v-if="isSvgIcon(catalogSource.icon)" class="w-6 h-6" :class="getIconConfig(catalogSource.icon).svgClass" viewBox="0 0 24 24" fill="currentColor">
-                <path :d="getIconConfig(catalogSource.icon).svgPath" />
-              </svg>
-              <span v-else :class="getIconConfig(catalogSource.icon).textClass">{{ getIconConfig(catalogSource.icon).text }}</span>
-              {{ catalogSource.name }}
-            </h2>
-            <p class="text-base-content/60 text-sm mb-4">{{ catalogSource.description }}</p>
+      <Card v-if="currentStep === 2" class="border-4 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] rounded-none overflow-hidden">
+        <div class="bg-black p-4">
+          <h2 class="text-xl font-black uppercase text-white tracking-widest flex items-center gap-3">
+            <Globe class="size-6" />
+            Regional Channels
+          </h2>
+        </div>
+        <div class="p-8 space-y-10">
+          <div v-for="catalogSource in multiInstanceSources" :key="catalogSource.id" class="space-y-8">
+            <div class="space-y-2">
+              <div class="flex items-center gap-3">
+                <div class="size-10 flex items-center justify-center border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <svg v-if="isSvgIcon(catalogSource.icon)" class="size-6 fill-current" viewBox="0 0 24 24">
+                    <path :d="getIconConfig(catalogSource.icon).svgPath" />
+                  </svg>
+                  <span v-else class="text-sm font-black">{{ getIconConfig(catalogSource.icon).text }}</span>
+                </div>
+                <h3 class="text-2xl font-black uppercase tracking-tight">{{ catalogSource.name }}</h3>
+              </div>
+              <p class="text-xs font-bold text-muted-foreground uppercase leading-relaxed">{{ catalogSource.description }}</p>
+            </div>
 
             <!-- Dynamic config form -->
-            <div class="form-control" v-for="(fieldSchema, fieldKey) in catalogSource.config_schema" :key="fieldKey">
-              <div class="label flex flex-wrap items-center justify-between pb-1">
-                <span class="label-text">Add {{ fieldSchema.label }}</span>
+            <div class="space-y-4" v-for="(fieldSchema, fieldKey) in catalogSource.config_schema" :key="fieldKey">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-black uppercase tracking-[0.2em] text-black">Target {{ fieldSchema.label }}</span>
                 <UsageLimitBadge
                   v-if="catalogSource.id === 'reddit'"
                   :current="redditSourceCount"
@@ -96,135 +141,265 @@
                   type="active"
                 />
               </div>
-              <div class="join w-full">
-                <span v-if="catalogSource.id === 'reddit'" class="join-item btn btn-disabled">r/</span>
-                <input
-                  v-model="multiInstanceDrafts[catalogSource.id]"
-                  type="text"
-                  :placeholder="fieldSchema.placeholder || `e.g., ${fieldSchema.label}`"
-                  class="input input-bordered join-item flex-1"
-                  :class="{ 'input-error': multiDraftError[catalogSource.id] }"
-                  @keyup.enter="addDraftInstance(catalogSource)"
-                  @input="multiDraftError[catalogSource.id] = ''"
-                />
-                <button class="btn btn-primary join-item" @click="addDraftInstance(catalogSource)">Add</button>
+              
+              <div class="flex gap-4">
+                <div class="flex-1 flex gap-0">
+                   <div v-if="catalogSource.id === 'reddit'" class="h-14 px-4 bg-muted border-4 border-black border-r-0 flex items-center font-black text-black">r/</div>
+                   <Input
+                    v-model="multiInstanceDrafts[catalogSource.id]"
+                    :placeholder="fieldSchema.placeholder || `e.g. ${fieldSchema.label}`"
+                    class="h-14 border-4 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black uppercase placeholder:text-black/20 focus-visible:ring-0 transition-all"
+                    :class="{ 'border-red-500 shadow-red-500/20': multiDraftError[catalogSource.id] }"
+                    @keyup.enter="addDraftInstance(catalogSource)"
+                  />
+                </div>
+                <Button 
+                  class="h-14 px-10 border-4 border-black bg-primary text-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+                  @click="addDraftInstance(catalogSource)"
+                >
+                  Anchor
+                </Button>
               </div>
-              <label v-if="multiDraftError[catalogSource.id]" class="label">
-                <span class="label-text-alt text-error font-medium">{{ multiDraftError[catalogSource.id] }}</span>
-              </label>
+              
+              <p v-if="multiDraftError[catalogSource.id]" class="text-[10px] font-black uppercase text-red-500 animate-in fade-in slide-in-from-left-2">
+                {{ multiDraftError[catalogSource.id] }}
+              </p>
 
-              <div v-if="catalogSource.id === 'reddit' && isRedditLimitReached" class="text-xs text-warning mt-2 flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span>At active limit. New subreddits will be added as disabled.</span>
+              <div v-if="catalogSource.id === 'reddit' && isRedditLimitReached" class="bg-yellow-400 border-2 border-black p-3 flex items-center gap-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <AlertTriangle class="size-5 text-black shrink-0" />
+                <p class="text-[10px] font-black uppercase text-black leading-tight">
+                  ACTIVE REDDIT LIMIT REACHED. ADDITIONAL SUBS WILL BE ADDED AS DISABLED.
+                </p>
               </div>
             </div>
 
             <!-- Pending instances list -->
-            <div class="space-y-2 mt-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
               <div
                 v-for="(src, idx) in pendingMultiInstances[catalogSource.id] || []"
                 :key="idx"
-                class="flex items-center justify-between p-3 rounded-lg"
-                :class="src.enabled ? 'bg-base-200' : 'bg-base-200/50 opacity-60'"
+                class="group flex items-center justify-between p-4 border-2 border-black transition-all bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1"
+                :class="{ 'opacity-50 grayscale': !src.enabled }"
               >
-                <div class="flex items-center gap-3">
-                  <input type="checkbox" class="toggle toggle-sm toggle-success" :checked="src.enabled" @change="toggleDraftSource($event, src, catalogSource.id)" />
-                  <span class="font-medium" :class="{'opacity-60': !src.enabled}">{{ src.name }}</span>
-                  <label class="label cursor-pointer gap-2">
-                    <span class="label-text text-xs opacity-60">Keywords</span>
-                    <input type="checkbox" class="toggle toggle-sm toggle-primary" v-model="src.use_global_keywords" />
-                  </label>
+                <div class="flex items-center gap-4">
+                  <Switch 
+                    :checked="src.enabled" 
+                    class="data-[state=checked]:bg-primary border-2 border-black shadow-none"
+                    @update:checked="(val: boolean) => toggleDraftSourceManual(val, src, catalogSource.id)" 
+                  />
+                  <div class="space-y-0.5">
+                    <span class="text-sm font-black uppercase leading-none">{{ src.name }}</span>
+                    <div class="flex items-center gap-2">
+                         <span class="text-[8px] font-black uppercase text-muted-foreground">Context Filtering</span>
+                         <Switch 
+                            v-model:checked="src.use_global_keywords" 
+                            class="scale-75 data-[state=checked]:bg-black border-2 border-black shadow-none"
+                          />
+                    </div>
+                  </div>
                 </div>
-                <button class="btn btn-ghost btn-sm btn-square" @click="(pendingMultiInstances[catalogSource.id] || []).splice(idx, 1)">✕</button>
+                <Button 
+                  variant="ghost" 
+                  class="size-8 p-0 rounded-none hover:bg-black hover:text-white transition-colors"
+                  @click="(pendingMultiInstances[catalogSource.id] || []).splice(idx, 1)"
+                >
+                  <X class="size-4" />
+                </Button>
               </div>
-              <p v-if="!(pendingMultiInstances[catalogSource.id] || []).length" class="text-base-content/40 text-sm p-3">
-                None added yet
-              </p>
+              <div v-if="!(pendingMultiInstances[catalogSource.id] || []).length" class="col-span-full py-8 text-center border-2 border-black border-dashed bg-muted/20">
+                <p class="text-[10px] font-black uppercase text-muted-foreground tracking-widest">No active channels anchored</p>
+              </div>
             </div>
           </div>
 
-          <div class="card-actions justify-between mt-6">
-            <button class="btn btn-ghost" @click="currentStep = 1">← Back</button>
-            <button class="btn btn-primary" @click="currentStep = singletonSources.length ? 3 : 4">Next →</button>
+          <div class="flex justify-between border-t-4 border-black border-double pt-8">
+            <Button 
+                variant="outline"
+                class="h-14 px-12 border-4 border-black bg-white text-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+                @click="currentStep = 1"
+            >
+                <ChevronLeft class="size-5 mr-2" />
+                Backtrack
+            </Button>
+            <Button 
+                class="h-14 px-12 border-4 border-black bg-black text-white rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] uppercase font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+                @click="currentStep = singletonSources.length ? 3 : 4"
+            >
+                Proceed to Integration
+                <ChevronRight class="size-5 ml-2" />
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
 
-      <!-- Step 3: Singleton sources (HN, Bluesky, Indie Hackers, etc.) -->
-      <div v-if="currentStep === 3" class="card bg-base-100 shadow-xl border border-base-300">
-        <div class="card-body">
-          <h2 class="card-title">Other Sources</h2>
-          <p class="text-base-content/60 text-sm mb-4">
-            Enable additional trend sources. These use your global keywords for searching.
+      <!-- Step 3: Singleton sources -->
+      <Card v-if="currentStep === 3" class="border-4 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] rounded-none overflow-hidden">
+        <div class="bg-black p-4">
+          <h2 class="text-xl font-black uppercase text-white tracking-widest flex items-center gap-3">
+            <Zap class="size-6" />
+            Direct Feeds
+          </h2>
+        </div>
+        <div class="p-8 space-y-8">
+          <p class="text-xs font-bold text-muted-foreground uppercase leading-relaxed max-w-xl">
+            Enable additional trend sources. These use your global keywords for deep scanning.
           </p>
 
-          <div
-            v-for="catalogSource in singletonSources"
-            :key="catalogSource.id"
-            class="p-4 bg-base-200 rounded-xl mb-4"
-          >
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-3">
-                <svg v-if="isSvgIcon(catalogSource.icon)" class="w-6 h-6" :class="getIconConfig(catalogSource.icon).svgClass" viewBox="0 0 24 24" fill="currentColor">
-                  <path :d="getIconConfig(catalogSource.icon).svgPath" />
-                </svg>
-                <span v-else :class="getIconConfig(catalogSource.icon).textClass">{{ getIconConfig(catalogSource.icon).text }}</span>
-                <div>
-                  <h3 class="font-semibold">{{ catalogSource.name }}</h3>
-                  <p class="text-xs text-base-content/60">{{ catalogSource.description }}</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div
+              v-for="catalogSource in singletonSources"
+              :key="catalogSource.id"
+              class="group flex flex-col p-6 border-4 border-black bg-white transition-all shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1"
+              :class="{ 'bg-primary/5 border-primary': singletonToggles[catalogSource.id] }"
+            >
+              <div class="flex items-center justify-between mb-6">
+                <div class="size-12 flex items-center justify-center border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] group-hover:bg-primary transition-colors">
+                  <svg v-if="isSvgIcon(catalogSource.icon)" class="size-6 fill-current" viewBox="0 0 24 24">
+                    <path :d="getIconConfig(catalogSource.icon).svgPath" />
+                  </svg>
+                  <span v-else class="text-sm font-black">{{ getIconConfig(catalogSource.icon).text }}</span>
                 </div>
+                <Switch 
+                  v-model:checked="singletonToggles[catalogSource.id]" 
+                  class="data-[state=checked]:bg-primary border-4 border-black h-8 w-14 p-0 shadow-none scale-125"
+                />
               </div>
-              <input type="checkbox" class="toggle toggle-primary" v-model="singletonToggles[catalogSource.id]" />
+              <div class="space-y-1">
+                <h3 class="text-lg font-black uppercase tracking-tight">{{ catalogSource.name }}</h3>
+                <p class="text-[10px] font-bold text-muted-foreground uppercase leading-tight">{{ catalogSource.description }}</p>
+              </div>
             </div>
           </div>
 
-          <div class="card-actions justify-between mt-6">
-            <button class="btn btn-ghost" @click="currentStep = multiInstanceSources.length ? 2 : 1">← Back</button>
-            <button class="btn btn-primary" @click="currentStep = 4">Next: Preferences →</button>
+          <div class="flex justify-between border-t-4 border-black border-double pt-8">
+            <Button 
+                variant="outline"
+                class="h-14 px-12 border-4 border-black bg-white text-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+                @click="currentStep = multiInstanceSources.length ? 2 : 1"
+            >
+                <ChevronLeft class="size-5 mr-2" />
+                Backtrack
+            </Button>
+            <Button 
+                class="h-14 px-12 border-4 border-black bg-black text-white rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] uppercase font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+                @click="currentStep = 4"
+            >
+                Final Calibration
+                <ChevronRight class="size-5 ml-2" />
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
 
       <!-- Step 4: Preferences -->
-      <div v-if="currentStep === 4" class="card bg-base-100 shadow-xl border border-base-300">
-        <div class="card-body">
-          <h2 class="card-title">Preferences</h2>
-          <p class="text-base-content/60 text-sm mb-4">Fine-tune your extraction settings.</p>
+      <Card v-if="currentStep === 4" class="border-4 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] rounded-none overflow-hidden">
+        <div class="bg-black p-4">
+          <h2 class="text-xl font-black uppercase text-white tracking-widest flex items-center gap-3">
+            <SlidersHorizontal class="size-6" />
+            System Calibration
+          </h2>
+        </div>
+        <div class="p-8 space-y-12">
+          <p class="text-xs font-bold text-muted-foreground uppercase leading-relaxed max-w-xl">
+            Configure extraction depth and sensitivity.
+          </p>
 
-          <div class="grid gap-4">
-            <div class="form-control">
-              <label class="label"><span class="label-text">Time window (hours)</span></label>
-              <input v-model.number="timeWindowHours" type="number" min="1" max="168" class="input input-bordered" />
-              <label class="label"><span class="label-text-alt">How far back to look for trending content</span></label>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div class="space-y-4">
+              <div class="flex items-center gap-3">
+                 <div class="size-8 border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center">
+                    <Clock class="size-4" />
+                 </div>
+                 <span class="text-[10px] font-black uppercase tracking-widest text-black">Time Horizon</span>
+              </div>
+              <div class="relative pt-6">
+                 <input 
+                    type="range" 
+                    v-model.number="timeWindowHours" 
+                    min="1" 
+                    max="168" 
+                    class="w-full h-8 bg-black/10 appearance-none border-4 border-black cursor-pointer
+                    [&::-webkit-slider-thumb]:appearance-none 
+                    [&::-webkit-slider-thumb]:size-8 
+                    [&::-webkit-slider-thumb]:bg-primary 
+                    [&::-webkit-slider-thumb]:border-4 
+                    [&::-webkit-slider-thumb]:border-black
+                    [&::-webkit-slider-thumb]:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" 
+                />
+                <div class="flex justify-between mt-4">
+                   <div class="text-[10px] font-black uppercase px-2 py-1 border-2 border-black bg-white">1 HR</div>
+                   <div class="text-[10px] font-black uppercase px-4 py-1 border-4 border-black bg-primary translate-y-2">{{ timeWindowHours }} HOURS</div>
+                   <div class="text-[10px] font-black uppercase px-2 py-1 border-2 border-black bg-white">168 HRS</div>
+                </div>
+              </div>
             </div>
 
-            <div class="form-control">
-              <label class="label"><span class="label-text">Max results per source</span></label>
-              <input v-model.number="maxTrendsPerSource" type="number" min="1" max="50" class="input input-bordered" />
-              <label class="label"><span class="label-text-alt">Maximum number of trending topics to keep per source</span></label>
+            <div class="space-y-4">
+              <div class="flex items-center gap-3">
+                 <div class="size-8 border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center">
+                    <Database class="size-4" />
+                 </div>
+                 <span class="text-[10px] font-black uppercase tracking-widest text-black">Payload Limit</span>
+              </div>
+              <div class="relative pt-6">
+                 <input 
+                    type="range" 
+                    v-model.number="maxTrendsPerSource" 
+                    min="1" 
+                    max="50" 
+                    class="w-full h-8 bg-black/10 appearance-none border-4 border-black cursor-pointer
+                    [&::-webkit-slider-thumb]:appearance-none 
+                    [&::-webkit-slider-thumb]:size-8 
+                    [&::-webkit-slider-thumb]:bg-primary 
+                    [&::-webkit-slider-thumb]:border-4 
+                    [&::-webkit-slider-thumb]:border-black
+                    [&::-webkit-slider-thumb]:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" 
+                />
+                <div class="flex justify-between mt-4">
+                   <div class="text-[10px] font-black uppercase px-2 py-1 border-2 border-black bg-white">1 PT</div>
+                   <div class="text-[10px] font-black uppercase px-4 py-1 border-4 border-black bg-primary translate-y-2">{{ maxTrendsPerSource }} TOPICS</div>
+                   <div class="text-[10px] font-black uppercase px-2 py-1 border-2 border-black bg-white">50 PTS</div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="card-actions justify-between mt-6">
-            <button class="btn btn-ghost" @click="currentStep = singletonSources.length ? 3 : (multiInstanceSources.length ? 2 : 1)">← Back</button>
-            <button
-              class="btn btn-primary"
-              :class="{ 'btn-disabled loading': isSaving }"
-              @click="saveAndContinue"
+          <div class="flex justify-between pt-12 border-t-4 border-black border-double pt-8">
+            <Button 
+                variant="outline"
+                class="h-14 px-12 border-4 border-black bg-white text-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+                @click="currentStep = singletonSources.length ? 3 : (multiInstanceSources.length ? 2 : 1)"
             >
-              <span v-if="isSaving" class="loading loading-spinner loading-sm"></span>
-              {{ isSaving ? 'Saving...' : 'Complete Setup ✓' }}
-            </button>
+                <ChevronLeft class="size-5 mr-2" />
+                Backtrack
+            </Button>
+            <Button 
+                class="h-14 px-12 border-4 border-black bg-primary text-black rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] uppercase font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+                :disabled="isSaving"
+                @click="saveAndContinue"
+            >
+                <Loader2 v-if="isSaving" class="size-5 mr-2 animate-spin" />
+                {{ isSaving ? 'Executing Deploy...' : 'Finalize & Launch' }}
+                <Rocket v-if="!isSaving" class="size-5 ml-2 group-hover:-translate-y-1 transition-transform" />
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import { 
+    Rocket, Search, Loader2, X, ChevronRight, ChevronLeft, 
+    Globe, AlertTriangle, Zap, SlidersHorizontal, Clock, Database 
+} from 'lucide-vue-next'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+
 definePageMeta({ layout: 'default' })
 
 const { apiFetch } = useApi()
@@ -320,16 +495,14 @@ function addDraftInstance(catalogSource: any) {
   multiInstanceDrafts.value[catalogSource.id] = ''
 }
 
-function toggleDraftSource(event: Event, src: any, sourceId: string) {
-  const target = event.target as HTMLInputElement
-  if (target.checked && sourceId === 'reddit') {
+function toggleDraftSourceManual(checked: boolean, src: any, sourceId: string) {
+  if (checked && sourceId === 'reddit') {
     if (!isRedditUnlimited.value && redditSourceCount.value >= redditLimit.value) {
-      target.checked = false
       multiDraftError.value[sourceId] = 'Limit reached. Disable another to enable this one.'
       return
     }
   }
-  src.enabled = target.checked
+  src.enabled = checked
 }
 
 // Step 3: Singleton toggles
