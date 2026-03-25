@@ -10,12 +10,13 @@
 - [x] : When I hover on the sign out, at first the background changes to red quicker, then the font changes to white, which makes it harder to read.
 - [x] : Clicking on the button to schedule your extractions doesn't do anything (Fixed, Centered & Back Button Support).
 - [x] : The switches to enable or disable something are a bit confusing because the border is the same colour as the deactivated switch background. (Fixed & Global Component Updated).
-- [ ] In the sources the X button, when you hover over it, the cursor doesn't transform into the pointer and the same happens on the button to add a new subreddit.
+- [x] Create a component for the X button which deletes sources and keywords and makes it consistent across all places where this button is used
 - [ ] The disable button for the automation schedule should make every configuration below disappear and display something saying "enable to configure it". Also the button here, which is "Apply schedule", is of a secondary colour. I think it's black with a black border, which is not what I want and we need to make it the primary color.
 - [ ] In the keyword page the add button should be yellow and the mouse should become a pointer when hovering over it. Enabling or disabling the keywords, I don't know if it works because the number of active keywords doesn't change on the top. Make sure that the proper calls are made to Firestore to add, enable, disableor delete the keyword that we just added.  Clicking on the selection button next to the header of the keywords table should select all the keywords. Also add an arrow next to the keywords checkbox in the header, which has the features that you can do once the keywords are selected, enable , disable them, delete them similar to gmail. If the user clicks on delete, the pop-up should pop up to ask the user whether they really want to delete them and the delete button should be our red (the same used behind the x button to delete them). Finally if a user adds a keyword which already exists, a pop-up should come up in red like a sonar which says "Keyword already exists".
 - [ ] In the sources page: Mouse does not turn to pointer when hovering over the buttons to filter by source. Also the warning for no sources should be of a warning color.
-
 - [ ] The icons of the sources are not consistent between the extractions table and the results table and some of them are missing or incorrect.
+- [ ] Make a component for the button with maybe different variants and then make sure that all the buttons (apart from those next to the inputs) match these buttons. Maybe create also variants for bigger or smaller buttons but what I want to achieve with this is consistency for all the buttons.
+- [ ] When you add a new subreddit, it should be added directly as enabled unless the user has reached the maximum number of enabled subreddits they can use. In case they reach that limit, then it should be added as disabled and a sonar pop-up should come out warning the users about this.
 
 
 ## Extraction Results Timestamps

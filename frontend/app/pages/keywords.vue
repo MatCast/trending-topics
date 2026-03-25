@@ -119,9 +119,9 @@
                     </TableCell>
                     <TableCell class="text-xs font-bold uppercase py-4 text-muted-foreground">{{ formatDate(kw.created_at) }}</TableCell>
                     <TableCell class="py-4 pr-6 text-right">
-                      <Button variant="ghost" size="icon" class="size-8 hover:bg-destructive hover:text-white" @click="deleteSingle(kw)">
-                        <X class="size-4" />
-                      </Button>
+                      <DeleteButton 
+                        @click="deleteSingle(kw)" 
+                      />
                     </TableCell>
                   </TableRow>
                 </TableBody>
@@ -148,9 +148,9 @@
                       <span class="text-[10px] font-black uppercase text-muted-foreground">{{ formatDate(kw.created_at) }}</span>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" class="size-8 hover:bg-destructive hover:text-white" @click="deleteSingle(kw)">
-                    <X class="size-4" />
-                  </Button>
+                  <DeleteButton 
+                    @click="deleteSingle(kw)" 
+                  />
                 </div>
                 <div class="flex items-center justify-between border-t border-black/10 pt-4">
                   <span class="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Active Status</span>
@@ -183,6 +183,7 @@ definePageMeta({ layout: 'default' })
 import { Loader2, AlertTriangle, X, Tag } from 'lucide-vue-next'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
+import DeleteButton from '@/components/DeleteButton.vue'
 import { toast } from 'vue-sonner'
 
 const { apiFetch } = useApi()

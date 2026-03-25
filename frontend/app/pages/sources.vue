@@ -123,14 +123,10 @@
                     />
                   </div>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  class="size-8 p-0 border-2 border-black hover:bg-destructive hover:text-destructive-foreground ml-4" 
-                  @click="deleteSource(src)"
-                >
-                  <X class="size-4" />
-                </Button>
+                <DeleteButton 
+                  class="ml-4" 
+                  @click="deleteSource(src)" 
+                />
               </div>
               <div v-if="!getMultiInstanceSources(catalogSource.id).length" class="text-center py-6 border-2 border-dashed border-muted text-muted-foreground font-bold uppercase text-sm">
                 No {{ catalogSource.name }} sources configured
@@ -148,6 +144,7 @@ definePageMeta({ layout: 'default' })
 
 import { ExternalLink, AlertTriangle, MessageSquare, Hash, Globe, TrendingUp, X } from 'lucide-vue-next'
 import { Switch } from '@/components/ui/switch'
+import DeleteButton from '@/components/DeleteButton.vue'
 import { toast } from 'vue-sonner'
 
 const { apiFetch } = useApi()

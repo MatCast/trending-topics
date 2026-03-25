@@ -198,13 +198,9 @@
                     </div>
                   </div>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  class="size-8 p-0 rounded-none hover:bg-black hover:text-white transition-colors"
-                  @click="(pendingMultiInstances[catalogSource.id] || []).splice(idx, 1)"
-                >
-                  <X class="size-4" />
-                </Button>
+                <DeleteButton 
+                  @click="(pendingMultiInstances[catalogSource.id] || []).splice(idx, 1)" 
+                />
               </div>
               <div v-if="!(pendingMultiInstances[catalogSource.id] || []).length" class="col-span-full py-8 text-center border-2 border-black border-dashed bg-muted/20">
                 <p class="text-[10px] font-black uppercase text-muted-foreground tracking-widest">No active channels anchored</p>
@@ -214,7 +210,7 @@
 
           <div class="flex justify-between border-t-4 border-black border-double pt-8">
             <Button 
-                variant="outline"
+                variant="neutral"
                 class="h-14 px-12 border-4 border-black bg-white text-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
                 @click="currentStep = 1"
             >
@@ -273,7 +269,7 @@
 
           <div class="flex justify-between border-t-4 border-black border-double pt-8">
             <Button 
-                variant="outline"
+                variant="neutral"
                 class="h-14 px-12 border-4 border-black bg-white text-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
                 @click="currentStep = multiInstanceSources.length ? 2 : 1"
             >
@@ -366,7 +362,7 @@
 
           <div class="flex justify-between pt-12 border-t-4 border-black border-double pt-8">
             <Button 
-                variant="outline"
+                variant="neutral"
                 class="h-14 px-12 border-4 border-black bg-white text-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase font-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
                 @click="currentStep = singletonSources.length ? 3 : (multiInstanceSources.length ? 2 : 1)"
             >
@@ -394,10 +390,11 @@ import {
     Rocket, Search, Loader2, X, ChevronRight, ChevronLeft, 
     Globe, AlertTriangle, Zap, SlidersHorizontal, Clock, Database 
 } from 'lucide-vue-next'
-import { Card } from '@/components/ui/card'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import DeleteButton from '@/components/DeleteButton.vue'
 import { Switch } from '@/components/ui/switch'
 
 definePageMeta({ layout: 'default' })
