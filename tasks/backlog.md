@@ -3,9 +3,10 @@
 ## Fixes after Migration to neo brutalism
 
 - [x] : The mouse doesn't transform into a pointer when hovering over the "Sign in with Google" button.
-- [ ] When you create a new extraction, in the table a new row appears with the new extraction that you just requested. The first date says "Invalid date". That should be changed to the date when the extraction was started. If that's not available yet, just put the current date. Also when you create a new extraction, the number of monthly extractions doesn't change in the top label with the number of extractions.
+- [x] : When you create a new extraction, in the table a new row appears with the new extraction that you just requested. The first date says "Invalid date". That should be changed to the date when the extraction was started. If that's not available yet, just put the current date. Also when you create a new extraction, the number of monthly extractions doesn't change in the top label with the number of extractions.
+- [x] : The new extraction button is visible but the button is smaller than the text. Add a plus sign next to the new extraction text to improve UX.
 - [ ] The sidebar is not visible on mobile. The whole app turns green, turns grey like an overlay but there is no way to navigate around.
-- [ ] The new extraction button is visible but the button is smaller than the text.
+
 - [ ] The icons of the sources are not consistent between the extractions table and the results table and some of them are missing or incorrect.
 - [ ] Make the extraction settings button much smaller and make them on desktop on the same line as the new extraction button.
 - [ ] Clicking on the button to schedule your donations doesn't work.

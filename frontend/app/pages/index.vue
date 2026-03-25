@@ -18,12 +18,12 @@
           <div class="flex items-center gap-2">
             <Button 
               size="lg"
-              class="group size-12 border-4 border-black bg-primary flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
+              class="group h-12 px-6 border-4 border-black bg-primary flex items-center justify-center gap-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
               :disabled="isExtracting || isAnyLimitReached"
               @click="runExtraction"
             >
               <Loader2 v-if="isExtracting" class="size-4 animate-spin" />
-              <Search v-else class="size-4" />
+              <Plus v-else class="size-4" />
               <span v-if="isAnyLimitReached && !isExtracting">Limit Reached</span>
               <span v-else>{{ isExtracting ? 'Searching...' : 'New Extraction' }}</span>
             </Button>
@@ -192,7 +192,7 @@
 import { useFormatDate } from '~/composables/useFormatDate'
 import { useSourceIcons } from '~/composables/useSourceIcons'
 import { doc, onSnapshot } from 'firebase/firestore'
-import { Search, Clock, Loader2, FileSearch, Globe, Hash, TrendingUp, MessageSquare } from 'lucide-vue-next'
+import { Search, Clock, Loader2, FileSearch, Globe, Hash, TrendingUp, MessageSquare, Plus } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 
 definePageMeta({ layout: 'default' })
@@ -392,8 +392,8 @@ async function runExtraction() {
   try {
     const data = await apiFetch<any>('/api/extract', { method: 'POST', body: {} })
 
-    // Refresh profile to update usage counters
-    fetchProfile()
+    // Refresh profile to update usage counters (add small delay for Firestore consistency)
+    setTimeout(() => fetchProfile(), 1000)
 
     if (data.status === 'pending' || data.id) {
       const extractionId = data.id || data.extraction_id
