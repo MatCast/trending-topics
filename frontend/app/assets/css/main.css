@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-  themes: dark, light, cyberpunk;
+  themes: valentine, dark, light, night;
 }
 
 /* Custom global styles */

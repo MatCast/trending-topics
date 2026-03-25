@@ -1,5 +1,8 @@
 # Backlog — Future Enhancements
 
+## DONE: Dynamic Theming System
+Implemented a dynamic theme switching system powered by DaisyUI 5 and Nuxt Runtime Config. Replaced hardcoded "dark" themes with a configuration-driven `data-theme` binding. All components now use semantic CSS variables, allowing for instant, application-wide visual changes by updating a single environment variable or config value.
+
 ## DONE: Unified Extraction Settings & Scheduling
 Move `time_window_hours` and `max_trends_per_source` from settings to the main extraction dashboard. Implemented a reusable `ExtractionSettings.vue` component to ensure UI consistency between the dashboard, settings page, and the new "Scheduled Extraction" modal. Added "Settings" to the user profile dropdown and removed it from the main navigation menu.
 
@@ -58,3 +61,6 @@ Added debugging instructions on the extractions page. If users end up having no 
 
 ## DONE: Consolidated Scheduling UI & Browser Navigation
 Unified the scheduling interface by extracting all logic into a reusable `SchedulingForm.vue` component used by both the dashboard modal and the settings page. Integrated the browser's History API to allow the hardware "Back" button to close the modal instead of navigating away. This refactor ensures 100% parity between interfaces and reduces redundant code by over 60%.
+
+## DONE: Mobile Menu & Scheduler Refinement
+Resolved visibility issues with the mobile bottom navigation by standardizing DaisyUI 5 `dock-item` classes and increasing z-index. Fixed Vue prop type warnings for the `SchedulerToggle` by implementing robust defaulting and merging logic for the `active` property in the Dashboard and Settings pages. Added layout safeguards (`wrap-break-word`, `overflow-x-hidden`) to ensure responsive breakpoints trigger correctly across all device emulators.

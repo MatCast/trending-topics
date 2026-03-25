@@ -85,6 +85,7 @@ const emit = defineEmits(['save', 'update-settings'])
 
 const fullSchedule = ref({ 
   ...props.schedule,
+  active: props.schedule?.active ?? false,
   time_window_hours: props.schedule.time_window_hours || props.settings.time_window_hours,
   max_trends_per_source: props.schedule.max_trends_per_source || props.settings.max_trends_per_source
 })
@@ -95,6 +96,7 @@ const showSaved = ref(false)
 watch(() => props.schedule, (newVal) => { 
   fullSchedule.value = { 
     ...newVal,
+    active: newVal?.active ?? false,
     time_window_hours: newVal.time_window_hours || props.settings.time_window_hours,
     max_trends_per_source: newVal.max_trends_per_source || props.settings.max_trends_per_source
   }

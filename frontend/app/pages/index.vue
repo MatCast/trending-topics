@@ -230,11 +230,13 @@ const userSettings = ref({
   max_trends_per_source: 3
 })
 const userSchedule = ref({
+  active: false,
   type: 'manual',
   interval_hours: 3,
   hour_of_day: 9,
   day_of_week: 0
 })
+
 
 const scheduleModalRef = ref<any>(null)
 
@@ -246,11 +248,11 @@ async function fetchSettings() {
       max_trends_per_source: data.max_trends_per_source || 3,
     }
     userSchedule.value = {
-      active: true,
-      type: 'manual',
-      interval_hours: 3,
-      hour_of_day: 9,
-      day_of_week: 0,
+      active: data.schedule?.active ?? false,
+      type: data.schedule?.type || 'manual',
+      interval_hours: data.schedule?.interval_hours || 3,
+      hour_of_day: data.schedule?.hour_of_day || 9,
+      day_of_week: data.schedule?.day_of_week || 0,
       ...data.schedule
     }
   } catch (error) {
