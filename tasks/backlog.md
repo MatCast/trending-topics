@@ -7,7 +7,7 @@
 - [x] : The new extraction button is visible but the button is smaller than the text. Add a plus sign next to the new extraction text to improve UX.
 - [ ] Make the extraction settings button much smaller and make them on desktop on the same line as the new extraction button. On mobile right now they go one below each other. Just make the boxes smaller and make them go one next to each other as in the desktop version.
 - [x] : The sidebar is not visible on mobile. The whole app turns green, turns grey like an overlay but there is no way to navigate around.
-- [ ] When I hover on the sign out, at first the background changes to red quicker, then the font changes to white, which makes it harder to read.
+- [x] : When I hover on the sign out, at first the background changes to red quicker, then the font changes to white, which makes it harder to read.
 - [ ] Clicking on the button to schedule your donations doesn't work.
 - [ ] The switches to enable or disable something are a bit confusing because the border is the same colour as the deactivated switch, which makes it a bit hard to understand where to click. Ideally let's keep the border black but maybe make the background of the switch grey. Create a component for the switches if there is not already one. Apply this component to all the switches we have. If I remember correctly we have switches in the sources page, in the keywords page, in the settings. If I'm forgetting something, check everywhere we have switches and use the component that we created.
 - [ ] In the sources the X button, when you hover over it, the cursor doesn't transform into the pointer and the same happens on the button to add a new subreddit.
