@@ -35,7 +35,8 @@
                 <span class="text-[10px] font-black uppercase text-muted-foreground">{{ getSingletonSource(catalogSource.id)!.enabled ? 'Enabled' : 'Disabled' }}</span>
                 <Switch
                   :checked="getSingletonSource(catalogSource.id)!.enabled"
-                  @update:checked="(val: boolean) => { getSingletonSource(catalogSource.id)!.enabled = val; toggleSource(getSingletonSource(catalogSource.id)!) }"
+                  :disabled="isTogglingSource"
+                  @update:checked="(val: boolean) => toggleStatus(getSingletonSource(catalogSource.id)!, val)"
                 />
               </div>
               <Button v-else size="sm" class="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" @click="addSingletonSource(catalogSource)">
@@ -110,7 +111,10 @@
                 <div class="flex flex-wrap items-center gap-4 flex-1 min-w-0">
                   <Switch 
                     :checked="src.enabled" 
-                    @update:checked="(val: boolean) => { src.enabled = val; toggleSource(src) }" 
+                    :disabled="isTogglingSource"
+                    @update:checked="(val: boolean) => toggleStatus(src, val, (err) => {
+                      if (src.source_id === 'reddit') multiInstanceError['reddit'] = err
+                    })" 
                   />
                   <span class="font-black truncate max-w-full text-lg">{{ src.name }}</span>
                   
@@ -119,7 +123,8 @@
                     <Switch 
                       size="sm" 
                       :checked="src.use_global_keywords" 
-                      @update:checked="(val: boolean) => { src.use_global_keywords = val; updateSource(src) }" 
+                      :disabled="isTogglingSource"
+                      @update:checked="(val: boolean) => toggleGlobalKeywords(src, val)" 
                     />
                   </div>
                 </div>
@@ -146,10 +151,12 @@ import { ExternalLink, AlertTriangle, MessageSquare, Hash, Globe, TrendingUp, X 
 import { Switch } from '@/components/ui/switch'
 import DeleteButton from '@/components/DeleteButton.vue'
 import { toast } from 'vue-sonner'
+import { useSourceToggle } from '~/composables/useSourceToggle'
 
 const { apiFetch } = useApi()
 const { getIconConfig, isSvgIcon } = useSourceIcons()
 const { redditLimit, isRedditUnlimited, fetchProfile } = useUser()
+const { toggleStatus, toggleGlobalKeywords, isSaving: isTogglingSource } = useSourceToggle()
 
 function getLucideIcon(id: string) {
   const sourceId = id.toLowerCase()
@@ -283,40 +290,7 @@ async function addMultiInstanceSource(catalogSource: any) {
   }
 }
 
-async function toggleSource(src: any) {
-  const originalState = !src.enabled
-  try {
-    const updated = await apiFetch<any>(`/api/sources/${src.id}`, {
-      method: 'PUT',
-      body: { enabled: src.enabled },
-    })
-    src.enabled = updated.enabled
-    toast.success(`${src.name} ${src.enabled ? 'enabled' : 'disabled'}`)
-  } catch (error: any) {
-    console.error('Failed to toggle source:', error)
-    src.enabled = originalState
-    
-    // Show error if it was a reddit limit error
-    const detail = error.data?.detail || 'Limit reached. Disable another to enable this one.'
-    if (src.source_id === 'reddit') {
-      multiInstanceError.value['reddit'] = detail
-    }
-    toast.error('Action failed', { description: detail })
-  }
-}
 
-async function updateSource(src: any) {
-  try {
-    await apiFetch(`/api/sources/${src.id}`, {
-      method: 'PUT',
-      body: { use_global_keywords: src.use_global_keywords },
-    })
-    toast.success(`Updated ${src.name} settings`)
-  } catch (error) {
-    console.error('Failed to update source:', error)
-    toast.error('Failed to update source settings')
-  }
-}
 
 async function deleteSource(src: any) {
   try {

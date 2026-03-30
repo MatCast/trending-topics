@@ -3,9 +3,6 @@
     <!-- Unified Scheduler Toggle -->
     <SchedulerToggle 
       v-if="!isFreeTier"
-      v-model="schedule.active"
-      :last-run-at="schedule.last_run_at"
-      @change="$emit('save')"
     />
 
     <!-- Conditional Content -->
@@ -87,7 +84,7 @@
                <p class="text-xs font-bold text-muted-foreground mt-1 leading-relaxed">Automated scheduling is only available for Pro users.</p>
              </div>
            </div>
-           <Button class="w-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase font-black text-[10px] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all" variant="outline" disabled>
+           <Button class="w-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase font-black text-[10px] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all" variant="neutral" disabled>
              Compare Plans
            </Button>
         </div>
@@ -100,7 +97,7 @@
               <Button 
                 v-for="opt in scheduleOptions" 
                 :key="opt.value"
-                variant="outline"
+                variant="neutral"
                 class="border-2 border-black rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase font-black text-[10px] h-10 transition-all"
                 :class="schedule.type === opt.value ? 'bg-primary text-black translate-x-0.5 translate-y-0.5 shadow-none' : 'bg-white hover:bg-muted'"
                 @click="schedule.type = opt.value"
@@ -163,7 +160,7 @@
                   <Button 
                     v-for="(day, idx) in days" 
                     :key="idx" 
-                    variant="outline"
+                    variant="neutral"
                     class="border-2 border-black rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase font-black text-[10px] p-0 h-10 w-full transition-all"
                     :class="schedule.day_of_week === idx ? 'bg-primary text-black translate-x-0.5 translate-y-0.5 shadow-none' : 'bg-white hover:bg-muted'"
                     @click="schedule.day_of_week = idx"
@@ -199,13 +196,14 @@ import { ArrowRight, Lock, PowerOff, ChevronDown } from 'lucide-vue-next'
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useSettings } from '~/composables/useSettings'
 
 const props = defineProps<{
   isFreeTier: boolean
   isSaving: boolean
 }>()
 
-const schedule = defineModel<any>({ required: true })
+const { schedule } = useSettings()
 
 defineEmits(['save'])
 

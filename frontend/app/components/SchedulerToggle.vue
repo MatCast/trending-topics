@@ -7,40 +7,40 @@
       <div>
         <div class="flex items-center gap-3">
           <span class="text-xs font-black uppercase tracking-widest text-black">Activate Automation</span>
-          <div v-if="modelValue" class="size-2 bg-primary border border-black animate-pulse"></div>
+          <div v-if="active" class="size-2 bg-primary border border-black animate-pulse"></div>
         </div>
-        <p v-if="lastRunAt" class="text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">
-          Last ran: <span class="font-black text-black">{{ formatDate(lastRunAt) }}</span>
+        <p v-if="schedule.last_run_at" class="text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">
+          Last ran: <span class="font-black text-black">{{ formatDate(schedule.last_run_at) }}</span>
         </p>
         <p v-else class="text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-tight italic">Never ran yet</p>
       </div>
     </div>
     <div class="flex items-center gap-4 pt-4 sm:pt-0 border-t-2 border-black/5 sm:border-0">
-      <span 
-        class="text-[10px] font-black uppercase tracking-widest transition-colors" 
-        :class="modelValue ? 'text-black' : 'text-muted-foreground'"
+      <span
+        class="text-[10px] font-black uppercase tracking-widest transition-colors"
+        :class="active ? 'text-black' : 'text-muted-foreground'"
       >
-        {{ modelValue ? 'Active' : 'Disabled' }}
+        {{ active ? 'Active' : 'Disabled' }}
       </span>
-      <Switch 
-        :checked="modelValue"
-        @update:checked="(val: boolean) => { $emit('update:modelValue', val); $emit('change') }"
+      <Loader2 v-if="isSaving" class="size-4 animate-spin text-muted-foreground" />
+      <Switch
+        v-else
+        :checked="active"
+        :disabled="isSaving"
+        @update:checked="toggle"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Zap } from 'lucide-vue-next'
+import { Zap, Loader2 } from 'lucide-vue-next'
 import { Switch } from '@/components/ui/switch'
 import { useFormatDate } from '~/composables/useFormatDate'
+import { useScheduleToggle } from '~/composables/useScheduleToggle'
+import { useSettings } from '~/composables/useSettings'
 
-const props = defineProps<{
-  modelValue: boolean
-  lastRunAt?: string | Date
-}>()
-
-defineEmits(['update:modelValue', 'change'])
-
+const { active, isSaving, toggle } = useScheduleToggle()
+const { schedule } = useSettings()
 const { formatDate } = useFormatDate()
 </script>

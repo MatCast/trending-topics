@@ -114,7 +114,8 @@
                       <Switch
                         size="sm"
                         :checked="kw.enabled"
-                        @update:checked="(val: boolean) => updateEnabled(val, kw)"
+                        :disabled="isToggling"
+                        @update:checked="(val: boolean) => toggleKeyword(kw, val, isLimitReached)"
                       />
                     </TableCell>
                     <TableCell class="text-xs font-bold uppercase py-4 text-muted-foreground">{{ formatDate(kw.created_at) }}</TableCell>
@@ -156,7 +157,8 @@
                   <span class="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Active Status</span>
                   <Switch
                     :checked="kw.enabled"
-                    @update:checked="(val: boolean) => updateEnabled(val, kw)"
+                    :disabled="isToggling"
+                    @update:checked="(val: boolean) => toggleKeyword(kw, val, isLimitReached)"
                   />
                 </div>
               </div>
@@ -185,9 +187,11 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import DeleteButton from '@/components/DeleteButton.vue'
 import { toast } from 'vue-sonner'
+import { useKeywordToggle } from '~/composables/useKeywordToggle'
 
 const { apiFetch } = useApi()
 const { keywordLimit, isKeywordUnlimited, fetchProfile } = useUser()
+const { toggle: toggleKeyword, isSaving: isToggling } = useKeywordToggle()
 
 const keywords = ref<any[]>([])
 const isLoading = ref(true)
@@ -265,29 +269,7 @@ async function addKeywords() {
   }
 }
 
-async function updateEnabled(newValue: boolean, kw: any) {
-  if (newValue && isLimitReached.value) {
-    toast.error('Limit reached', { description: 'Active limit reached. Disable another keyword first.' })
-    return;
-  }
 
-  const originalValue = kw.enabled
-  kw.enabled = newValue;
-  try {
-    await apiFetch(`/api/keywords/${kw.id}`, {
-      method: 'PUT',
-      body: { enabled: kw.enabled },
-    })
-    addError.value = ''
-    toast.success(`Keyword ${kw.enabled ? 'enabled' : 'disabled'}`)
-  } catch (error: any) {
-    console.error('Failed to toggle keyword:', error)
-    kw.enabled = originalValue
-    const detail = error.data?.detail || 'Failed to toggle keyword.'
-    addError.value = detail
-    toast.error('Action failed', { description: detail })
-  }
-}
 
 async function deleteSingle(kw: any) {
   try {

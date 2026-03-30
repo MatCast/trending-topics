@@ -51,9 +51,9 @@
 
       <!-- Settings Toolbar -->
       <ExtractionSettings
-        v-model="userSettings"
-        :saving="isSavingSettings"
-        @change="saveSettings"
+        v-model="settings"
+        :saving="isSaving"
+        @change="handleSaveSettings"
       />
     </div>
 
@@ -188,11 +188,7 @@
     <!-- Modals -->
     <ScheduledExtractionModal
       ref="scheduleModalRef"
-      :settings="userSettings"
-      :schedule="userSchedule"
       :is-free-tier="isFreeTier"
-      :is-saving="isSavingSettings"
-      @save="handleScheduleSave"
     />
   </div>
 </template>
@@ -204,6 +200,7 @@ import { doc, onSnapshot } from 'firebase/firestore'
 import { Search, Clock, Loader2, FileSearch, Globe, Hash, TrendingUp, MessageSquare, Plus } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import ScheduledExtractionModal from '~/components/ScheduledExtractionModal.vue'
+import { useSettings } from '~/composables/useSettings'
 
 definePageMeta({ layout: 'default' })
 
@@ -212,6 +209,7 @@ const { $firebaseFirestore } = useNuxtApp()
 const { user } = useAuth()
 const { profile, fetchProfile, extractionUsage, extractionLimits, isAnyLimitReached, isFreeTier } = useUser()
 const { getIconConfig, isSvgIcon } = useSourceIcons()
+const { settings, schedule, isSaving, fetchSettings, saveSettings } = useSettings()
 
 const extractions = ref<any[]>([])
 const totalResults = ref(0)
@@ -229,63 +227,7 @@ function getLucideIcon(type: string) {
   return TrendingUp
 }
 
-// Settings & Schedule
-const isSavingSettings = ref(false)
-const userSettings = ref({
-  time_window_hours: 3,
-  max_trends_per_source: 3
-})
-const userSchedule = ref({
-  active: false,
-  type: 'manual',
-  interval_hours: 3,
-  hour_of_day: 9,
-  day_of_week: 0
-})
-
-
 const scheduleModalRef = ref<any>(null)
-
-async function fetchSettings() {
-  try {
-    const data = await apiFetch<any>('/api/settings')
-    userSettings.value = {
-      time_window_hours: data.time_window_hours || 3,
-      max_trends_per_source: data.max_trends_per_source || 3,
-    }
-    userSchedule.value = {
-      active: data.schedule?.active ?? false,
-      type: data.schedule?.type || 'manual',
-      interval_hours: data.schedule?.interval_hours || 3,
-      hour_of_day: data.schedule?.hour_of_day || 9,
-      day_of_week: data.schedule?.day_of_week || 0,
-      ...data.schedule
-    }
-  } catch (error) {
-    console.error('Failed to fetch settings:', error)
-  }
-}
-
-async function saveSettings() {
-  if (isSavingSettings.value) return
-  isSavingSettings.value = true
-  try {
-    await apiFetch('/api/settings', {
-      method: 'PUT',
-      body: {
-        ...userSettings.value,
-        schedule: userSchedule.value,
-      },
-    })
-    // Also update profile to keep it in sync
-    fetchProfile()
-    if (scheduleModalRef.value) scheduleModalRef.value.showSuccess()
-  } catch (error) {
-    console.error('Failed to save settings:', error)
-  } finally {
-    isSavingSettings.value = false
-  }
-}
 
 function openScheduleModal() {
   if (scheduleModalRef.value) {
@@ -293,10 +235,11 @@ function openScheduleModal() {
   }
 }
 
-async function handleScheduleSave(payload: any) {
-  if (payload.settings) userSettings.value = payload.settings
-  if (payload.schedule) userSchedule.value = payload.schedule
-  await saveSettings()
+async function handleSaveSettings() {
+  const ok = await saveSettings()
+  if (ok && scheduleModalRef.value) {
+    scheduleModalRef.value.showSuccess?.()
+  }
 }
 
 function getUniqueSources(sources: string[]) {

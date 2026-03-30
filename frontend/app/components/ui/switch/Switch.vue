@@ -1,31 +1,39 @@
 <script setup lang="ts">
-import type { SwitchRootEmits, SwitchRootProps } from 'reka-ui'
 import { type HTMLAttributes } from 'vue'
-import { reactiveOmit } from '@vueuse/core'
+import { useVModel, reactiveOmit } from '@vueuse/core'
 import {
   SwitchRoot,
   SwitchThumb,
-  useForwardPropsEmits,
 } from 'reka-ui'
 import { cn } from '@/utils/cn'
 
-const props = withDefaults(defineProps<SwitchRootProps & { 
+const props = withDefaults(defineProps<{
+  checked?: boolean
+  defaultChecked?: boolean
+  disabled?: boolean
+  required?: boolean
+  name?: string
+  value?: string
+  id?: string
   class?: HTMLAttributes['class']
   size?: 'default' | 'sm'
 }>(), {
   size: 'default'
 })
 
-const emits = defineEmits<SwitchRootEmits>()
+const emits = defineEmits<{
+  'update:checked': [payload: boolean]
+}>()
 
-const delegatedProps = reactiveOmit(props, 'class', 'size')
+const modelValue = useVModel(props, 'checked', emits)
 
-const forwarded = useForwardPropsEmits(delegatedProps, emits)
+const delegatedProps = reactiveOmit(props, 'checked', 'class', 'size')
 </script>
 
 <template>
   <SwitchRoot
-    v-bind="forwarded"
+    v-bind="delegatedProps"
+    v-model="modelValue"
     :class="cn(
       'peer inline-flex shrink-0 cursor-pointer items-center rounded-none border-2 border-black transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-zinc-200',
       size === 'default'

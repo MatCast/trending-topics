@@ -2,7 +2,7 @@
   <div v-if="isOpen" class="fixed inset-0 z-100 flex items-center justify-center p-4">
     <!-- Backdrop -->
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-pointer" @click="close"></div>
-    
+
     <!-- Modal Content -->
     <div class="p-0 rounded-none border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white w-full max-w-lg overflow-hidden relative z-10 animate-in fade-in zoom-in duration-200">
       <!-- Modal Header -->
@@ -23,8 +23,7 @@
 
       <!-- Modal Body -->
       <div class="p-8 space-y-8">
-        <SchedulingForm 
-          v-model="fullSchedule"
+        <SchedulingForm
           :is-free-tier="isFreeTier"
           :is-saving="isSaving"
           @save="onSave"
@@ -40,13 +39,13 @@
                   </div>
                 </transition>
               </div>
-              
+
               <div class="flex gap-3 w-full sm:w-auto">
                 <Button variant="neutral" class="flex-1 sm:flex-none border-2 border-black rounded-none uppercase font-black text-[10px] h-10 hover:bg-muted" @click="close">Close</Button>
-                <Button 
-                  v-if="!isFreeTier" 
-                  class="flex-1 sm:flex-none border-2 border-black rounded-none uppercase font-black text-[10px] h-10 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all" 
-                  :disabled="isSaving" 
+                <Button
+                  v-if="!isFreeTier"
+                  class="flex-1 sm:flex-none border-2 border-black rounded-none uppercase font-black text-[10px] h-10 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
+                  :disabled="isSaving"
                   @click="onSave"
                 >
                   <Loader2 v-if="isSaving" class="size-4 animate-spin mr-2" />
@@ -64,52 +63,23 @@
 <script setup lang="ts">
 import { Clock, X, Check, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
+import { useSettings } from '~/composables/useSettings'
 
 const props = defineProps<{
-  settings: {
-    time_window_hours: number
-    max_trends_per_source: number
-  }
-  schedule: {
-    active?: boolean
-    type: string
-    interval_hours: number
-    hour_of_day: number
-    day_of_week: number
-    time_window_hours?: number
-    max_trends_per_source?: number
-    last_run_at?: string
-  }
   isFreeTier: boolean
-  isSaving: boolean
 }>()
 
-const emit = defineEmits(['save', 'update-settings'])
-
-const fullSchedule = ref({ 
-  ...props.schedule,
-  active: props.schedule?.active ?? false,
-  time_window_hours: props.schedule.time_window_hours || props.settings.time_window_hours,
-  max_trends_per_source: props.schedule.max_trends_per_source || props.settings.max_trends_per_source
-})
+const { isSaving, saveSettings } = useSettings()
 
 const isOpen = ref(false)
 const showSaved = ref(false)
 
-// Sync when props change
-watch(() => props.schedule, (newVal) => { 
-  fullSchedule.value = { 
-    ...newVal,
-    active: newVal?.active ?? false,
-    time_window_hours: newVal.time_window_hours || props.settings.time_window_hours,
-    max_trends_per_source: newVal.max_trends_per_source || props.settings.max_trends_per_source
+async function onSave() {
+  const success = await saveSettings()
+  if (success) {
+    showSaved.value = true
+    setTimeout(() => { showSaved.value = false }, 2000)
   }
-}, { deep: true })
-
-function onSave() {
-  emit('save', {
-    schedule: { ...fullSchedule.value }
-  })
 }
 
 function handlePopState() {

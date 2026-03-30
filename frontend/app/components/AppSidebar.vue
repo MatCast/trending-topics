@@ -49,8 +49,8 @@ async function handleSignOut() {
         <SidebarGroupContent>
           <SidebarMenu class="px-2 space-y-1">
             <SidebarMenuItem v-for="item in navItems" :key="item.title">
-              <SidebarMenuButton 
-                as-child 
+              <SidebarMenuButton
+                as-child
                 class="hover:bg-primary hover:text-primary-foreground border-2 border-transparent hover:border-black transition-all"
               >
                 <NuxtLink :to="item.url" class="flex items-center gap-3 py-2 px-3">
@@ -80,9 +80,9 @@ async function handleSignOut() {
                 </div>
               </SidebarMenuButton>
             </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              side="top" 
-              align="start" 
+            <DropdownMenuContent
+              side="top"
+              align="start"
               class="w-56 border-2 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
             >
               <DropdownMenuItem as-child class="cursor-pointer font-bold focus:bg-primary focus:text-primary-foreground">
@@ -91,8 +91,8 @@ async function handleSignOut() {
                   Settings
                 </NuxtLink>
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                @click="handleSignOut" 
+              <DropdownMenuItem
+                @click="handleSignOut"
                 class="cursor-pointer font-bold text-destructive focus:bg-destructive focus:text-destructive-foreground"
               >
                 <LogOut class="size-4 mr-2" />
