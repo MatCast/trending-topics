@@ -60,7 +60,11 @@ The application runs as a containerized dual-service architecture orchestrated b
 - **Extraction**: `extraction.py` and `scheduler.py` call `list_enabled_keywords(uid)` which queries only `enabled=True` keywords from the sub-collection.
 - **Keyword Limits**: Managed under an "Enablement-based Capping" model. Users can create any number of keywords, but the tier limit (`free: 20`, `pro: 100`) applies to those with `enabled: true`. This is enforced in both `create_keywords()` (new keywords are disabled if over limit) and `update_keyword()`/`bulk_update_keywords()` (preventing enabling beyond limit).
 - **API Endpoints**: `GET/POST /api/keywords`, `PUT /api/keywords/{id}`, `POST /api/keywords/bulk` (bulk enable/disable/delete with tier validation), `DELETE /api/keywords/{id}`.
-- **Frontend**: Dedicated `/keywords` management page with table, bulk selection, toggle enabled, comma-separated add input. Keywords removed from `/settings` page.
+- **Frontend**: Dedicated `/keywords` management page with table, bulk selection, toggle enabled, and comma-separated add input.
+- **Bulk Actions & Reactivity**:
+    - **Gmail-style UX**: The Keywords table header includes a dropdown menu for bulk actions (Enable, Disable, Delete) adjacent to the "Select All" checkbox.
+    - **Controlled Primitives**: UI primitives (Checkbox, Switch) are implemented as "controlled" components using `@vueuse/core`'s `useVModel`. This ensures robust bidirectional sync with parent state, bypassing issues with complex type intersections in the Vue SFC compiler.
+    - **Smart Composables**: Business logic for toggles and bulk updates is encapsulated in composables (e.g., `useSettings.ts`), following the "Dumb UI, Smart Composable" pattern.
 
 ## 9. Extractions and Results Architecture
 
