@@ -76,7 +76,7 @@
                   </div>
                   <div v-else></div>
                   <Button
-                    class="h-14 border-4 border-black bg-black text-white rounded-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] uppercase font-black px-10 hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50"
+                    class="h-14 border-4 border-black bg-primary text-black rounded-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] uppercase font-black px-10 hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50"
                     :disabled="isSaving" @click="handleSaveSettings">
                     <Loader2 v-if="isSaving" class="size-5 mr-2 animate-spin" />
                     {{ isSaving ? 'Executing...' : 'Apply Schedule' }}

@@ -10,14 +10,14 @@
 
         <div class="flex items-center gap-3 w-full sm:w-auto">
           <div v-if="profile" class="hidden lg:block mr-2">
-            <Badge variant="outline" class="border-2 border-black bg-white px-3 py-1 text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+            <Badge variant="neutral" class="border-2 border-black bg-white px-3 py-1 text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
               {{ extractionUsage.monthly }} / {{ extractionLimits.monthly }} Monthly
             </Badge>
           </div>
 
           <div class="flex items-center gap-2">
             <Button
-              variant="outline"
+              variant="neutral"
               size="lg"
               class="group h-12 px-6 border-2 border-black bg-primary flex items-center justify-center gap-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
               :disabled="isExtracting || isAnyLimitReached"
@@ -33,7 +33,7 @@
               <Tooltip>
                 <TooltipTrigger as-child>
                   <Button
-                    variant="outline"
+                    variant="neutral"
                     class="size-11 p-0 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
                     @click="openScheduleModal"
                   >

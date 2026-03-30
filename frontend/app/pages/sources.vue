@@ -39,7 +39,7 @@
                   @update:checked="(val: boolean) => toggleStatus(getSingletonSource(catalogSource.id)!, val)"
                 />
               </div>
-              <Button v-else size="sm" class="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" @click="addSingletonSource(catalogSource)">
+              <Button v-else size="sm" class="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer" @click="addSingletonSource(catalogSource)">
                 Enable
               </Button>
             </template>
@@ -82,7 +82,7 @@
                   @input="multiInstanceError[catalogSource.id] = ''"
                 />
                 <Button 
-                  class="border-2 border-black border-l-0 rounded-none shadow-none hover:bg-primary transition-colors px-6" 
+                  class="border-2 border-black border-l-0 rounded-none shadow-none hover:bg-primary transition-colors px-6 cursor-pointer" 
                   @click="addMultiInstanceSource(catalogSource)"
                 >
                   Add

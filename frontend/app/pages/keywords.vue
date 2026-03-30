@@ -65,8 +65,8 @@
         <div v-if="selectedIds.size > 0" class="flex flex-wrap items-center gap-4 p-4 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sticky top-4 z-20">
           <span class="text-xs font-black uppercase tracking-widest bg-black text-white px-3 py-1">{{ selectedIds.size }} Selected</span>
           <div class="flex flex-wrap gap-2 flex-1">
-            <Button size="sm" variant="outline" class="border-2 border-black hover:bg-primary h-8 uppercase font-black text-[10px]" @click="bulkAction('enable')">Enable</Button>
-            <Button size="sm" variant="outline" class="border-2 border-black hover:bg-muted h-8 uppercase font-black text-[10px]" @click="bulkAction('disable')">Disable</Button>
+            <Button size="sm" variant="neutral" class="border-2 border-black hover:bg-primary h-8 uppercase font-black text-[10px]" @click="bulkAction('enable')">Enable</Button>
+            <Button size="sm" variant="neutral" class="border-2 border-black hover:bg-muted h-8 uppercase font-black text-[10px]" @click="bulkAction('disable')">Disable</Button>
             <Button size="sm" variant="destructive" class="border-2 border-black hover:bg-destructive h-8 uppercase font-black text-[10px]" @click="bulkAction('delete')">Delete</Button>
           </div>
           <Button variant="ghost" size="sm" class="h-8 uppercase font-black text-[10px] hover:bg-transparent hover:underline" @click="selectedIds.clear()">Clear</Button>
@@ -83,11 +83,34 @@
                 <TableHeader class="bg-black text-white">
                   <TableRow class="hover:bg-black border-b-2 border-black">
                     <TableHead class="w-12 py-4 pl-6">
-                      <Checkbox
-                        class="border-2 border-white data-[state=checked]:bg-white data-[state=checked]:text-black"
-                        :checked="isAllSelected"
-                        @update:checked="toggleSelectAll"
-                      />
+                      <div class="flex items-center gap-1">
+                        <Checkbox
+                          class="border-2 border-white data-[state=checked]:bg-white data-[state=checked]:text-black"
+                          :checked="isAllSelected"
+                          @update:checked="toggleSelectAll"
+                        />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger as-child>
+                            <Button variant="ghost" size="icon" class="h-6 w-6 p-0 hover:bg-white/20 text-white rounded-none">
+                              <ChevronDown class="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" class="border-2 border-black rounded-none shadow-[4px_4px_0px_0px_black]">
+                            <DropdownMenuItem class="font-black uppercase text-xs cursor-pointer" @click="bulkAction('enable')" :disabled="selectedIds.size === 0">
+                              <CheckCircle class="size-4 mr-2" />
+                              Enable Selected
+                            </DropdownMenuItem>
+                            <DropdownMenuItem class="font-black uppercase text-xs cursor-pointer" @click="bulkAction('disable')" :disabled="selectedIds.size === 0">
+                              <Circle class="size-4 mr-2" />
+                              Disable Selected
+                            </DropdownMenuItem>
+                            <DropdownMenuItem class="font-black uppercase text-xs cursor-pointer text-destructive focus:text-destructive" @click="bulkAction('delete')" :disabled="selectedIds.size === 0">
+                              <Trash2 class="size-4 mr-2" />
+                              Delete Selected
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableHead>
                     <TableHead class="text-white font-black uppercase py-4">Keyword</TableHead>
                     <TableHead class="text-white font-black uppercase py-4 text-center">Status</TableHead>
@@ -182,9 +205,15 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
-import { Loader2, AlertTriangle, X, Tag } from 'lucide-vue-next'
+import { Loader2, AlertTriangle, X, Tag, ChevronDown, CheckCircle, Circle, Trash2 } from 'lucide-vue-next'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import DeleteButton from '@/components/DeleteButton.vue'
 import { toast } from 'vue-sonner'
 import { useKeywordToggle } from '~/composables/useKeywordToggle'
@@ -254,13 +283,28 @@ async function addKeywords() {
 
   isAdding.value = true
   try {
+    // Check for duplicates
+    const existingTexts = new Set(keywords.value.map(k => k.text.toLowerCase()))
+    const duplicates = kwList.filter(k => existingTexts.has(k.toLowerCase()))
+    const uniqueToAdd = kwList.filter(k => !existingTexts.has(k.toLowerCase()))
+
+    if (duplicates.length > 0) {
+      toast.error('Keyword already exists', { 
+        description: `${duplicates.join(', ')} is already in your list.` 
+      })
+      if (uniqueToAdd.length === 0) {
+        isAdding.value = false
+        return
+      }
+    }
+
     const created = await apiFetch<any[]>('/api/keywords', {
       method: 'POST',
-      body: { keywords: kwList },
+      body: { keywords: uniqueToAdd },
     })
     keywords.value.push(...created)
     newKeywordInput.value = ''
-    toast.success(`${kwList.length} keyword(s) added`)
+    toast.success(`${uniqueToAdd.length} keyword(s) added`)
   } catch (error: any) {
     addError.value = error.data?.detail || 'Failed to add keywords'
     toast.error('Failed to add keywords', { description: addError.value })
@@ -287,6 +331,11 @@ async function deleteSingle(kw: any) {
 async function bulkAction(action: string) {
   const ids = Array.from(selectedIds.value)
   if (!ids.length) return
+
+  if (action === 'delete') {
+    const confirmed = window.confirm(`Are you sure you want to delete ${ids.length} keywords?`)
+    if (!confirmed) return
+  }
 
   try {
     await apiFetch('/api/keywords/bulk', {

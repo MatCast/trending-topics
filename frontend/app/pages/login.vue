@@ -66,7 +66,7 @@
             >
               <p class="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-3 text-center">Stall detected in authorization popup</p>
               <Button
-                variant="outline"
+                variant="neutral"
                 size="sm"
                 class="w-full border-2 border-black rounded-none uppercase font-black text-[10px] h-8 bg-white"
                 @click="forceReset"

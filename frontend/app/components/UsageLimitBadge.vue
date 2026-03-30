@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-wrap items-center gap-2">
     <Badge 
-      variant="outline"
+      variant="neutral"
       class="font-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] px-2 py-0.5 rounded-none uppercase text-[10px] tracking-wider"
       :class="isLimitReached ? 'bg-primary text-primary-foreground' : 'bg-white text-black'"
     >

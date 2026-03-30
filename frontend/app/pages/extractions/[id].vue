@@ -26,8 +26,8 @@
 
       <div class="flex gap-4 w-full sm:w-auto">
         <Button 
-          variant="outline" 
-          class="flex-1 sm:flex-none border-2 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase font-black text-xs h-12 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all" 
+          variant="neutral" 
+          class="flex-1 sm:flex-none border-2 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] uppercase font-black text-xs h-12 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all cursor-pointer" 
           @click="exportCSV" 
           :disabled="!results.length"
         >
@@ -50,9 +50,9 @@
       <div class="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
         <div class="flex flex-wrap gap-3">
           <Button
-            variant="outline"
-            class="border-2 border-black rounded-none uppercase font-black text-[10px] h-10 px-6 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-            :class="activeFilter === null ? 'bg-primary text-black translate-x-0.5 translate-y-0.5 shadow-none' : 'bg-white'"
+            variant="neutral"
+            class="border-2 border-black rounded-none uppercase font-black text-[10px] h-10 px-6 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
+            :class="activeFilter === null ? 'bg-primary text-black translate-x-0.5 translate-y-0.5 shadow-none' : 'bg-white hover:bg-muted'"
             @click="activeFilter = null"
           >
             All Sources
@@ -60,9 +60,9 @@
           <Button
             v-for="catalogSource in catalog"
             :key="catalogSource.id"
-            variant="outline"
-            class="border-2 border-black rounded-none uppercase font-black text-[10px] h-10 px-6 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2"
-            :class="activeFilter === catalogSource.id ? 'bg-primary text-black translate-x-0.5 translate-y-0.5 shadow-none' : 'bg-white'"
+            variant="neutral"
+            class="border-2 border-black rounded-none uppercase font-black text-[10px] h-10 px-6 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 cursor-pointer"
+            :class="activeFilter === catalogSource.id ? 'bg-primary text-black translate-x-0.5 translate-y-0.5 shadow-none' : 'bg-white hover:bg-muted'"
             @click="activeFilter = catalogSource.id"
           >
             <div class="size-4 flex items-center justify-center">
@@ -127,19 +127,19 @@
           <Table>
             <TableHeader class="bg-black">
               <TableRow class="hover:bg-transparent border-black">
-                <TableHead class="w-20 text-white font-black uppercase text-[10px] h-12 cursor-pointer" @click="toggleSort('source')">
+                <TableHead class="w-24 text-white font-black uppercase text-[10px] h-12 cursor-pointer hover:bg-white/10 transition-colors" @click="toggleSort('source')">
                   Source
                 </TableHead>
-                <TableHead class="text-white font-black uppercase text-[10px] h-12 cursor-pointer" @click="toggleSort('title')">
+                <TableHead class="text-white font-black uppercase text-[10px] h-12 cursor-pointer hover:bg-white/10 transition-colors" @click="toggleSort('title')">
                   Insights & Trends
                 </TableHead>
-                <TableHead class="w-24 text-right text-white font-black uppercase text-[10px] h-12 cursor-pointer" @click="toggleSort('trend_score')">
+                <TableHead class="w-24 text-right text-white font-black uppercase text-[10px] h-12 cursor-pointer hover:bg-white/10 transition-colors" @click="toggleSort('trend_score')">
                   Impact
                 </TableHead>
-                <TableHead class="w-20 text-right text-white font-black uppercase text-[10px] h-12 cursor-pointer" @click="toggleSort('ups')">
+                <TableHead class="w-24 text-right text-white font-black uppercase text-[10px] h-12 cursor-pointer hover:bg-white/10 transition-colors" @click="toggleSort('ups')">
                   Engmnt
                 </TableHead>
-                <TableHead class="w-32 text-right text-white font-black uppercase text-[10px] h-12 cursor-pointer" @click="toggleSort('created_at')">
+                <TableHead class="w-32 text-right text-white font-black uppercase text-[10px] h-12 cursor-pointer hover:bg-white/10 transition-colors" @click="toggleSort('created_at')">
                   Timestamp
                 </TableHead>
               </TableRow>
@@ -208,8 +208,8 @@
     <div v-if="totalResults > pageSize" class="flex justify-center pt-8">
       <div class="flex gap-2">
         <Button 
-          variant="outline" 
-          class="size-10 border-2 border-black rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-black text-lg p-0 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all" 
+          variant="neutral" 
+          class="size-10 border-2 border-black rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-black text-lg p-0 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all cursor-pointer" 
           :disabled="page <= 1" 
           @click="page--"
         >
@@ -219,8 +219,8 @@
           Page {{ page }}
         </div>
         <Button 
-          variant="outline" 
-          class="size-10 border-2 border-black rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-black text-lg p-0 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all" 
+          variant="neutral" 
+          class="size-10 border-2 border-black rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-black text-lg p-0 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all cursor-pointer" 
           :disabled="page * pageSize >= totalResults" 
           @click="page++"
         >

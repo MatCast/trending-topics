@@ -44,7 +44,7 @@
                 <Button variant="neutral" class="flex-1 sm:flex-none border-2 border-black rounded-none uppercase font-black text-[10px] h-10 hover:bg-muted" @click="close">Close</Button>
                 <Button
                   v-if="!isFreeTier"
-                  class="flex-1 sm:flex-none border-2 border-black rounded-none uppercase font-black text-[10px] h-10 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
+                  class="flex-1 sm:flex-none border-2 border-black bg-primary text-black rounded-none uppercase font-black text-[10px] h-10 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
                   :disabled="isSaving"
                   @click="onSave"
                 >
